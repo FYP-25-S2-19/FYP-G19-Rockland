@@ -1,0 +1,11 @@
+{
+  "name": "rockland-devtools",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "cd frontend && npx expo start",
+    "install-all": "npm install --prefix frontend",
+    "setup-backend": "powershell -ExecutionPolicy Bypass -File backend/setup_backend.ps1",
+    "dev": "start cmd /k \"npm run setup-backend\" && npm run start"
+  }
+}
