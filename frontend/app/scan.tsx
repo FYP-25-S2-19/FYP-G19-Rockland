@@ -1,78 +1,140 @@
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "expo-router";
-import { Camera, CameraType } from "expo-camera";
+import { useRef, useState, useCallback } from "react";
+import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { View, Text, TouchableOpacity, Image, SafeAreaView, Modal } from "react-native";
+import { View, Text, Pressable, StyleSheet, TouchableOpacity, Modal, Platform } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
-export default function ScanCamera() {
+export default function Scan() {
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<CameraView>(null);
+  const [facing, setFacing] = useState<CameraType>("back");
+  const [flash, setFlash] = useState<"off" | "on">("off");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [isScreenFocused, setIsScreenFocused] = useState(true);
   const router = useRouter();
-  const cameraRef = useRef<Camera>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [tutorialVisible, setTutorialVisible] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === "granted");
-    })();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setIsScreenFocused(true);
+      return () => setIsScreenFocused(false);
+    }, [])
+  );
 
-  const handleCapture = async () => {
-    if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync();
-      router.push({ pathname: "/scan-result", params: { image: photo.uri } });
+  if (!permission) return null;
+
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ textAlign: "center" }}>We need permission to use camera</Text>
+        <Pressable onPress={requestPermission}><Text>Grant Permission</Text></Pressable>
+      </View>
+    );
+  }
+
+  const takePicture = async () => {
+    const photo = await cameraRef.current?.takePictureAsync();
+    const photoUri = photo?.uri ?? null;
+    if (photoUri) {
+      router.push({ pathname: "/scan-result", params: { image: photoUri } });
     }
   };
 
-  const handleOpenGallery = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 1 });
-    if (!result.canceled) {
-      router.push({ pathname: "/scan-result", params: { image: result.assets[0].uri } });
+  const openAlbum = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      const pickedUri = result.assets[0].uri;
+      router.push({ pathname: "/scan-result", params: { image: pickedUri } });
     }
   };
 
-  if (hasPermission === null) {
-    return <View className="flex-1 items-center justify-center"><Text>Requesting permission...</Text></View>;
-  }
-
-  if (hasPermission === false) {
-    return <View className="flex-1 items-center justify-center"><Text>No access to camera</Text></View>;
-  }
+  const toggleFacing = () => setFacing((prev) => (prev === "back" ? "front" : "back"));
+  const toggleFlash = () => setFlash((prev) => (prev === "off" ? "on" : "off"));
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
-      <Camera ref={cameraRef} className="flex-1" type={CameraType.back} />
+    <View style={styles.container}>
+      {isScreenFocused && (
+        <CameraView
+          style={StyleSheet.absoluteFill}
+          ref={cameraRef}
+          facing={facing}
+          flash={flash}
+          mute={false}
+        />
+      )}
 
-      {/* Bottom Controls */}
-      <View className="absolute bottom-8 w-full flex-row justify-around items-center px-8">
-        {/* Gallery */}
-        <TouchableOpacity onPress={handleOpenGallery} className="items-center">
-          <Text className="text-3xl">🖼️</Text>
+      {/* Top Controls */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="close" size={32} color="white" />
         </TouchableOpacity>
 
-        {/* Capture */}
-        <TouchableOpacity onPress={handleCapture} className="items-center justify-center w-20 h-20 rounded-full border-4 border-white bg-transparent">
-          <View className="w-14 h-14 bg-white rounded-full" />
-        </TouchableOpacity>
-
-        {/* Tutorial */}
-        <TouchableOpacity onPress={() => setTutorialVisible(true)} className="items-center">
-          <Text className="text-3xl">💡</Text>
+        <TouchableOpacity onPress={toggleFlash}>
+          <Ionicons name={flash === "off" ? "flash-off" : "flash"} size={32} color="white" />
         </TouchableOpacity>
       </View>
 
-      {/* Tutorial Modal */}
-      <Modal visible={tutorialVisible} transparent animationType="slide">
-        <View className="flex-1 justify-center items-center bg-black/70">
-          <View className="bg-white rounded-xl p-6 w-3/4">
-            <Text className="text-lg font-semibold mb-4">Scan Tutorial</Text>
-            <Text className="mb-4">Place the rock in the center of the frame and capture. Make sure lighting is good.</Text>
-            <TouchableOpacity onPress={() => setTutorialVisible(false)} className="mt-2 bg-green-600 py-3 rounded-lg">
-              <Text className="text-white font-semibold text-center">Got it</Text>
+      {/* Lamp Icon */}
+      <TouchableOpacity style={styles.lampIcon} onPress={() => setModalVisible(true)}>
+        <Ionicons name="bulb-outline" size={32} color="white" />
+      </TouchableOpacity>
+
+      {/* Shutter Controls */}
+      <View style={styles.shutterContainer}>
+        <Pressable onPress={openAlbum}>
+          <AntDesign name="picture" size={32} color="white" />
+        </Pressable>
+
+        <Pressable onPress={takePicture}>
+          {({ pressed }) => (
+            <View style={[styles.shutterBtn, { opacity: pressed ? 0.5 : 1 }]}>
+              <View style={styles.shutterBtnInner} />
+            </View>
+          )}
+        </Pressable>
+
+        <Pressable onPress={toggleFacing}>
+          <FontAwesome6 name="rotate-left" size={32} color="white" />
+        </Pressable>
+      </View>
+
+      {/* Modal */}
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Camera Tips</Text>
+            <Text style={styles.modalText}>• Hold your phone steady</Text>
+            <Text style={styles.modalText}>• Ensure proper lighting</Text>
+            <Text style={styles.modalText}>• Focus on the object</Text>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
+              <Text style={styles.closeBtnText}>Got it</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#000" },
+  topBar: { position: "absolute", top: 50, left: 20, right: 20, flexDirection: "row", justifyContent: "space-between" },
+  lampIcon: { position: "absolute", bottom: 160, alignSelf: "center" },
+  shutterContainer: {
+    position: "absolute", bottom: Platform.OS === "android" ? 60 : 44, // extra padding for Android buttons
+    left: 0, width: "100%", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 30, alignItems: "center"
+  },
+  shutterBtn: { borderWidth: 5, borderColor: "white", width: 85, height: 85, borderRadius: 45, alignItems: "center", justifyContent: "center" },
+  shutterBtnInner: { width: 70, height: 70, borderRadius: 50, backgroundColor: "white" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center" },
+  modalContent: { backgroundColor: "#fff", padding: 20, borderRadius: 10, width: 300, alignItems: "center" },
+  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
+  modalText: { fontSize: 16, marginVertical: 2 },
+  closeBtn: { marginTop: 20, backgroundColor: "#333", paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
+  closeBtnText: { color: "white", fontSize: 16 }
+});
