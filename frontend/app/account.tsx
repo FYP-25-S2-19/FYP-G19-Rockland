@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "expo-router";
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from "react-native";
 import BottomTabBar from "../components/BottomTabBar";
+import ProfilePicture from "../assets/images/profilepicture.png";
+import CrownIcon from "../assets/images/crown.svg"; 
+import SettingIcon from "../assets/images/Settings.png";
 
 export default function AccountScreen() {
   const router = useRouter();
 
   const handleSettings = () => {
-    console.log("Settings pressed");
+    router.push("/settings");
   };
 
   const handleProfile = () => {
@@ -25,33 +27,28 @@ export default function AccountScreen() {
   };
 
   const handleSettingsNavigation = () => {
-    console.log("Settings navigation pressed");
+    router.push("/settings");
   };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView className="flex-1 px-5 pt-5">
-        {/* Header */}
-        <View className="flex-row items-center justify-between mb-8">
-          <View className="flex-row items-center flex-1">
-            <View className="w-15 h-15 rounded-full bg-gray-100 justify-center items-center mr-4">
-              <Text className="text-4xl text-gray-400">👤</Text>
-            </View>
-            <View className="flex-1">
-              <Text className="text-xl font-bold text-gray-900 mb-1">Anna Kim</Text>
-              <Text className="text-sm text-gray-500">Free User</Text>
-            </View>
-          </View>
 
-          <TouchableOpacity onPress={handleSettings} activeOpacity={0.7} className="p-2">
-            <Text className="text-2xl">⚙️</Text>
+        {/* Centered Profile */}
+        <View className="items-center mb-8">
+          <Image source={ProfilePicture} style={{ width: 100, height: 100, borderRadius: 50 }} />
+          <Text className="text-xl font-bold text-gray-900 mt-4">Anna Kim</Text>
+          <Text className="text-sm text-gray-500 mt-1">Free User</Text>
+
+          <TouchableOpacity onPress={handleSettings} className="absolute top-0 right-0 p-2">
+            <Image source={SettingIcon} style={{ width: 24, height: 24 }} />
           </TouchableOpacity>
         </View>
 
         {/* Action Buttons */}
         <View className="flex-row mb-10 space-x-3">
           <TouchableOpacity
-            className="flex-1 bg-green-600 py-4 rounded-xl items-center"
+            className="flex-1 bg-green-600 py-4 rounded-xl items-center flex-row justify-center"
             onPress={handleProfile}
             activeOpacity={0.8}
           >
@@ -59,10 +56,11 @@ export default function AccountScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-1 bg-orange-500 py-4 rounded-xl items-center"
+            className="flex-1 bg-[#EF9E1C] py-4 rounded-xl items-center flex-row justify-center"
             onPress={handleSubscribe}
             activeOpacity={0.8}
           >
+            <CrownIcon style={{ width: 20, height: 20, marginRight: 8 }} fill = "white" />
             <Text className="text-white text-base font-semibold">Subscribe Now</Text>
           </TouchableOpacity>
         </View>
@@ -83,7 +81,7 @@ export default function AccountScreen() {
             onPress={handleSettingsNavigation}
             activeOpacity={0.7}
           >
-            <Text className="text-base font-medium text-gray-900">Setting</Text>
+            <Text className="text-base font-medium text-gray-900">Settings</Text>
             <Text className="text-xl text-gray-400">›</Text>
           </TouchableOpacity>
         </View>
