@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Modal, SafeAreaView } from "react-native";
+import BackIcon from "../assets/images/back.svg";
 
 export default function FilterModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const [selectedCategories, setSelectedCategories] = useState(["Beginner", "Fossils"]);
@@ -32,7 +33,7 @@ export default function FilterModal({ visible, onClose }: { visible: boolean; on
       <SafeAreaView className="flex-1 bg-white">
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-200">
-          <TouchableOpacity onPress={onClose}><Text className="text-2xl text-gray-800">←</Text></TouchableOpacity>
+          <TouchableOpacity onPress={onClose}><BackIcon width={24} height={24} /></TouchableOpacity>
           <Text className="text-lg font-semibold text-gray-900">Filter</Text>
           <TouchableOpacity onPress={handleReset}><Text className="text-green-600 font-medium">Reset</Text></TouchableOpacity>
         </View>
