@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   SafeAreaView,
-  StyleSheet,
 } from "react-native";
 
 export default function LoginScreen() {
@@ -19,8 +18,7 @@ export default function LoginScreen() {
 
   const handleLogin = () => {
     if (email === "test@rockland.com" && password === "rock123") {
-      // Navigate to home (either /home or /)
-      router.replace("/home"); // or router.replace('/') if home screen is index.tsx
+      router.replace("/home");
     } else {
       alert("Invalid email or password");
     }
@@ -39,26 +37,26 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Login Form Card */}
-        <View style={styles.formCard}>
+    <SafeAreaView className="flex-1 bg-green-600">
+      <View className="flex-1 justify-center px-6">
+        <View className="bg-white rounded-2xl p-6 shadow-lg shadow-black/10">
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Login</Text>
-            <View style={styles.registerLinkContainer}>
-              <Text style={styles.registerText}>Don't have an account? </Text>
+          <View className="items-center mb-8">
+            <Text className="text-2xl font-bold text-gray-800 mb-2">Login</Text>
+            <View className="flex-row items-center">
+              <Text className="text-sm text-gray-500">Don't have an account? </Text>
               <TouchableOpacity onPress={handleRegister} activeOpacity={0.7}>
-                <Text style={styles.registerLink}>Register</Text>
+                <Text className="text-sm text-green-600 font-medium">Register</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Input Fields */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Email</Text>
+          {/* Email */}
+          <View className="mb-5">
+            <Text className="text-base font-medium text-gray-700 mb-2">Email</Text>
             <TextInput
-              style={styles.textInput}
+              className="border border-gray-300 rounded-lg px-4 py-3.5 text-base text-gray-800 bg-gray-50"
+              textAlignVertical="center"
               value={email}
               onChangeText={setEmail}
               placeholder="Enter your email"
@@ -68,11 +66,12 @@ export default function LoginScreen() {
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Password</Text>
-            <View style={styles.passwordContainer}>
+          {/* Password */}
+          <View className="mb-5">
+            <Text className="text-base font-medium text-gray-700 mb-2">Password</Text>
+            <View className="flex-row items-center border border-gray-300 rounded-lg bg-gray-50">
               <TextInput
-                style={styles.passwordInput}
+                className="flex-1 px-4 py-3 text-base text-gray-800"
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Enter your password"
@@ -80,242 +79,67 @@ export default function LoginScreen() {
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity
-                style={styles.eyeButton}
+                className="px-4 py-3"
                 onPress={() => setShowPassword(!showPassword)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.eyeText}>{showPassword ? "👁️" : "👁️‍🗨️"}</Text>
+                <Text className="text-lg">{showPassword ? "👁️" : "👁️‍🗨️"}</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Remember Me and Forgot Password */}
-          <View style={styles.optionsRow}>
+          <View className="flex-row justify-between items-center mb-6">
             <TouchableOpacity
-              style={styles.checkboxContainer}
+              className="flex-row items-center"
               onPress={() => setRememberMe(!rememberMe)}
               activeOpacity={0.7}
             >
               <View
-                style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
+                className={`w-5 h-5 border-2 rounded border-gray-300 mr-2 items-center justify-center ${rememberMe ? "bg-green-600 border-green-600" : ""}`}
               >
-                {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+                {rememberMe && <Text className="text-white text-xs font-bold">✓</Text>}
               </View>
-              <Text style={styles.checkboxLabel}>Remember me</Text>
+              <Text className="text-sm text-gray-700">Remember me</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleForgotPassword}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
+            <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7}>
+              <Text className="text-sm text-green-600 font-medium">Forgot Password?</Text>
             </TouchableOpacity>
           </View>
 
           {/* Login Button */}
           <TouchableOpacity
-            style={styles.loginButton}
+            className="bg-green-600 py-4 rounded-lg mb-6"
             onPress={handleLogin}
             activeOpacity={0.8}
           >
-            <Text style={styles.loginButtonText}>Log In</Text>
+            <Text className="text-white text-lg font-semibold text-center">Log In</Text>
           </TouchableOpacity>
 
           {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Or</Text>
-            <View style={styles.dividerLine} />
+          <View className="flex-row items-center mb-6">
+            <View className="flex-1 h-px bg-gray-200" />
+            <Text className="mx-4 text-sm text-gray-500">Or</Text>
+            <View className="flex-1 h-px bg-gray-200" />
           </View>
 
-          {/* Google Login Button */}
+          {/* Google Button */}
           <TouchableOpacity
-            style={styles.googleButton}
+            className="flex-row items-center justify-center bg-white border border-gray-300 py-4 rounded-lg"
             onPress={handleGoogleLogin}
             activeOpacity={0.8}
           >
             <Image
               source={{ uri: "/placeholder.svg?height=20&width=20" }}
-              style={styles.googleIcon}
+              className="w-5 h-5 mr-3"
             />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            <Text className="text-base font-medium text-gray-700">
+              Continue with Google
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#16a34a", // Green background
-  },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  formCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#1f2937",
-    marginBottom: 8,
-  },
-  registerLinkContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  registerText: {
-    fontSize: 14,
-    color: "#6b7280",
-  },
-  registerLink: {
-    fontSize: 14,
-    color: "#16a34a",
-    fontWeight: "500",
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#374151",
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "#1f2937",
-    backgroundColor: "#f9fafb",
-  },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 8,
-    backgroundColor: "#f9fafb",
-  },
-  passwordInput: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "#1f2937",
-  },
-  eyeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  eyeText: {
-    fontSize: 18,
-  },
-  optionsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: "#d1d5db",
-    borderRadius: 4,
-    marginRight: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkboxChecked: {
-    backgroundColor: "#16a34a",
-    borderColor: "#16a34a",
-  },
-  checkmark: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: "#374151",
-  },
-  forgotPasswordLink: {
-    fontSize: 14,
-    color: "#16a34a",
-    fontWeight: "500",
-  },
-  loginButton: {
-    backgroundColor: "#16a34a",
-    paddingVertical: 16,
-    borderRadius: 8,
-    marginBottom: 24,
-  },
-  loginButtonText: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#e5e7eb",
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    color: "#6b7280",
-  },
-  googleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    paddingVertical: 16,
-    borderRadius: 8,
-  },
-  googleIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 12,
-  },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#374151",
-  },
-});
