@@ -3,6 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   Home,
   Users,
@@ -77,6 +79,22 @@ const onDemandCategories = [
 ]
 
 export default function Dashboard() {
+  const router = useRouter()
+
+  useEffect(() => {
+    // Check if user is logged in (for prototype)
+    const isLoggedIn = localStorage.getItem('isAdminLoggedIn')
+    if (!isLoggedIn) {
+      router.push('/login')
+    }
+  }, [router])
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAdminLoggedIn')
+    localStorage.removeItem('adminEmail')
+    router.push('/login')
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -103,7 +121,10 @@ export default function Dashboard() {
 
         {/* Logout */}
         <div className="p-4 border-t border-green-500">
-          <div className="flex items-center px-2 py-3 text-sm hover:bg-green-500 cursor-pointer rounded">
+          <div 
+            onClick={handleLogout}
+            className="flex items-center px-2 py-3 text-sm hover:bg-green-500 cursor-pointer rounded"
+          >
             <LogOut className="w-5 h-5 mr-3" />
             Log Out
           </div>
@@ -179,7 +200,12 @@ export default function Dashboard() {
                       </div>
                       <span className="text-sm font-semibold text-gray-900">{category.percentage}%</span>
                     </div>
-                    <Progress value={category.percentage} className="h-2" />
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${category.color}`}
+                        style={{ width: `${category.percentage}%` }}
+                      ></div>
+                    </div>
                   </div>
                 ))}
               </CardContent>
@@ -202,7 +228,12 @@ export default function Dashboard() {
                       </div>
                       <span className="text-sm font-semibold text-gray-900">{category.percentage}%</span>
                     </div>
-                    <Progress value={category.percentage} className="h-2" />
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${category.color}`}
+                        style={{ width: `${category.percentage}%` }}
+                      ></div>
+                    </div>
                   </div>
                 ))}
               </CardContent>
