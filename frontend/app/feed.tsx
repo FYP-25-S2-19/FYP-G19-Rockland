@@ -64,10 +64,11 @@ export default function FeedScreen() {
 
       {/* Search Bar */}
       <View className="flex-row px-4 py-3 items-center">
-        <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-4 py-3 mr-3 border border-gray-600">
+        <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-4 h-12 mr-3 border border-gray-600">
           <SearchIcon width={20} height={20} style={{ marginRight: 10 }} />
           <TextInput
-            className="flex-1 text-base text-gray-800"
+            className="flex-1 text-base text-gray-800 p-0"
+            style={{ paddingVertical: 0 }}
             value={searchText}
             onChangeText={setSearchText}
             placeholder="Search..."
