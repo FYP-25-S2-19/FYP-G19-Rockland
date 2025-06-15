@@ -2,6 +2,7 @@
 
 import { useRouter } from "expo-router";
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomTabBar from "../components/BottomTabBar";
 import ProfilePicture from "../assets/images/profilepicture.png";
 import CrownIcon from "../assets/images/crown.svg"; 
@@ -9,6 +10,7 @@ import SettingIcon from "../assets/images/Settings.png";
 
 export default function AccountScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const handleSettings = () => {
     router.push("/settings");
@@ -32,8 +34,10 @@ export default function AccountScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1 px-5 pt-5">
-
+      <ScrollView
+        className="flex-1 px-5"
+        contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: 20 }}
+      >
         {/* Centered Profile */}
         <View className="items-center mb-8">
           <Image source={ProfilePicture} style={{ width: 100, height: 100, borderRadius: 50 }} />
@@ -46,9 +50,9 @@ export default function AccountScreen() {
         </View>
 
         {/* Action Buttons */}
-        <View className="flex-row mb-10 space-x-3">
+        <View className="flex-row mb-10">
           <TouchableOpacity
-            className="flex-1 bg-green-600 py-4 rounded-xl items-center flex-row justify-center"
+            className="flex-1 bg-green-600 py-4 rounded-xl items-center flex-row justify-center mr-1.5"
             onPress={handleProfile}
             activeOpacity={0.8}
           >
@@ -56,11 +60,11 @@ export default function AccountScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-1 bg-[#EF9E1C] py-4 rounded-xl items-center flex-row justify-center"
+            className="flex-1 bg-[#EF9E1C] py-4 rounded-xl items-center flex-row justify-center ml-1.5"
             onPress={handleSubscribe}
             activeOpacity={0.8}
           >
-            <CrownIcon style={{ width: 20, height: 20, marginRight: 8 }} fill = "white" />
+            <CrownIcon style={{ width: 20, height: 20, marginRight: 8 }} fill="white" />
             <Text className="text-white text-base font-semibold">Subscribe Now</Text>
           </TouchableOpacity>
         </View>

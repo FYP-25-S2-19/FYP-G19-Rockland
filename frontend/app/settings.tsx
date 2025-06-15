@@ -44,28 +44,28 @@ export default function SettingsScreen() {
         {/* Settings Buttons */}
         <View className="space-y-4">
           <TouchableOpacity
-            className="bg-gray-700 py-4 rounded-xl items-center"
+            className="bg-gray-700 py-4 rounded-xl items-center mb-2"
             onPress={handleUpdateInfo}
           >
             <Text className="text-white text-base font-semibold">Update Personal Information</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="bg-gray-700 py-4 rounded-xl items-center"
+            className="bg-gray-700 py-4 rounded-xl items-center mb-2"
             onPress={handleUpgrade}
           >
             <Text className="text-white text-base font-semibold">Upgrade Account to Premium</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="bg-gray-700 py-4 rounded-xl items-center"
+            className="bg-gray-700 py-4 rounded-xl items-center mb-2"
             onPress={handleFAQ}
           >
             <Text className="text-white text-base font-semibold">FAQ Page</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="bg-gray-700 py-4 rounded-xl items-center"
+            className="bg-gray-700 py-4 rounded-xl items-center mb-2"
             onPress={handleApplyExpert}
           >
             <Text className="text-white text-base font-semibold">Apply to be Expert</Text>
