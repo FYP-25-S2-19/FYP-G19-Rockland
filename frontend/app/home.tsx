@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useRouter } from "expo-router";
 import { View, Text, TextInput, TouchableOpacity, Image, SafeAreaView, ScrollView } from "react-native";
 import BottomTabBar from "../components/BottomTabBar";
+import CrownIcon from "../assets/images/crown.svg";
+import SearchIcon from "../assets/images/search.svg";
 
 export default function HomeScreen() {
   const [searchText, setSearchText] = useState("");
@@ -27,13 +29,13 @@ export default function HomeScreen() {
         {/* Header */}
         <View className="items-center pt-5 pb-6">
           <Text className="text-3xl font-bold text-black mb-1">ROCKLAND</Text>
-          <Text className="text-sm text-blue-500">#1 Rock Learning Platform</Text>
+          <Text className="text-sm text-green-500">#1 Rock Learning Platform</Text>
         </View>
 
         {/* Search Bar */}
         <View className="px-5 mb-5">
           <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3">
-            <Text className="text-lg mr-3">🔍</Text>
+            <SearchIcon width={24} height={24} style={{ marginRight: 10 }} />
             <TextInput
               className="flex-1 text-base text-gray-800"
               value={searchText}
@@ -45,18 +47,18 @@ export default function HomeScreen() {
         </View>
 
         {/* Unlock Features */}
-        <TouchableOpacity className="flex-row items-center bg-yellow-500 mx-5 py-4 px-5 rounded-xl mb-5" activeOpacity={0.8}>
-          <Text className="text-xl mr-3">👑</Text>
+        <TouchableOpacity className="flex-row items-center bg-[#EF9E1C] mx-5 py-4 px-5 rounded-xl mb-5" activeOpacity={0.8}>
+          <Text className="text-xl mr-3"><CrownIcon width={22} height={22} style={{ marginRight: 10 }} fill="white" /></Text>
           <Text className="flex-1 text-base font-semibold text-white">Tap to unlock full features</Text>
           <Text className="text-lg text-white">→</Text>
         </TouchableOpacity>
 
         {/* Quiz & Leaderboard */}
-        <View className="flex-row px-5 mb-8 space-x-3">
-          <TouchableOpacity className="flex-1 bg-green-600 py-4 rounded-xl items-center" activeOpacity={0.8}>
+        <View className="flex-row px-5 mb-8">
+          <TouchableOpacity className="flex-1 bg-green-600 py-4 rounded-xl items-center mr-1.5" activeOpacity={0.8}>
             <Text className="text-base font-semibold text-white">Take Quiz</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="flex-1 bg-green-600 py-4 rounded-xl items-center" activeOpacity={0.8}>
+          <TouchableOpacity className="flex-1 bg-green-600 py-4 rounded-xl items-center ml-1.5" activeOpacity={0.8}>
             <Text className="text-base font-semibold text-white">Leaderboard</Text>
           </TouchableOpacity>
         </View>
