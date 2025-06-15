@@ -11,35 +11,25 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/registration/page": [
+    "/features/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/registration/page.js"
-    ],
-    "/faq/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/faq/page.js"
+      "static/chunks/app/features/page.js"
     ],
     "/pricing/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/pricing/page.js"
     ],
-    "/login/page": [
+    "/faq/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
+      "static/chunks/app/faq/page.js"
     ],
-    "/features/page": [
+    "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/features/page.js"
-    ],
-    "/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/page.js"
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }
