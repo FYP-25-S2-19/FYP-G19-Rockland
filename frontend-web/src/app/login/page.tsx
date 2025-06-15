@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
+import { useRouter } from "next/navigation" // Add this import
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,11 +13,23 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
+  const router = useRouter() // Add this hook
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle login logic here
-    console.log("Login attempt:", { email, password, rememberMe })
+    
+    // For prototype: Accept any email/password and redirect to dashboard
+    // In production, you would validate credentials here
+    
+    // Optional: You can add basic validation
+    if (email && password) {
+      // Store user info in localStorage for the prototype
+      localStorage.setItem('isAdminLoggedIn', 'true')
+      localStorage.setItem('adminEmail', email)
+      
+      // Redirect to dashboard
+      router.push('/dashboard')
+    }
   }
 
   return (
@@ -49,6 +61,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@rockland.com" // Add placeholder for prototype
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
@@ -64,6 +77,7 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter any password" // Add placeholder for prototype
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   required
                 />
@@ -90,6 +104,11 @@ export default function LoginPage() {
             >
               Login
             </Button>
+
+            {/* Prototype Notice */}
+            <p className="text-xs text-gray-500 text-center">
+              For prototype: Enter any email and password to access the dashboard
+            </p>
           </form>
         </div>
       </div>
