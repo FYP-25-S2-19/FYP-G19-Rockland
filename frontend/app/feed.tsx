@@ -1,30 +1,45 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { View, Text, TextInput, TouchableOpacity, FlatList, SafeAreaView, Modal, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  SafeAreaView,
+  Modal,
+  Pressable,
+} from "react-native";
 import ArticleCard from "../components/ArticleCard";
+import DiscussionCard from "../components/DiscussionCard";
 import FilterModal from "../components/FilterModal";
 import BottomTabBar from "../components/BottomTabBar";
 import CrownIcon from "../assets/images/crown.svg";
 import FilterIcon from "../assets/images/filter.svg";
 import SearchIcon from "../assets/images/search.svg";
 import { sampleArticles } from "../data/article";
+import { sampleDiscussions } from "../data/discussion";
 
 export default function FeedScreen() {
   const router = useRouter();
 
-  const [isPremiumUser, setIsPremiumUser] = useState(false);
+  const [isPremiumUser, setIsPremiumUser] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<"Articles" | "Discussions">("Articles");
+  const [activeTab, setActiveTab] = useState<"Articles" | "Discussions">(
+    "Articles"
+  );
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState("");
 
-  const [articles, setArticles] = useState(sampleArticles.map(article => ({ ...article, liked: false })));
+  const [articles, setArticles] = useState(
+    sampleArticles.map((article) => ({ ...article, liked: false }))
+  );
 
   const handleLikeToggle = (articleId: number) => {
-    setArticles(prevArticles =>
-      prevArticles.map(article => {
+    setArticles((prevArticles) =>
+      prevArticles.map((article) => {
         if (article.id === articleId) {
           const liked = !article.liked;
           const likes = liked ? article.likes + 1 : article.likes - 1;
@@ -35,7 +50,7 @@ export default function FeedScreen() {
     );
   };
 
-  const filteredArticles = articles.filter(article => {
+  const filteredArticles = articles.filter((article) => {
     const keyword = searchText.toLowerCase();
     return (
       article.title.toLowerCase().includes(keyword) ||
@@ -61,7 +76,6 @@ export default function FeedScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-
       {/* Search Bar */}
       <View className="flex-row px-4 py-3 items-center">
         <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-4 py-3 mr-3 border border-gray-600">
@@ -75,7 +89,10 @@ export default function FeedScreen() {
           />
         </View>
 
-        <TouchableOpacity onPress={() => setFilterModalVisible(true)} className="p-3 bg-gray-100 rounded-xl border border-gray-600">
+        <TouchableOpacity
+          onPress={() => setFilterModalVisible(true)}
+          className="p-3 bg-gray-100 rounded-xl border border-gray-600"
+        >
           <FilterIcon width={20} height={20} />
         </TouchableOpacity>
       </View>
@@ -83,13 +100,17 @@ export default function FeedScreen() {
       {/* Tabs */}
       <View className="flex-row justify-around border-b border-gray-200 pb-2 mb-2">
         <TouchableOpacity onPress={() => handleTabPress("Articles")}>
-          <Text className={`text-base font-semibold ${activeTab === "Articles" ? "text-black border-b-2 border-black pb-1" : "text-gray-400"}`}>
+          <Text
+            className={`text-base font-semibold ${activeTab === "Articles" ? "text-black border-b-2 border-black pb-1" : "text-gray-400"}`}
+          >
             Articles
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => handleTabPress("Discussions")}>
-          <Text className={`text-base font-semibold ${activeTab === "Discussions" ? "text-black border-b-2 border-black pb-1" : "text-gray-400"}`}>
+          <Text
+            className={`text-base font-semibold ${activeTab === "Discussions" ? "text-black border-b-2 border-black pb-1" : "text-gray-400"}`}
+          >
             Discussions
           </Text>
         </TouchableOpacity>
@@ -97,8 +118,15 @@ export default function FeedScreen() {
 
       {/* Premium Banner */}
       <TouchableOpacity className="flex-row bg-[#EF9E1C] mx-4 p-4 rounded-xl mb-4 items-center">
-        <CrownIcon width={22} height={22} style={{ marginRight: 10 }} fill="white" />
-        <Text className="flex-1 text-base font-semibold text-white">Subscribe Now to Unlock Full Articles</Text>
+        <CrownIcon
+          width={22}
+          height={22}
+          style={{ marginRight: 10 }}
+          fill="white"
+        />
+        <Text className="flex-1 text-base font-semibold text-white">
+          Subscribe Now to Unlock Full Articles
+        </Text>
         <Text className="text-lg text-white">→</Text>
       </TouchableOpacity>
 
@@ -120,12 +148,24 @@ export default function FeedScreen() {
         />
       ) : (
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-400 text-lg">Discussions content coming soon...</Text>
+          <FlatList
+            data={sampleDiscussions}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => <DiscussionCard discussion={item} />}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingBottom: 100,
+            }}
+          />
         </View>
       )}
 
       <BottomTabBar activeTab="Feed" />
-      <FilterModal visible={filterModalVisible} onClose={() => setFilterModalVisible(false)} />
+      <FilterModal
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+      />
 
       {/* Shared Upgrade Modal */}
       <Modal
@@ -138,13 +178,15 @@ export default function FeedScreen() {
           <View className="bg-white p-6 rounded-xl w-80">
             <Text className="text-lg font-bold mb-4">Premium Feature</Text>
             <Text className="text-sm mb-6">{upgradeMessage}</Text>
-            <Pressable className="bg-black py-3 rounded-xl" onPress={() => setShowUpgradeModal(false)}>
+            <Pressable
+              className="bg-black py-3 rounded-xl"
+              onPress={() => setShowUpgradeModal(false)}
+            >
               <Text className="text-white text-center font-semibold">OK</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 }
