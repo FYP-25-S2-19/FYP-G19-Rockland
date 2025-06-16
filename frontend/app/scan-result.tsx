@@ -60,6 +60,19 @@ export default function ScanResult() {
           <Text className="text-[14px] text-[#111827]">Igneous</Text>
         </View>
       </View>
+      <View className="mt-8 w-[295px] space-y-4">
+        <TouchableOpacity className="bg-green-600 py-3 rounded-lg items-center mb-4" activeOpacity={0.8}>
+          <Text className="text-white font-semibold text-[14px]">Save to Collection</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="bg-gray-200 py-3 rounded-lg items-center"
+          activeOpacity={0.8}
+          onPress={() => router.replace("/scan")}
+        >
+          <Text className="text-[#111827] font-semibold text-[14px]">Retake Image</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
