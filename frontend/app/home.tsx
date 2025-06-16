@@ -1,22 +1,15 @@
-"use client";
-
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "expo-router";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  SafeAreaView,
-  ScrollView,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, SafeAreaView, ScrollView } from "react-native";
 import BottomTabBar from "../components/BottomTabBar";
-import Bedrock from "../assets/images/bedrock-placeholder-home.jpg";
-import Popular from "../assets/images/article-placeholder-home.jpeg";
-import Article from "../assets/images/article-placeholder-home-2.jpeg";
 import CrownIcon from "../assets/images/crown.svg";
 import SearchIcon from "../assets/images/search.svg";
+import { sampleArticles } from "../data/article";
+
+const graniteImg = require("../assets/images/granite.png");
+const limestoneImg = require("../assets/images/limestone.png");
+const basaltImg = require("../assets/images/basalt.png");
+const quartziteImg = require("../assets/images/quartzite.png");
 
 export default function HomeScreen() {
   const [searchText, setSearchText] = useState("");
@@ -26,59 +19,27 @@ export default function HomeScreen() {
     console.log(`Article pressed: ${article}`);
   };
 
-  const rocks = [
-    {
-      id: 1,
-      name: "Bedrock",
-      category: "Igneous Rock",
-      rarity: "Common",
-      image: Bedrock,
-    },
-    {
-      id: 2,
-      name: "Bedcover",
-      category: "Igneous Rock",
-      rarity: "Rare",
-      image: Bedrock,
-    },
-    {
-      id: 3,
-      name: "Bedcover",
-      category: "Igneous Rock",
-      rarity: "Legendary",
-      image: Bedrock,
-    },
-  ];
-
-  const popularImages = [Popular, Popular, Popular, Popular];
-
-  const filteredRocks = rocks.filter((rock) =>
-    rock.name.toLowerCase().includes(searchText.toLowerCase())
-  );
+  const handleSearchClick = () => {
+    router.push("/searchrock");
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="items-center pt-5 pb-6">
-          <Text className="text-3xl font-bold text-black mb-1">ROCKLAND</Text>
-          <Text className="text-sm text-blue-500">
-            #1 Rock Learning Platform
-          </Text>
+          <Text className="text-4xl font-bold text-black mb-1">ROCKLAND</Text>
+          <Text className="text-base font-bold text-green-500">#1 Rock Learning Platform</Text>
         </View>
 
         {/* Search Bar */}
         <View className="px-5 mb-5">
-          <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3">
-            <SearchIcon width={24} height={24} style={{ marginRight: 10 }} />
-            <TextInput
-              className="flex-1 text-base text-gray-800"
-              value={searchText}
-              onChangeText={setSearchText}
-              placeholder="Search rocks, minerals..."
-              placeholderTextColor="#9ca3af"
-            />
-          </View>
+          <TouchableOpacity onPress={handleSearchClick} activeOpacity={0.8}>
+            <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3 border border-gray-600">
+              <SearchIcon width={24} height={24} style={{ marginRight: 10 }} />
+              <Text className="text-base text-gray-400">Search rocks, minerals...</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Unlock Features */}
@@ -88,7 +49,7 @@ export default function HomeScreen() {
           <Text className="text-lg text-white">→</Text>
         </TouchableOpacity>
 
-        {/* Quiz & Leaderboard */}
+        {/* Take Quiz & Leaderboard */}
         <View className="flex-row px-5 mb-8">
           <TouchableOpacity className="flex-1 bg-green-600 py-4 rounded-xl items-center mr-1.5" activeOpacity={0.8}>
             <Text className="text-base font-semibold text-white">Take Quiz</Text>
@@ -99,131 +60,72 @@ export default function HomeScreen() {
         </View>
 
         {/* Popular on Rockland */}
-        <View className="px-5 mb-8">
-          <Text className="text-xl font-bold text-gray-900 mb-4">
-            Popular on Rockland
-          </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-            {popularImages.map((img, i) => (
-              <Image
-                key={i}
-                source={img}
-                style={{
-                  width: "48%",
-                  height: 120,
-                  borderRadius: 12,
-                }}
-                resizeMode="stretch"
-              />
-            ))}
-          </View>
-        </View>
+        <View className="px-5 mb-3">
+          <Text className="text-xl font-bold text-gray-900 mb-4">Popular on Rockland</Text>
 
-        {/* Rock Results */}
-        <View className="px-5 mb-8">
-          <Text className="text-xl font-bold text-gray-900 mb-4">
-            Rock Results
-          </Text>
-          {filteredRocks.map((rock, index) => {
-            const containerClass =
-              "flex-row items-center bg-white p-3 border-b border-gray-200 " +
-              (index === 0 ? "border-2 border-blue-500" : "");
-
-            const badgeClass =
-              "px-3 py-1 rounded-full " +
-              (rock.rarity === "Rare"
-                ? "bg-green-500"
-                : rock.rarity === "Legendary"
-                  ? "bg-yellow-500"
-                  : "bg-gray-400");
-
-            return (
-              <TouchableOpacity
-                key={rock.id}
-                className={containerClass}
-                activeOpacity={0.8}
-              >
-                <Image
-                  source={rock.image}
-                  style={{
-                    width: 60,
-                    height: 60,
-                    marginRight: 12,
-                    borderRadius: 8,
-                  }}
-                  resizeMode="cover"
-                />
-                <View className="flex-1">
-                  <Text className="text-base font-semibold text-gray-900">
-                    {rock.name}
-                  </Text>
-                  <Text className="text-sm text-gray-500">
-                    Category: {rock.category}
-                  </Text>
-                </View>
-                <View className={badgeClass}>
-                  <Text className="text-xs font-medium text-white">
-                    {rock.rarity}
-                  </Text>
+          <View className="flex-row flex-wrap mb-3">
+            {/* Granite */}
+            <View className="flex-row w-full mb-3">
+              <TouchableOpacity className="flex-1 bg-white rounded-xl overflow-hidden border border-gray-300 shadow-sm mr-1.5" activeOpacity={0.8}>
+                <Image source={graniteImg} className="w-full h-32" resizeMode="cover" />
+                <View className="p-3">
+                  <Text className="text-lg font-semibold text-gray-900 mb-1">Granite</Text>
+                  <Text className="text-sm text-gray-500 mb-1">Igneous Rock</Text>
+                  <Text className="text-sm text-gray-600">💬 128 Comments</Text>
                 </View>
               </TouchableOpacity>
-            );
-          })}
+
+              <TouchableOpacity className="flex-1 bg-white rounded-xl overflow-hidden border border-gray-300 shadow-sm ml-1.5" activeOpacity={0.8}>
+                <Image source={limestoneImg} className="w-full h-32" resizeMode="cover" />
+                <View className="p-3">
+                  <Text className="text-lg font-semibold text-gray-900 mb-1">Limestone</Text>
+                  <Text className="text-sm text-gray-500 mb-1">Sedimentary Rock</Text>
+                  <Text className="text-sm text-gray-600">💬 102 Comments</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex-row w-full mb-3">
+              <TouchableOpacity className="flex-1 bg-white rounded-xl overflow-hidden border border-gray-300 shadow-sm mr-1.5" activeOpacity={0.8}>
+                <Image source={basaltImg} className="w-full h-32" resizeMode="cover" />
+                <View className="p-3">
+                  <Text className="text-lg font-semibold text-gray-900 mb-1">Basalt</Text>
+                  <Text className="text-sm text-gray-500 mb-1">Igneous Rock</Text>
+                  <Text className="text-sm text-gray-600">💬 95 Comments</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity className="flex-1 bg-white rounded-xl overflow-hidden border border-gray-300 shadow-sm ml-1.5" activeOpacity={0.8}>
+                <Image source={quartziteImg} className="w-full h-32" resizeMode="cover" />
+                <View className="p-3">
+                  <Text className="text-lg font-semibold text-gray-900 mb-1">Quartzite</Text>
+                  <Text className="text-sm text-gray-500 mb-1">Metamorphic Rock</Text>
+                  <Text className="text-sm text-gray-600">💬 90 Comments</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {/* Top Articles */}
-        <View className="px-5 mb-8">
-          <Text className="text-xl font-bold text-gray-900 mb-4">
-            Top Articles
-          </Text>
-          <View style={{ flexDirection: "row", gap: 12 }}>
+        <View className="px-5 mb-10">
+          <Text className="text-xl font-bold text-gray-900 mb-4">Top Articles</Text>
+          {sampleArticles.map((article) => (
             <TouchableOpacity
-              style={{ flex: 1 }}
-              onPress={() => handleArticlePress("geological rocks")}
+              key={article.id}
+              className="flex-row mb-4 bg-white rounded-xl overflow-hidden border border-gray-300 shadow-sm"
               activeOpacity={0.8}
+              onPress={() => handleArticlePress(article.title)}
             >
-              <Image
-                source={Article}
-                style={{
-                  width: "100%",
-                  height: 120,
-                  borderRadius: 12,
-                  marginBottom: 8,
-                  borderWidth: 2,
-                  borderColor: "red",
-                }}
-                resizeMode="stretch"
-              />
-              <Text className="text-sm text-gray-700 leading-5">
-                What are the type of geological rocks?
-              </Text>
+              <Image source={article.thumbnail} className="w-28 h-28" resizeMode="cover" />
+              <View className="flex-1 p-3 justify-center">
+                <Text className="text-base font-semibold text-gray-900 mb-1">{article.title}</Text>
+                <Text className="text-sm text-gray-500">{article.category}</Text>
+              </View>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{ flex: 1 }}
-              onPress={() => handleArticlePress("rock formation")}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={Article}
-                style={{
-                  width: "100%",
-                  height: 120,
-                  borderRadius: 12,
-                  marginBottom: 8,
-                  borderWidth: 2,
-                  borderColor: "blue",
-                }}
-                resizeMode="stretch"
-              />
-              <Text className="text-sm text-gray-700 leading-5">
-                How do sedimentary rocks form?
-              </Text>
-            </TouchableOpacity>
-          </View>
+          ))}
         </View>
 
-        <View className="h-5" />
       </ScrollView>
 
       {/* Bottom Tab */}
