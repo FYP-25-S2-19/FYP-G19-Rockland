@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { View, Text, TextInput, TouchableOpacity, Image, SafeAreaView, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import BottomTabBar from "../components/BottomTabBar";
 import CrownIcon from "../assets/images/crown.svg";
 import SearchIcon from "../assets/images/search.svg";
@@ -12,8 +13,16 @@ const basaltImg = require("../assets/images/basalt.png");
 const quartziteImg = require("../assets/images/quartzite.png");
 
 export default function HomeScreen() {
-  const [searchText, setSearchText] = useState("");
+  const [role, setRole] = useState("free");
   const router = useRouter();
+
+  useEffect(() => {
+    const loadRole = async () => {
+      const storedRole = await AsyncStorage.getItem("userRole");
+      if (storedRole) setRole(storedRole);
+    };
+    loadRole();
+  }, []);
 
   const handleArticlePress = (article: string) => {
     console.log(`Article pressed: ${article}`);
@@ -32,7 +41,7 @@ export default function HomeScreen() {
           <Text className="text-base font-bold text-green-500">#1 Rock Learning Platform</Text>
         </View>
 
-        {/* Search Bar */}
+        {/* Search */}
         <View className="px-5 mb-5">
           <TouchableOpacity onPress={handleSearchClick} activeOpacity={0.8}>
             <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3 border border-gray-600">
@@ -42,12 +51,14 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Unlock Features */}
-        <TouchableOpacity className="flex-row items-center bg-[#EF9E1C] mx-5 py-4 px-5 rounded-xl mb-5" activeOpacity={0.8}>
-          <Text className="text-xl mr-3"><CrownIcon width={22} height={22} style={{ marginRight: 10 }} fill="white" /></Text>
-          <Text className="flex-1 text-base font-semibold text-white">Tap to unlock full features</Text>
-          <Text className="text-lg text-white">→</Text>
-        </TouchableOpacity>
+        {/* Unlock Features — show only for free user */}
+        {role === "free" && (
+          <TouchableOpacity className="flex-row items-center bg-[#EF9E1C] mx-5 py-4 px-5 rounded-xl mb-5" activeOpacity={0.8}>
+            <Text className="text-xl mr-3"><CrownIcon width={22} height={22} style={{ marginRight: 10 }} fill="white" /></Text>
+            <Text className="flex-1 text-base font-semibold text-white">Tap to unlock full features</Text>
+            <Text className="text-lg text-white">→</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Take Quiz & Leaderboard */}
         <View className="flex-row px-5 mb-8">
@@ -64,7 +75,6 @@ export default function HomeScreen() {
           <Text className="text-xl font-bold text-gray-900 mb-4">Popular on Rockland</Text>
 
           <View className="flex-row flex-wrap mb-3">
-            {/* Granite */}
             <View className="flex-row w-full mb-3">
               <TouchableOpacity className="flex-1 bg-white rounded-xl overflow-hidden border border-gray-300 shadow-sm mr-1.5" activeOpacity={0.8}>
                 <Image source={graniteImg} className="w-full h-32" resizeMode="cover" />
@@ -125,10 +135,8 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ))}
         </View>
-
       </ScrollView>
 
-      {/* Bottom Tab */}
       <BottomTabBar activeTab="Home" />
     </SafeAreaView>
   );

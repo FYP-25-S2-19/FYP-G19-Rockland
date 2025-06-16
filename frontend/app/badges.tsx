@@ -1,5 +1,8 @@
 "use client"
 
+
+import BackIcon from "../assets/images/back.svg";
+import { useRouter } from "expo-router";
 import { useState } from "react"
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from "react-native"
 
@@ -23,6 +26,7 @@ type Badge = {
 
 export default function BadgesProgressScreen() {
   const [activeTab, setActiveTab] = useState<"All" | "Earned" | "In Progress">("All")
+  const router = useRouter();
 
   // Sample badge data
   const badges: Badge[] = [
@@ -89,8 +93,9 @@ export default function BadgesProgressScreen() {
   ]
 
   const handleBack = () => {
-    console.log("Back pressed")
-  }
+    router.back();
+  };
+
 
   const handleTabPress = (tab: "All" | "Earned" | "In Progress") => {
     setActiveTab(tab)
@@ -192,7 +197,7 @@ export default function BadgesProgressScreen() {
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-200">
         <TouchableOpacity onPress={handleBack} className="p-2">
-          <Text className="text-gray-900 text-xl">←</Text>
+          <BackIcon width={24} height={24} />
         </TouchableOpacity>
         <Text className="text-gray-900 font-semibold text-lg">Badges & Progress</Text>
         <View className="w-6" />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import {
   View,
@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import ArticleCard from "../components/ArticleCard";
 import DiscussionCard from "../components/DiscussionCard";
 import FilterModal from "../components/FilterModal";
@@ -23,19 +24,24 @@ import { sampleDiscussions } from "../data/discussion";
 export default function FeedScreen() {
   const router = useRouter();
 
-  const [isPremiumUser, setIsPremiumUser] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [activeTab, setActiveTab] = useState<"Articles" | "Discussions">(
-    "Articles"
-  );
-
+  const [activeTab, setActiveTab] = useState<"Articles" | "Discussions">("Articles");
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState("");
-
   const [articles, setArticles] = useState(
     sampleArticles.map((article) => ({ ...article, liked: false }))
   );
+
+  // Load role from AsyncStorage
+  useEffect(() => {
+    const loadRole = async () => {
+      const role = await AsyncStorage.getItem("userRole");
+      setUserRole(role);
+    };
+    loadRole();
+  }, []);
 
   const handleLikeToggle = (articleId: number) => {
     setArticles((prevArticles) =>
@@ -61,17 +67,19 @@ export default function FeedScreen() {
   });
 
   const handleTabPress = (tab: "Articles" | "Discussions") => {
-    if (tab === "Discussions" && !isPremiumUser) {
-      setUpgradeMessage("Upgrade to Premium to access Discussions.");
+    if (tab === "Discussions" && userRole === "free") {
+      setUpgradeMessage("Premium Features Only\nUpgrade to unlock all the features.");
       setShowUpgradeModal(true);
     } else {
       setActiveTab(tab);
     }
   };
 
-  const openArticleUpgrade = () => {
-    setUpgradeMessage("Upgrade to Premium to open this article.");
-    setShowUpgradeModal(true);
+  const openArticleUpgrade = (isPremium: boolean) => {
+    if (isPremium && userRole === "free") {
+      setUpgradeMessage("Upgrade to Premium to open this article.");
+      setShowUpgradeModal(true);
+    }
   };
 
   return (
@@ -101,35 +109,28 @@ export default function FeedScreen() {
       {/* Tabs */}
       <View className="flex-row justify-around border-b border-gray-200 pb-2 mb-2">
         <TouchableOpacity onPress={() => handleTabPress("Articles")}>
-          <Text
-            className={`text-base font-semibold ${activeTab === "Articles" ? "text-black border-b-2 border-black pb-1" : "text-gray-400"}`}
-          >
+          <Text className={`text-base font-semibold ${activeTab === "Articles" ? "text-black border-b-2 border-black pb-1" : "text-gray-400"}`}>
             Articles
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => handleTabPress("Discussions")}>
-          <Text
-            className={`text-base font-semibold ${activeTab === "Discussions" ? "text-black border-b-2 border-black pb-1" : "text-gray-400"}`}
-          >
+          <Text className={`text-base font-semibold ${activeTab === "Discussions" ? "text-black border-b-2 border-black pb-1" : "text-gray-400"}`}>
             Discussions
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Premium Banner */}
-      <TouchableOpacity className="flex-row bg-[#EF9E1C] mx-4 p-4 rounded-xl mb-4 items-center">
-        <CrownIcon
-          width={22}
-          height={22}
-          style={{ marginRight: 10 }}
-          fill="white"
-        />
-        <Text className="flex-1 text-base font-semibold text-white">
-          Subscribe Now to Unlock Full Articles
-        </Text>
-        <Text className="text-lg text-white">→</Text>
-      </TouchableOpacity>
+      {/* Premium Banner (only for free user) */}
+      {userRole === "free" && (
+        <TouchableOpacity className="flex-row bg-[#EF9E1C] mx-4 p-4 rounded-xl mb-4 items-center">
+          <CrownIcon width={22} height={22} style={{ marginRight: 10 }} fill="white" />
+          <Text className="flex-1 text-base font-semibold text-white">
+            Subscribe Now to Unlock Full Articles
+          </Text>
+          <Text className="text-lg text-white">→</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Content */}
       {activeTab === "Articles" ? (
@@ -140,8 +141,8 @@ export default function FeedScreen() {
             <ArticleCard
               article={item}
               onLikeToggle={() => handleLikeToggle(item.id)}
-              isPremiumUser={isPremiumUser}
-              onUpgrade={openArticleUpgrade}
+              isPremiumUser={userRole === "premium"}
+              onUpgrade={() => openArticleUpgrade(item.isPremium)}
             />
           )}
           showsVerticalScrollIndicator={false}
@@ -154,19 +155,13 @@ export default function FeedScreen() {
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => <DiscussionCard discussion={item} />}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingBottom: 100,
-            }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
           />
         </View>
       )}
 
       <BottomTabBar activeTab="Feed" />
-      <FilterModal
-        visible={filterModalVisible}
-        onClose={() => setFilterModalVisible(false)}
-      />
+      <FilterModal visible={filterModalVisible} onClose={() => setFilterModalVisible(false)} />
 
       {/* Shared Upgrade Modal */}
       <Modal
@@ -178,11 +173,8 @@ export default function FeedScreen() {
         <View className="flex-1 bg-black bg-opacity-50 justify-center items-center">
           <View className="bg-white p-6 rounded-xl w-80">
             <Text className="text-lg font-bold mb-4">Premium Feature</Text>
-            <Text className="text-sm mb-6">{upgradeMessage}</Text>
-            <Pressable
-              className="bg-black py-3 rounded-xl"
-              onPress={() => setShowUpgradeModal(false)}
-            >
+            <Text className="text-sm mb-6 text-center">{upgradeMessage}</Text>
+            <Pressable className="bg-black py-3 rounded-xl" onPress={() => setShowUpgradeModal(false)}>
               <Text className="text-white text-center font-semibold">OK</Text>
             </Pressable>
           </View>

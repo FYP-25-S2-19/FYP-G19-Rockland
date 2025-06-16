@@ -14,6 +14,7 @@ import Amethyst from "../assets/images/Amethyst.jpg";
 import Quartz from "../assets/images/Quartz.webp";
 import Obsidian from "../assets/images/Obsidian.webp";
 import Granite from "../assets/images/Granite.webp";
+import BackIcon from "../assets/images/back.svg";
 
 // Trade offer type definitions
 type TradeOffer = {
@@ -103,7 +104,7 @@ export default function TradeCollectionScreen() {
   ];
 
   const handleBack = () => {
-    console.log("Back pressed");
+    router.back();
   };
 
   const handleTabPress = (tab: "Available" | "MyOffers") => {
@@ -229,11 +230,9 @@ export default function TradeCollectionScreen() {
       <View className="bg-white border-b border-gray-200">
         <View className="flex-row items-center justify-between px-4 py-4">
           <TouchableOpacity onPress={handleBack} className="p-2">
-            <Text className="text-gray-900 text-xl">←</Text>
+            <BackIcon width={24} height={24} />
           </TouchableOpacity>
-          <Text className="text-gray-900 font-semibold text-lg">
-            Trade Collection
-          </Text>
+          <Text className="text-gray-900 font-semibold text-lg">Trade Collection</Text>
           <View className="w-6" />
         </View>
 
