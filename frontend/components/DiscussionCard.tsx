@@ -28,6 +28,7 @@ export default function DiscussionCard({ discussion }: DiscussionCardProps) {
 
   const handlePress = () => {
     router.push(`/discussion/${discussion.id}`);
+    
   };
 
   return (

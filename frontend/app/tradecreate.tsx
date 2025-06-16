@@ -1,44 +1,59 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image, Modal } from "react-native"
+import { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  Image,
+  Modal,
+} from "react-native";
+import Amethyst from "../assets/images/Amethyst.jpg";
+import Quartz from "../assets/images/Quartz.webp";
+import Obsidian from "../assets/images/Obsidian.webp";
+import Granite from "../assets/images/Granite.webp";
 
 // Rock type definitions
 type Rock = {
-  id: string
-  name: string
-  category: string
-  image: string
-  rarity: "Common" | "Rare" | "Legendary"
-  country: string
-}
+  id: string;
+  name: string;
+  category: string;
+  image: any; // Changed to any to handle imported images
+  rarity: "Common" | "Rare" | "Legendary";
+  country: string;
+};
 
 type FilterState = {
-  categories: string[]
-  countries: string[]
-  rarity: string[]
-  sortBy: string
-}
+  categories: string[];
+  countries: string[];
+  rarity: string[];
+  sortBy: string;
+};
 
 export default function CreateTradeOfferScreen() {
-  const [step, setStep] = useState<1 | 2>(1)
-  const [selectedRockToGive, setSelectedRockToGive] = useState<Rock | null>(null)
-  const [selectedRockToReceive, setSelectedRockToReceive] = useState<Rock | null>(null)
-  const [showFilterModal, setShowFilterModal] = useState(false)
+  const [step, setStep] = useState<1 | 2>(1);
+  const [selectedRockToGive, setSelectedRockToGive] = useState<Rock | null>(
+    null
+  );
+  const [selectedRockToReceive, setSelectedRockToReceive] =
+    useState<Rock | null>(null);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     categories: ["Igneous Rock"],
     countries: ["Brazil"],
     rarity: [],
     sortBy: "A-Z",
-  })
+  });
 
-  // Sample rock data
+  // Sample rock data with imported images
   const availableRocks: Rock[] = [
     {
       id: "1",
       name: "Granite Boulder",
       category: "Igneous Rock",
-      image: "/placeholder.svg?height=60&width=60",
+      image: Granite,
       rarity: "Common",
       country: "Brazil",
     },
@@ -46,7 +61,7 @@ export default function CreateTradeOfferScreen() {
       id: "2",
       name: "Amethyst Cluster",
       category: "Crystals",
-      image: "/placeholder.svg?height=60&width=60",
+      image: Amethyst,
       rarity: "Rare",
       country: "Brazil",
     },
@@ -54,7 +69,7 @@ export default function CreateTradeOfferScreen() {
       id: "3",
       name: "Obsidian Shard",
       category: "Igneous Rock",
-      image: "/placeholder.svg?height=60&width=60",
+      image: Obsidian,
       rarity: "Common",
       country: "Indonesia",
     },
@@ -62,7 +77,7 @@ export default function CreateTradeOfferScreen() {
       id: "4",
       name: "Diamond Crystal",
       category: "Crystals",
-      image: "/placeholder.svg?height=60&width=60",
+      image: Quartz, // Using Quartz as placeholder for Diamond
       rarity: "Legendary",
       country: "South Africa",
     },
@@ -70,7 +85,7 @@ export default function CreateTradeOfferScreen() {
       id: "5",
       name: "Rose Quartz",
       category: "Crystals",
-      image: "/placeholder.svg?height=60&width=60",
+      image: Quartz,
       rarity: "Common",
       country: "Madagascar",
     },
@@ -78,7 +93,7 @@ export default function CreateTradeOfferScreen() {
       id: "6",
       name: "Basalt Column",
       category: "Igneous Rock",
-      image: "/placeholder.svg?height=60&width=60",
+      image: Obsidian, // Using Obsidian as placeholder for Basalt
       rarity: "Rare",
       country: "Iceland",
     },
@@ -86,7 +101,7 @@ export default function CreateTradeOfferScreen() {
       id: "7",
       name: "Emerald Gem",
       category: "Crystals",
-      image: "/placeholder.svg?height=60&width=60",
+      image: Amethyst, // Using Amethyst as placeholder for Emerald
       rarity: "Legendary",
       country: "Colombia",
     },
@@ -94,49 +109,54 @@ export default function CreateTradeOfferScreen() {
       id: "8",
       name: "Pumice Stone",
       category: "Igneous Rock",
-      image: "/placeholder.svg?height=60&width=60",
+      image: Granite, // Using Granite as placeholder for Pumice
       rarity: "Common",
       country: "Italy",
     },
-  ]
+  ];
 
   const handleBack = () => {
     if (step === 2) {
-      setStep(1)
-      setSelectedRockToReceive(null)
+      setStep(1);
+      setSelectedRockToReceive(null);
     } else {
-      console.log("Back to previous screen")
+      console.log("Back to previous screen");
     }
-  }
+  };
 
   const handleRockSelect = (rock: Rock) => {
     if (step === 1) {
-      setSelectedRockToGive(rock)
+      setSelectedRockToGive(rock);
     } else {
-      setSelectedRockToReceive(rock)
+      setSelectedRockToReceive(rock);
     }
-  }
+  };
 
   const handleNextStep = () => {
     if (step === 1 && selectedRockToGive) {
-      setStep(2)
+      setStep(2);
     }
-  }
+  };
 
   const handleCreateTradeOffer = () => {
     if (selectedRockToGive && selectedRockToReceive) {
-      console.log("Create trade offer:", selectedRockToGive.name, "for", selectedRockToReceive.name)
+      console.log(
+        "Create trade offer:",
+        selectedRockToGive.name,
+        "for",
+        selectedRockToReceive.name
+      );
     }
-  }
+  };
 
   const handleShowFilter = () => {
-    setShowFilterModal(true)
-  }
+    setShowFilterModal(true);
+  };
 
   const handleApplyFilter = () => {
-    setShowFilterModal(false)
-    console.log("Apply filters:", filters)
-  }
+    setShowFilterModal(false);
+    console.log("Apply filters:", filters);
+  };
 
   const handleResetFilter = () => {
     setFilters({
@@ -144,55 +164,77 @@ export default function CreateTradeOfferScreen() {
       countries: [],
       rarity: [],
       sortBy: "A-Z",
-    })
-  }
+    });
+  };
 
   const removeFilterTag = (type: keyof FilterState, value: string) => {
     setFilters((prev) => ({
       ...prev,
       [type]: prev[type].filter((item) => item !== value),
-    }))
-  }
+    }));
+  };
 
   const addFilterTag = (type: keyof FilterState, value: string) => {
     if (type === "rarity") {
       setFilters((prev) => ({
         ...prev,
-        [type]: prev[type].includes(value) ? prev[type].filter((item) => item !== value) : [...prev[type], value],
-      }))
+        [type]: prev[type].includes(value)
+          ? prev[type].filter((item) => item !== value)
+          : [...prev[type], value],
+      }));
     }
-  }
+  };
+
+  // Helper function to get image source
+  const getImageSource = (image: any) => {
+    if (typeof image === "string") {
+      return { uri: image };
+    }
+    return image;
+  };
 
   // Filter and sort rocks
   const filteredRocks = availableRocks
     .filter((rock) => {
-      if (filters.categories.length > 0 && !filters.categories.includes(rock.category)) return false
-      if (filters.countries.length > 0 && !filters.countries.includes(rock.country)) return false
-      if (filters.rarity.length > 0 && !filters.rarity.includes(rock.rarity)) return false
-      return true
+      if (
+        filters.categories.length > 0 &&
+        !filters.categories.includes(rock.category)
+      )
+        return false;
+      if (
+        filters.countries.length > 0 &&
+        !filters.countries.includes(rock.country)
+      )
+        return false;
+      if (filters.rarity.length > 0 && !filters.rarity.includes(rock.rarity))
+        return false;
+      return true;
     })
     .sort((a, b) => {
-      if (filters.sortBy === "A-Z") return a.name.localeCompare(b.name)
+      if (filters.sortBy === "A-Z") return a.name.localeCompare(b.name);
       if (filters.sortBy === "Rarity") {
-        const rarityOrder = { Common: 1, Rare: 2, Legendary: 3 }
-        return rarityOrder[b.rarity] - rarityOrder[a.rarity]
+        const rarityOrder = { Common: 1, Rare: 2, Legendary: 3 };
+        return rarityOrder[b.rarity] - rarityOrder[a.rarity];
       }
-      return 0
-    })
+      return 0;
+    });
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
       case "Legendary":
-        return "text-yellow-600"
+        return "text-yellow-600";
       case "Rare":
-        return "text-purple-600"
+        return "text-purple-600";
       default:
-        return "text-gray-600"
+        return "text-gray-600";
     }
-  }
+  };
 
   const renderRockItem = (rock: Rock) => {
-    const isSelected = step === 1 ? selectedRockToGive?.id === rock.id : selectedRockToReceive?.id === rock.id
+    const isSelected =
+      step === 1
+        ? selectedRockToGive?.id === rock.id
+        : selectedRockToReceive?.id === rock.id;
 
     return (
       <TouchableOpacity
@@ -201,11 +243,26 @@ export default function CreateTradeOfferScreen() {
         onPress={() => handleRockSelect(rock)}
       >
         <View className="flex-row items-center">
-          <Image source={{ uri: rock.image }} className="w-15 h-15 rounded-lg mr-4" />
+          <Image
+            source={getImageSource(rock.image)}
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: 8,
+              marginRight: 16,
+            }}
+            resizeMode="cover"
+          />
           <View className="flex-1">
-            <Text className="text-gray-900 font-semibold text-base mb-1">{rock.name}</Text>
+            <Text className="text-gray-900 font-semibold text-base mb-1">
+              {rock.name}
+            </Text>
             <Text className="text-gray-600 text-sm mb-1">{rock.category}</Text>
-            <Text className={`text-xs font-medium ${getRarityColor(rock.rarity)}`}>{rock.rarity}</Text>
+            <Text
+              className={`text-xs font-medium ${getRarityColor(rock.rarity)}`}
+            >
+              {rock.rarity}
+            </Text>
           </View>
           <View
             className={`w-6 h-6 rounded-full border-2 ${isSelected ? "border-green-500 bg-green-500" : "border-gray-300"} items-center justify-center`}
@@ -214,8 +271,8 @@ export default function CreateTradeOfferScreen() {
           </View>
         </View>
       </TouchableOpacity>
-    )
-  }
+    );
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -225,7 +282,9 @@ export default function CreateTradeOfferScreen() {
           <TouchableOpacity onPress={handleBack} className="mr-4">
             <Text className="text-gray-900 text-xl">←</Text>
           </TouchableOpacity>
-          <Text className="text-gray-900 font-semibold text-lg">Create Trade Offer</Text>
+          <Text className="text-gray-900 font-semibold text-lg">
+            Create Trade Offer
+          </Text>
         </View>
       </View>
 
@@ -237,8 +296,19 @@ export default function CreateTradeOfferScreen() {
               <Text className="text-gray-600 text-sm mb-2">Trading:</Text>
               {selectedRockToGive ? (
                 <View className="items-center">
-                  <Image source={{ uri: selectedRockToGive.image }} className="w-12 h-12 rounded-lg mb-1" />
-                  <Text className="text-gray-900 text-xs font-medium text-center">{selectedRockToGive.name}</Text>
+                  <Image
+                    source={getImageSource(selectedRockToGive.image)}
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 8,
+                      marginBottom: 4,
+                    }}
+                    resizeMode="cover"
+                  />
+                  <Text className="text-gray-900 text-xs font-medium text-center">
+                    {selectedRockToGive.name}
+                  </Text>
                 </View>
               ) : (
                 <View className="w-12 h-12 bg-gray-300 rounded-lg items-center justify-center">
@@ -251,8 +321,19 @@ export default function CreateTradeOfferScreen() {
               <Text className="text-gray-600 text-sm mb-2">For:</Text>
               {selectedRockToReceive ? (
                 <View className="items-center">
-                  <Image source={{ uri: selectedRockToReceive.image }} className="w-12 h-12 rounded-lg mb-1" />
-                  <Text className="text-gray-900 text-xs font-medium text-center">{selectedRockToReceive.name}</Text>
+                  <Image
+                    source={getImageSource(selectedRockToReceive.image)}
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 8,
+                      marginBottom: 4,
+                    }}
+                    resizeMode="cover"
+                  />
+                  <Text className="text-gray-900 text-xs font-medium text-center">
+                    {selectedRockToReceive.name}
+                  </Text>
                 </View>
               ) : (
                 <View className="w-12 h-12 bg-gray-300 rounded-lg items-center justify-center">
@@ -268,7 +349,10 @@ export default function CreateTradeOfferScreen() {
           <Text className="text-gray-900 font-semibold text-lg">
             {step === 1 ? "Select Rock to Give" : "Select Rock to Receive"}
           </Text>
-          <TouchableOpacity onPress={handleShowFilter} className="bg-gray-200 px-3 py-2 rounded-lg">
+          <TouchableOpacity
+            onPress={handleShowFilter}
+            className="bg-gray-200 px-3 py-2 rounded-lg"
+          >
             <Text className="text-gray-700 text-sm">Filter</Text>
           </TouchableOpacity>
         </View>
@@ -281,14 +365,18 @@ export default function CreateTradeOfferScreen() {
       <View className="bg-white border-t border-gray-200 px-4 py-4">
         <TouchableOpacity
           className={`rounded-lg py-4 items-center ${
-            (step === 1 && selectedRockToGive) || (step === 2 && selectedRockToReceive) ? "bg-green-500" : "bg-gray-300"
+            (step === 1 && selectedRockToGive) ||
+            (step === 2 && selectedRockToReceive)
+              ? "bg-green-500"
+              : "bg-gray-300"
           }`}
           onPress={step === 1 ? handleNextStep : handleCreateTradeOffer}
           disabled={step === 1 ? !selectedRockToGive : !selectedRockToReceive}
         >
           <Text
             className={`font-semibold text-lg ${
-              (step === 1 && selectedRockToGive) || (step === 2 && selectedRockToReceive)
+              (step === 1 && selectedRockToGive) ||
+              (step === 2 && selectedRockToReceive)
                 ? "text-white"
                 : "text-gray-500"
             }`}
@@ -299,7 +387,11 @@ export default function CreateTradeOfferScreen() {
       </View>
 
       {/* Filter Modal */}
-      <Modal visible={showFilterModal} animationType="slide" presentationStyle="pageSheet">
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
         <SafeAreaView className="flex-1 bg-white">
           {/* Modal Header */}
           <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-200">
@@ -315,12 +407,21 @@ export default function CreateTradeOfferScreen() {
           <ScrollView className="flex-1 px-4 py-4">
             {/* Categories */}
             <View className="mb-6">
-              <Text className="text-gray-900 font-semibold text-base mb-3">Categories</Text>
+              <Text className="text-gray-900 font-semibold text-base mb-3">
+                Categories
+              </Text>
               <View className="flex-row flex-wrap gap-2">
                 {filters.categories.map((category, index) => (
-                  <View key={index} className="bg-green-100 px-3 py-2 rounded-full flex-row items-center">
-                    <Text className="text-green-800 text-sm mr-2">{category}</Text>
-                    <TouchableOpacity onPress={() => removeFilterTag("categories", category)}>
+                  <View
+                    key={index}
+                    className="bg-green-100 px-3 py-2 rounded-full flex-row items-center"
+                  >
+                    <Text className="text-green-800 text-sm mr-2">
+                      {category}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => removeFilterTag("categories", category)}
+                    >
                       <Text className="text-green-800 text-sm">×</Text>
                     </TouchableOpacity>
                   </View>
@@ -330,12 +431,21 @@ export default function CreateTradeOfferScreen() {
 
             {/* Countries */}
             <View className="mb-6">
-              <Text className="text-gray-900 font-semibold text-base mb-3">Countries</Text>
+              <Text className="text-gray-900 font-semibold text-base mb-3">
+                Countries
+              </Text>
               <View className="flex-row flex-wrap gap-2">
                 {filters.countries.map((country, index) => (
-                  <View key={index} className="bg-blue-100 px-3 py-2 rounded-full flex-row items-center">
-                    <Text className="text-blue-800 text-sm mr-2">{country}</Text>
-                    <TouchableOpacity onPress={() => removeFilterTag("countries", country)}>
+                  <View
+                    key={index}
+                    className="bg-blue-100 px-3 py-2 rounded-full flex-row items-center"
+                  >
+                    <Text className="text-blue-800 text-sm mr-2">
+                      {country}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => removeFilterTag("countries", country)}
+                    >
                       <Text className="text-blue-800 text-sm">×</Text>
                     </TouchableOpacity>
                   </View>
@@ -345,7 +455,9 @@ export default function CreateTradeOfferScreen() {
 
             {/* Rarity */}
             <View className="mb-6">
-              <Text className="text-gray-900 font-semibold text-base mb-3">Rarity</Text>
+              <Text className="text-gray-900 font-semibold text-base mb-3">
+                Rarity
+              </Text>
               <View className="flex-row gap-3">
                 {["Common", "Rare", "Legendary"].map((rarity) => (
                   <TouchableOpacity
@@ -359,7 +471,9 @@ export default function CreateTradeOfferScreen() {
                   >
                     <Text
                       className={`text-sm font-medium ${
-                        filters.rarity.includes(rarity) ? "text-purple-800" : "text-gray-700"
+                        filters.rarity.includes(rarity)
+                          ? "text-purple-800"
+                          : "text-gray-700"
                       }`}
                     >
                       {rarity}
@@ -371,7 +485,9 @@ export default function CreateTradeOfferScreen() {
 
             {/* Sort By */}
             <View className="mb-6">
-              <Text className="text-gray-900 font-semibold text-base mb-3">Sort By</Text>
+              <Text className="text-gray-900 font-semibold text-base mb-3">
+                Sort By
+              </Text>
               <TouchableOpacity className="bg-gray-100 px-4 py-3 rounded-lg flex-row items-center justify-between">
                 <Text className="text-gray-900">{filters.sortBy}</Text>
                 <Text className="text-gray-500">▼</Text>
@@ -381,12 +497,17 @@ export default function CreateTradeOfferScreen() {
 
           {/* Apply Filter Button */}
           <View className="px-4 py-4 border-t border-gray-200">
-            <TouchableOpacity className="bg-green-500 rounded-lg py-4 items-center" onPress={handleApplyFilter}>
-              <Text className="text-white font-semibold text-lg">Apply Filter</Text>
+            <TouchableOpacity
+              className="bg-green-500 rounded-lg py-4 items-center"
+              onPress={handleApplyFilter}
+            >
+              <Text className="text-white font-semibold text-lg">
+                Apply Filter
+              </Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
-  )
+  );
 }

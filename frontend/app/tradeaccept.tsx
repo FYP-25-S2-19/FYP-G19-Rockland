@@ -2,13 +2,17 @@
 
 import { useState } from "react"
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Image } from "react-native"
+import Amethyst from "../assets/images/Amethyst.jpg"
+import Quartz from "../assets/images/Quartz.webp"
+import Obsidian from "../assets/images/Obsidian.webp"
+import Granite from "../assets/images/Granite.webp"
 
 // Rock type definitions
 type Rock = {
   id: string
   name: string
   type: string
-  image: string
+  image: any
   rarity?: string
 }
 
@@ -21,13 +25,13 @@ type TradeOffer = {
 export default function TradeSelectionScreen() {
   const [selectedRockId, setSelectedRockId] = useState<string | null>(null)
 
-  // Sample trade data
+  // Sample trade data with imported images
   const tradeOffer: TradeOffer = {
     rockToReceive: {
       id: "receive-1",
       name: "Amethyst Crystal",
       type: "Mineral",
-      image: "/placeholder.svg?height=80&width=80",
+      image: Amethyst,
       owner: "@Marie",
     },
     categoryToGive: "Rose Quartz",
@@ -36,84 +40,84 @@ export default function TradeSelectionScreen() {
         id: "1",
         name: "Rose Quartz Cluster",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Quartz,
         rarity: "Common",
       },
       {
         id: "2",
         name: "Rose Quartz Tumbled",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Quartz,
         rarity: "Common",
       },
       {
         id: "3",
         name: "Rose Quartz Raw",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Granite,
         rarity: "Rare",
       },
       {
         id: "4",
         name: "Rose Quartz Sphere",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Obsidian,
         rarity: "Rare",
       },
       {
         id: "5",
         name: "Rose Quartz Point",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Quartz,
         rarity: "Common",
       },
       {
         id: "6",
         name: "Rose Quartz Pendant",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Amethyst,
         rarity: "Uncommon",
       },
       {
         id: "7",
         name: "Rose Quartz Bracelet",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Granite,
         rarity: "Uncommon",
       },
       {
         id: "8",
         name: "Rose Quartz Geode",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Obsidian,
         rarity: "Legendary",
       },
       {
         id: "9",
         name: "Rose Quartz Tower",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Quartz,
         rarity: "Rare",
       },
       {
         id: "10",
         name: "Rose Quartz Heart",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Amethyst,
         rarity: "Common",
       },
       {
         id: "11",
         name: "Rose Quartz Wand",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Granite,
         rarity: "Uncommon",
       },
       {
         id: "12",
         name: "Rose Quartz Pyramid",
         type: "Mineral",
-        image: "/placeholder.svg?height=80&width=80",
+        image: Obsidian,
         rarity: "Rare",
       },
     ],
@@ -136,6 +140,14 @@ export default function TradeSelectionScreen() {
   }
 
   const selectedRock = tradeOffer.availableRocks.find((rock) => rock.id === selectedRockId)
+
+  // Helper function to get image source
+  const getImageSource = (image: any) => {
+    if (typeof image === "string") {
+      return { uri: image }
+    }
+    return image
+  }
 
   // Render rock card
   const renderRockCard = ({ item }: { item: Rock }) => {
@@ -164,7 +176,16 @@ export default function TradeSelectionScreen() {
       >
         <View className="flex-row items-center">
           {/* Rock image */}
-          <Image source={{ uri: item.image }} className="w-16 h-16 rounded-lg mr-4" />
+          <Image 
+            source={getImageSource(item.image)} 
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 8,
+              marginRight: 16,
+            }}
+            resizeMode="cover"
+          />
 
           {/* Rock info */}
           <View className="flex-1">
@@ -206,7 +227,16 @@ export default function TradeSelectionScreen() {
           <Text className="text-gray-700 font-medium text-base mb-3">You want to receive:</Text>
           <View className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
             <View className="flex-row items-center">
-              <Image source={{ uri: tradeOffer.rockToReceive.image }} className="w-16 h-16 rounded-lg mr-4" />
+              <Image 
+                source={getImageSource(tradeOffer.rockToReceive.image)} 
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 8,
+                  marginRight: 16,
+                }}
+                resizeMode="cover"
+              />
               <View className="flex-1">
                 <Text className="text-gray-900 font-semibold text-base mb-1">{tradeOffer.rockToReceive.name}</Text>
                 <Text className="text-gray-600 text-sm mb-1">Type: {tradeOffer.rockToReceive.type}</Text>
