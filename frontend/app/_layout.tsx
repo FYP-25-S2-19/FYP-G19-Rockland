@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "react-native";
 import "../global.css";
+import { StatusBar } from "expo-status-bar";
 
 function InnerLayout() {
   const insets = useSafeAreaInsets();
@@ -26,6 +27,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <InnerLayout />
+      <StatusBar style="dark" />
     </SafeAreaProvider>
   );
 }
