@@ -296,53 +296,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-16">
-        <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Pricing FAQ</h2>
-
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">How does the photo identification work?</h3>
-                <p className="text-gray-600">
-                  Simply take a photo of any rock using your phone camera. Our AI analyzes the image and provides identification with detailed geological information, location data, and formation details.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">What's included in expert consultations?</h3>
-                <p className="text-gray-600">
-                  Premium users can book one-on-one sessions with certified geologists and rock experts. Get personalized advice, detailed analysis of your finds, and answers to specific questions about your collection.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">How does the quiz reward system work?</h3>
-                <p className="text-gray-600">
-                  Complete geology quizzes to earn points and unlock badges. Points can be used to access premium educational content and participate in community challenges.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">Can I upgrade or downgrade my plan anytime?</h3>
-                <p className="text-gray-600">
-                  Yes! You can upgrade to Premium anytime and start enjoying unlimited features immediately. If you downgrade, you'll keep Premium features until your current billing period ends.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-
-
       {/* Footer */}
       <footer className="bg-green-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4">
