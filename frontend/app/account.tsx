@@ -1,7 +1,14 @@
 "use client";
 
 import { useRouter } from "expo-router";
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  Image,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomTabBar from "../components/BottomTabBar";
 import ProfilePicture from "../assets/images/profilepicture.png";
@@ -36,6 +43,10 @@ export default function AccountScreen() {
     router.push("/tradelist");
   };
 
+  const handleAddRock = () => {
+    router.push("/AddRockScreen");
+  };
+
   const handleSettingsNavigation = () => {
     router.push("/settings");
   };
@@ -44,7 +55,10 @@ export default function AccountScreen() {
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView
         className="flex-1 px-5"
-        contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: 20 }}
+        contentContainerStyle={{
+          paddingTop: insets.top + 20,
+          paddingBottom: 20,
+        }}
       >
         {/* Centered Profile */}
         <View className="items-center mb-8">
@@ -78,8 +92,13 @@ export default function AccountScreen() {
             onPress={handleSubscribe}
             activeOpacity={0.8}
           >
-            <CrownIcon style={{ width: 20, height: 20, marginRight: 8 }} fill="white" />
-            <Text className="text-white text-base font-semibold">Subscribe Now</Text>
+            <CrownIcon
+              style={{ width: 20, height: 20, marginRight: 8 }}
+              fill="white"
+            />
+            <Text className="text-white text-base font-semibold">
+              Subscribe Now
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -92,6 +111,17 @@ export default function AccountScreen() {
           >
             <Text className="text-base font-medium text-gray-900">
               My Collection
+            </Text>
+            <Text className="text-xl text-gray-400">›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="flex-row justify-between items-center py-5 border-b border-gray-100"
+            onPress={handleAddRock}
+            activeOpacity={0.7}
+          >
+            <Text className="text-base font-medium text-gray-900">
+              Add New Rock Entry
             </Text>
             <Text className="text-xl text-gray-400">›</Text>
           </TouchableOpacity>
