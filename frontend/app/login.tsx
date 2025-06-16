@@ -8,6 +8,7 @@ import {
   Image,
   SafeAreaView,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -16,8 +17,19 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
 
-  const handleLogin = () => {
-    if (email === "test@rockland.com" && password === "rock123") {
+  const handleLogin = async () => {
+    let role = null;
+
+    if (email === "free@rockland.com" && password === "rock123") {
+      role = "free";
+    } else if (email === "premium@rockland.com" && password === "rock123") {
+      role = "premium";
+    } else if (email === "expert@rockland.com" && password === "rock123") {
+      role = "expert";
+    }
+
+    if (role) {
+      await AsyncStorage.setItem("userRole", role);
       router.replace("/home");
     } else {
       alert("Invalid email or password");
