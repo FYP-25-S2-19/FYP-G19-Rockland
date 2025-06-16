@@ -14,6 +14,7 @@ const quartziteImg = require("../assets/images/quartzite.png");
 export default function SearchRockScreen() {
   const router = useRouter();
   const [searchText, setSearchText] = useState("");
+  const [filterModalVisible, setFilterModalVisible] = useState(false); // just prepared for later
 
   // Dummy rock data with local images
   const rockData = [
@@ -39,18 +40,23 @@ export default function SearchRockScreen() {
         <View className="w-10" />
       </View>
 
-      {/* Search Bar */}
-      <View className="flex-row px-4 mb-4">
-        <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-4 py-3 border border-gray-400">
+      {/* Search Bar with filter button */}
+      <View className="flex-row px-4 py-3 items-center">
+        <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-4 h-12 mr-3 border border-gray-600">
           <SearchIcon width={20} height={20} style={{ marginRight: 10 }} />
           <TextInput
-            className="flex-1 text-base text-gray-800"
+            className="flex-1 text-base text-gray-800 p-0"
+            style={{ paddingVertical: 0 }}
             value={searchText}
             onChangeText={setSearchText}
-            placeholder="Search rocks..."
+            placeholder="Search..."
             placeholderTextColor="#9ca3af"
           />
         </View>
+
+        <TouchableOpacity onPress={() => setFilterModalVisible(true)} className="p-3 bg-gray-100 rounded-xl border border-gray-600">
+          <FilterIcon width={20} height={20} />
+        </TouchableOpacity>
       </View>
 
       {/* Rock List */}
