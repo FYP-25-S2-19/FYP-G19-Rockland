@@ -1,27 +1,42 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { View, Text, Image, TouchableOpacity, SafeAreaView, ScrollView } from "react-native"
+import { useState } from "react";
+import { useRouter } from "expo-router";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+} from "react-native";
+import Amethyst from "../assets/images/Amethyst.jpg";
+import Quartz from "../assets/images/Quartz.webp";
+import Obsidian from "../assets/images/Obsidian.webp";
+import Granite from "../assets/images/Granite.webp";
 
 // Trade offer type definitions
 type TradeOffer = {
-  id: string
-  traderName: string
-  traderRockCount: number
-  traderJoinDate: string
+  id: string;
+  traderName: string;
+  traderRockCount: number;
+  traderJoinDate: string;
   youGive: {
-    rockName: string
-    rockImage: string
-  }
+    rockName: string;
+    rockImage: any; // Changed from string to any to handle both imports and URIs
+  };
   youReceive: {
-    rockName: string
-    rockImage: string
-  }
-  isMyOffer: boolean
-}
+    rockName: string;
+    rockImage: any; // Changed from string to any to handle both imports and URIs
+  };
+  isMyOffer: boolean;
+};
 
 export default function TradeCollectionScreen() {
-  const [activeTab, setActiveTab] = useState<"Available" | "MyOffers">("Available")
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"Available" | "MyOffers">(
+    "Available"
+  );
 
   // Sample trade data
   const tradeOffers: TradeOffer[] = [
@@ -32,11 +47,11 @@ export default function TradeCollectionScreen() {
       traderJoinDate: "Jan 2024",
       youGive: {
         rockName: "Granite",
-        rockImage: "/placeholder.svg?height=80&width=80",
+        rockImage: Granite, // Direct import
       },
       youReceive: {
         rockName: "Obsidian",
-        rockImage: "/placeholder.svg?height=80&width=80",
+        rockImage: Obsidian, // Direct import
       },
       isMyOffer: false,
     },
@@ -47,11 +62,11 @@ export default function TradeCollectionScreen() {
       traderJoinDate: "Dec 2023",
       youGive: {
         rockName: "Quartz",
-        rockImage: "/placeholder.svg?height=80&width=80",
+        rockImage: Quartz, // Direct import
       },
       youReceive: {
         rockName: "Amethyst",
-        rockImage: "/placeholder.svg?height=80&width=80",
+        rockImage: Amethyst, // Direct import
       },
       isMyOffer: false,
     },
@@ -62,11 +77,11 @@ export default function TradeCollectionScreen() {
       traderJoinDate: "",
       youGive: {
         rockName: "Basalt",
-        rockImage: "/placeholder.svg?height=80&width=80",
+        rockImage: Granite,
       },
       youReceive: {
         rockName: "Limestone",
-        rockImage: "/placeholder.svg?height=80&width=80",
+        rockImage: Obsidian,
       },
       isMyOffer: true,
     },
@@ -77,62 +92,82 @@ export default function TradeCollectionScreen() {
       traderJoinDate: "",
       youGive: {
         rockName: "Sandstone",
-        rockImage: "/placeholder.svg?height=80&width=80",
+        rockImage: Granite,
       },
       youReceive: {
         rockName: "Marble",
-        rockImage: "/placeholder.svg?height=80&width=80",
+        rockImage: Obsidian,
       },
       isMyOffer: true,
     },
-  ]
+  ];
 
   const handleBack = () => {
-    console.log("Back pressed")
-  }
+    console.log("Back pressed");
+  };
 
   const handleTabPress = (tab: "Available" | "MyOffers") => {
-    setActiveTab(tab)
-  }
+    setActiveTab(tab);
+  };
 
   const handleAcceptTrade = (tradeId: string) => {
-    console.log("Accept trade:", tradeId)
-  }
+    router.push("/tradeaccept");
+  };
 
   const handleCreateTradeOffer = () => {
-    console.log("Create trade offer pressed")
-  }
+    router.push("/tradecreate");
+  };
 
   // Filter trades based on active tab
   const filteredTrades = tradeOffers.filter((trade) => {
-    if (activeTab === "Available") return !trade.isMyOffer
-    return trade.isMyOffer
-  })
+    if (activeTab === "Available") return !trade.isMyOffer;
+    return trade.isMyOffer;
+  });
 
   // Get tab counts
-  const availableCount = tradeOffers.filter((t) => !t.isMyOffer).length
-  const myOffersCount = tradeOffers.filter((t) => t.isMyOffer).length
+  const availableCount = tradeOffers.filter((t) => !t.isMyOffer).length;
+  const myOffersCount = tradeOffers.filter((t) => t.isMyOffer).length;
+
+  // Helper function to get image source
+  const getImageSource = (image: any) => {
+    if (typeof image === "string") {
+      return { uri: image };
+    }
+    return image;
+  };
 
   // Render trade card
   const renderTradeCard = (trade: TradeOffer) => {
     return (
-      <View key={trade.id} className="bg-white rounded-xl p-4 mb-4 shadow-sm border border-gray-100">
+      <View
+        key={trade.id}
+        className="bg-white rounded-xl p-4 mb-4 shadow-sm border border-gray-100"
+      >
         {/* Trader info */}
         {!trade.isMyOffer && (
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-row items-center">
               <View className="w-10 h-10 bg-gray-200 rounded-full items-center justify-center mr-3">
-                <Text className="text-gray-600 font-semibold">{trade.traderName[0]}</Text>
+                <Text className="text-gray-600 font-semibold">
+                  {trade.traderName[0]}
+                </Text>
               </View>
               <View>
-                <Text className="text-gray-900 font-semibold text-base">{trade.traderName}</Text>
+                <Text className="text-gray-900 font-semibold text-base">
+                  {trade.traderName}
+                </Text>
                 <Text className="text-gray-500 text-sm">
                   {trade.traderRockCount} rocks • Joined {trade.traderJoinDate}
                 </Text>
               </View>
             </View>
-            <TouchableOpacity className="bg-green-500 px-4 py-2 rounded-lg" onPress={() => handleAcceptTrade(trade.id)}>
-              <Text className="text-white font-semibold text-sm">Accept Trade</Text>
+            <TouchableOpacity
+              className="bg-green-500 px-4 py-2 rounded-lg"
+              onPress={() => handleAcceptTrade(trade.id)}
+            >
+              <Text className="text-white font-semibold text-sm">
+                Accept Trade
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -143,8 +178,19 @@ export default function TradeCollectionScreen() {
           <View className="flex-1 items-center">
             <Text className="text-gray-500 text-sm mb-2">You Give</Text>
             <View className="bg-gray-50 rounded-lg p-3 items-center w-full">
-              <Image source={{ uri: trade.youGive.rockImage }} className="w-16 h-16 rounded-lg mb-2" />
-              <Text className="text-gray-900 font-medium text-sm text-center">{trade.youGive.rockName}</Text>
+              <Image
+                source={getImageSource(trade.youGive.rockImage)}
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 8,
+                  marginBottom: 8,
+                }}
+                resizeMode="cover"
+              />
+              <Text className="text-gray-900 font-medium text-sm text-center">
+                {trade.youGive.rockName}
+              </Text>
             </View>
           </View>
 
@@ -157,14 +203,25 @@ export default function TradeCollectionScreen() {
           <View className="flex-1 items-center">
             <Text className="text-gray-500 text-sm mb-2">You Receive</Text>
             <View className="bg-gray-50 rounded-lg p-3 items-center w-full">
-              <Image source={{ uri: trade.youReceive.rockImage }} className="w-16 h-16 rounded-lg mb-2" />
-              <Text className="text-gray-900 font-medium text-sm text-center">{trade.youReceive.rockName}</Text>
+              <Image
+                source={getImageSource(trade.youReceive.rockImage)}
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 8,
+                  marginBottom: 8,
+                }}
+                resizeMode="cover"
+              />
+              <Text className="text-gray-900 font-medium text-sm text-center">
+                {trade.youReceive.rockName}
+              </Text>
             </View>
           </View>
         </View>
       </View>
-    )
-  }
+    );
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -174,7 +231,9 @@ export default function TradeCollectionScreen() {
           <TouchableOpacity onPress={handleBack} className="p-2">
             <Text className="text-gray-900 text-xl">←</Text>
           </TouchableOpacity>
-          <Text className="text-gray-900 font-semibold text-lg">Trade Collection</Text>
+          <Text className="text-gray-900 font-semibold text-lg">
+            Trade Collection
+          </Text>
           <View className="w-6" />
         </View>
 
@@ -182,13 +241,17 @@ export default function TradeCollectionScreen() {
         <View className="flex-row px-4">
           <TouchableOpacity
             className={`flex-1 py-3 border-b-2 ${
-              activeTab === "Available" ? "border-green-500" : "border-transparent"
+              activeTab === "Available"
+                ? "border-green-500"
+                : "border-transparent"
             }`}
             onPress={() => handleTabPress("Available")}
           >
             <Text
               className={`text-center font-medium ${
-                activeTab === "Available" ? "text-green-600 font-semibold" : "text-gray-600"
+                activeTab === "Available"
+                  ? "text-green-600 font-semibold"
+                  : "text-gray-600"
               }`}
             >
               Available Trades ({availableCount})
@@ -200,7 +263,9 @@ export default function TradeCollectionScreen() {
           >
             <Text
               className={`text-center font-medium ${
-                activeTab === "MyOffers" ? "text-green-600 font-semibold" : "text-gray-600"
+                activeTab === "MyOffers"
+                  ? "text-green-600 font-semibold"
+                  : "text-gray-600"
               }`}
             >
               My Trade Offers ({myOffersCount})
@@ -210,7 +275,10 @@ export default function TradeCollectionScreen() {
       </View>
 
       {/* Content */}
-      <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 px-4 py-4"
+        showsVerticalScrollIndicator={false}
+      >
         {filteredTrades.length > 0 ? (
           <>
             {filteredTrades.map(renderTradeCard)}
@@ -221,7 +289,9 @@ export default function TradeCollectionScreen() {
                 className="bg-green-500 rounded-xl py-4 items-center mt-4"
                 onPress={handleCreateTradeOffer}
               >
-                <Text className="text-white font-semibold text-lg">Create Trade Offer</Text>
+                <Text className="text-white font-semibold text-lg">
+                  Create Trade Offer
+                </Text>
               </TouchableOpacity>
             )}
           </>
@@ -233,8 +303,13 @@ export default function TradeCollectionScreen() {
                 : "You haven't created any trade offers yet"}
             </Text>
             {activeTab === "MyOffers" && (
-              <TouchableOpacity className="bg-green-500 rounded-xl px-6 py-3 mt-4" onPress={handleCreateTradeOffer}>
-                <Text className="text-white font-semibold">Create Your First Trade</Text>
+              <TouchableOpacity
+                className="bg-green-500 rounded-xl px-6 py-3 mt-4"
+                onPress={handleCreateTradeOffer}
+              >
+                <Text className="text-white font-semibold">
+                  Create Your First Trade
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -244,5 +319,5 @@ export default function TradeCollectionScreen() {
         <View className="h-6" />
       </ScrollView>
     </SafeAreaView>
-  )
+  );
 }
