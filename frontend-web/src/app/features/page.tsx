@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +24,10 @@ import {
   Smartphone,
   Database,
   Award,
+  X,
+  RotateCcw,
+  Lightbulb,
+  Image as ImageIcon,
 } from "lucide-react"
 
 export default function FeaturesPage() {
@@ -213,8 +218,38 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      {/* Feature Showcase with Phone Mockup */}
+      {/* Feature Showcase with Enhanced Phone Mockup */}
       <section className="py-16 bg-gray-50">
+        <style jsx>{`
+          @keyframes scan-pulse {
+            0%, 100% { 
+              opacity: 0.7; 
+              border-color: rgb(34 197 94);
+            }
+            50% { 
+              opacity: 1; 
+              border-color: rgb(74 222 128);
+            }
+          }
+          
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+          }
+          
+          .scan-animation {
+            animation: scan-pulse 2s ease-in-out infinite;
+          }
+          
+          .phone-glow {
+            box-shadow: 0 0 60px rgba(34, 197, 94, 0.3);
+          }
+          
+          .floating {
+            animation: float 3s ease-in-out infinite;
+          }
+        `}</style>
+        
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -260,48 +295,90 @@ export default function FeaturesPage() {
               </div>
             </div>
 
-            {/* Phone Mockup */}
+            {/* Enhanced Phone Mockup with Camera Interface */}
             <div className="flex justify-center">
-              <div className="bg-gray-900 rounded-[3rem] p-2 shadow-2xl">
-                <div className="bg-white rounded-[2.5rem] p-1">
-                  <div className="w-[280px] h-[560px] bg-white rounded-[2.5rem] relative overflow-hidden">
-                    {/* Phone notch */}
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-2xl"></div>
+              <div className="relative floating">
+                {/* Glow effect */}
+                <div className="absolute inset-0 phone-glow rounded-[3rem] opacity-60"></div>
+                
+                <div className="relative bg-gray-900 rounded-[3rem] p-2 shadow-2xl">
+                  <div className="bg-black rounded-[2.5rem] p-1">
+                    <div className="w-[300px] h-[600px] bg-black rounded-[2.5rem] relative overflow-hidden">
+                      {/* Phone notch */}
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-2xl z-20"></div>
 
-                    {/* App interface */}
-                    <div className="pt-8 px-4">
-                      <div className="text-center mb-6">
-                        <h3 className="font-bold text-green-600">ROCKLAND</h3>
-                        <p className="text-xs text-gray-500">Rock Identifier</p>
-                      </div>
-
-                      {/* Camera viewfinder */}
-                      <div className="bg-gray-200 rounded-2xl h-64 mb-4 flex items-center justify-center relative">
-                        <div className="text-gray-400 text-center">
-                          <Camera className="w-12 h-12 mx-auto mb-2" />
-                          <p className="text-sm">Point camera at rock</p>
+                      {/* Camera interface background with rock image */}
+                      <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden">
+                        <div className="w-full h-full bg-gradient-to-br from-gray-600 via-gray-500 to-gray-700 relative">
+                          {/* Simulated rock texture */}
+                          <div className="absolute inset-0 opacity-80">
+                            <div className="absolute top-1/4 left-1/4 w-32 h-48 bg-gray-300 rounded-full transform rotate-12 opacity-70"></div>
+                            <div className="absolute top-1/3 left-1/3 w-24 h-36 bg-gray-200 rounded-full transform -rotate-6 opacity-60"></div>
+                            <div className="absolute top-2/5 left-2/5 w-20 h-28 bg-gray-100 rounded-full transform rotate-3 opacity-50"></div>
+                          </div>
+                          {/* Dark overlay for better contrast */}
+                          <div className="absolute inset-0 bg-black bg-opacity-30"></div>
                         </div>
-                        <div className="absolute inset-4 border-2 border-green-500 rounded-xl border-dashed"></div>
                       </div>
 
-                      {/* Action buttons */}
-                      <div className="flex gap-3 mb-4">
-                        <Button className="flex-1 bg-green-600 text-white text-sm">
-                          <Zap className="w-4 h-4 mr-1" />
-                          Scan
-                        </Button>
-                        <Button variant="outline" className="flex-1 text-sm">
-                          <Heart className="w-4 h-4 mr-1" />
-                          Saved
-                        </Button>
-                      </div>
+                      {/* Camera UI overlay */}
+                      <div className="relative z-10 h-full flex flex-col">
+                        {/* Top controls */}
+                        <div className="flex justify-between items-center p-4 pt-8">
+                          <button className="w-10 h-10 bg-black bg-opacity-20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors">
+                            <X className="w-6 h-6 text-white" />
+                          </button>
+                          <button className="w-10 h-10 bg-black bg-opacity-20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors">
+                            <Zap className="w-6 h-6 text-white" />
+                          </button>
+                        </div>
 
-                      {/* Recent scans */}
-                      <div className="text-xs text-gray-500 mb-2">Recent Scans</div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-gray-100 rounded-lg h-16"></div>
-                        <div className="bg-gray-100 rounded-lg h-16"></div>
-                        <div className="bg-gray-100 rounded-lg h-16"></div>
+                        {/* Center area - spacer for viewfinder */}
+                        <div className="flex-1 flex items-center justify-center relative">
+                          {/* Enhanced scanning animation overlay */}
+                          <div className="absolute inset-8 border-2 rounded-2xl scan-animation">
+                            <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-green-400 rounded-tl-2xl"></div>
+                            <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-green-400 rounded-tr-2xl"></div>
+                            <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-green-400 rounded-bl-2xl"></div>
+                            <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-green-400 rounded-br-2xl"></div>
+                          </div>
+                          
+                          {/* Enhanced scanning indicator */}
+                          <div className="bg-green-500 bg-opacity-90 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 shadow-lg">
+                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                            Scanning...
+                          </div>
+                        </div>
+
+                        {/* Bottom controls */}
+                        <div className="p-6 pb-8">
+                          {/* Flash icon */}
+                          <div className="flex justify-center mb-8">
+                            <button className="w-12 h-12 bg-black bg-opacity-20 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors">
+                              <Lightbulb className="w-6 h-6 text-white" />
+                            </button>
+                          </div>
+
+                          {/* Bottom action row */}
+                          <div className="flex items-center justify-between">
+                            {/* Gallery button */}
+                            <button className="w-12 h-12 bg-gray-800 bg-opacity-50 backdrop-blur-md rounded-2xl flex items-center justify-center hover:bg-opacity-70 transition-colors">
+                              <ImageIcon className="w-6 h-6 text-white" />
+                            </button>
+
+                            {/* Enhanced capture button */}
+                            <button className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-200">
+                              <div className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 relative">
+                                <div className="absolute inset-2 bg-gray-100 rounded-full"></div>
+                              </div>
+                            </button>
+
+                            {/* Flip camera button */}
+                            <button className="w-12 h-12 bg-gray-800 bg-opacity-50 backdrop-blur-md rounded-2xl flex items-center justify-center hover:bg-opacity-70 transition-colors">
+                              <RotateCcw className="w-6 h-6 text-white" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -357,8 +434,6 @@ export default function FeaturesPage() {
           </div>
         </div>
       </section>
-
-
 
       {/* Footer */}
       <footer className="bg-green-600 text-white py-16">

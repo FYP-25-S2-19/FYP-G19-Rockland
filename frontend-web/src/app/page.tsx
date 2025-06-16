@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Play, Plus, Heart, Minus } from "lucide-react"
+import { Check, Play, Plus, Minus } from "lucide-react"
 
 interface FAQItem {
   question: string
@@ -136,198 +136,15 @@ export default function RocklandLanding(): JSX.Element {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="relative flex justify-center">
-              {/* Main phone mockup */}
-              <div className="bg-gradient-to-br from-gray-800 via-gray-900 to-black rounded-[3rem] p-3 shadow-2xl relative z-10 transform rotate-1 hover:rotate-0 transition-transform duration-500">
-                <div className="bg-gradient-to-br from-white to-gray-50 rounded-[2.5rem] p-1 shadow-inner">
-                  <div className="w-[300px] h-[600px] bg-gradient-to-br from-white via-gray-50 to-white rounded-[2.5rem] relative overflow-hidden shadow-lg">
-                    {/* Phone notch with realistic styling */}
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-36 h-7 bg-gradient-to-b from-gray-900 to-black rounded-b-3xl flex items-center justify-center shadow-lg">
-                      <div className="w-16 h-1 bg-gray-600 rounded-full"></div>
-                      <div className="absolute left-3 w-1.5 h-1.5 bg-gray-700 rounded-full"></div>
-                    </div>
-                    
-                    {/* Status bar with improved styling */}
-                    <div className="flex justify-between items-center px-6 pt-10 pb-2 bg-gradient-to-r from-white to-gray-50">
-                      <div className="flex items-center gap-1">
-                        <div className="text-xs font-semibold text-gray-800">9:41</div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex gap-0.5">
-                          <div className="w-1 h-1 bg-gray-800 rounded-full"></div>
-                          <div className="w-1 h-1 bg-gray-800 rounded-full"></div>
-                          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                        </div>
-                        <svg className="w-4 h-4 text-gray-800" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M2 17h20v2H2zm1.15-4.05L4 11.47l.85 1.48 1.3-.75-.85-1.48H7v-1.5H5.3l.85-1.48L4.85 7 4 8.47 3.15 7l-1.3.75.85 1.48H1v1.5h1.7l-.85 1.48 1.3.75z"/>
-                        </svg>
-                        <div className="w-6 h-3 border border-gray-800 rounded-sm">
-                          <div className="w-4 h-1.5 bg-green-500 rounded-sm m-0.5"></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* App content with enhanced styling */}
-                    <div className="px-4 pt-2 bg-gradient-to-b from-white via-gray-50 to-white">
-                      <div className="text-sm font-bold mb-1 text-center bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">ROCKLAND</div>
-                      <div className="text-xs text-gray-500 mb-4 text-center">#1 Rock Learning Platform</div>
-
-                      {/* Search bar with modern styling */}
-                      <div className="bg-gradient-to-r from-gray-100 to-gray-50 rounded-2xl px-4 py-3 mb-4 flex items-center shadow-sm border border-gray-200">
-                        <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <span className="text-sm text-gray-400">Search rocks...</span>
-                      </div>
-
-                      {/* Promotional cards with gradients */}
-                      <div className="space-y-3 mb-4">
-                        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl px-4 py-3 text-sm flex items-center justify-between shadow-lg">
-                          <span className="flex-1 text-center font-medium">Upgrade to Premium</span>
-                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                        <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl px-4 py-3 text-sm text-center font-medium shadow-lg">
-                          🎉 50% Off. Tap to claim.
-                        </div>
-                      </div>
-
-                      {/* Action buttons with improved styling */}
-                      <div className="flex gap-3 mb-4">
-                        <button className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-2xl py-3 text-sm font-medium shadow-lg transform hover:scale-105 transition-all duration-200">
-                          📝 Take Quiz
-                        </button>
-                        <button className="flex-1 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-2xl py-3 text-sm font-medium shadow-sm transform hover:scale-105 transition-all duration-200">
-                          🏆 Leaderboard
-                        </button>
-                      </div>
-
-                      {/* Popular section with better typography */}
-                      <div className="mb-3">
-                        <h3 className="text-sm font-bold mb-1 text-gray-800">Popular on Rockland</h3>
-                        <p className="text-xs text-gray-500">Featured Articles</p>
-                      </div>
-
-                      {/* Article grid with enhanced cards */}
-                      <div className="grid grid-cols-2 gap-3 mb-4">
-                        <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-                          <div className="relative h-14 mb-2 rounded-xl overflow-hidden shadow-sm">
-                            <Image
-                              src="/1.png"
-                              alt="Types of Igneous Rocks"
-                              fill
-                              className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                          </div>
-                          <p className="text-xs font-semibold line-clamp-2 text-gray-800">Types of Igneous Rocks</p>
-                          <div className="flex items-center mt-1">
-                            <div className="flex text-yellow-400">
-                              <span className="text-xs">★★★★★</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-                          <div className="relative h-14 mb-2 rounded-xl overflow-hidden shadow-sm">
-                            <Image
-                              src="/2.jpg"
-                              alt="Sedimentary Rock Formation"
-                              fill
-                              className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                          </div>
-                          <p className="text-xs font-semibold line-clamp-2 text-gray-800">Sedimentary Rock Formation</p>
-                          <div className="flex items-center mt-1">
-                            <div className="flex text-yellow-400">
-                              <span className="text-xs">★★★★☆</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-                          <div className="relative h-14 mb-2 rounded-xl overflow-hidden shadow-sm">
-                            <Image
-                              src="/3.png"
-                              alt="Crystal Identification Guide"
-                              fill
-                              className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                          </div>
-                          <p className="text-xs font-semibold line-clamp-2 text-gray-800">Crystal Identification Guide</p>
-                          <div className="flex items-center mt-1">
-                            <div className="flex text-yellow-400">
-                              <span className="text-xs">★★★★★</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-                          <div className="relative h-14 mb-2 rounded-xl overflow-hidden shadow-sm">
-                            <Image
-                              src="/1.png"
-                              alt="Rock Collecting Tips"
-                              fill
-                              className="object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                          </div>
-                          <p className="text-xs font-semibold line-clamp-2 text-gray-800">Rock Collecting Tips</p>
-                          <div className="flex items-center mt-1">
-                            <div className="flex text-yellow-400">
-                              <span className="text-xs">★★★★☆</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom navigation with modern styling */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-gray-50 border-t border-gray-100 backdrop-blur-sm">
-                      <div className="flex justify-around py-3 px-2">
-                        <button className="flex flex-col items-center gap-1 group">
-                          <div className="p-1.5 rounded-xl bg-green-600 shadow-lg">
-                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                            </svg>
-                          </div>
-                          <span className="text-xs text-green-600 font-medium">Home</span>
-                        </button>
-                        <button className="flex flex-col items-center gap-1 group">
-                          <div className="p-1.5 rounded-xl">
-                            <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                            </svg>
-                          </div>
-                          <span className="text-xs text-gray-400 group-hover:text-gray-600">Feed</span>
-                        </button>
-                        <button className="flex flex-col items-center gap-1 group">
-                          <div className="p-1.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 shadow-lg">
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                          </div>
-                          <span className="text-xs text-orange-500 font-medium">Scan</span>
-                        </button>
-                        <button className="flex flex-col items-center gap-1 group">
-                          <div className="p-1.5 rounded-xl">
-                            <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                            </svg>
-                          </div>
-                          <span className="text-xs text-gray-400 group-hover:text-gray-600">Maps</span>
-                        </button>
-                        <button className="flex flex-col items-center gap-1 group">
-                          <div className="p-1.5 rounded-xl">
-                            <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                          </div>
-                          <span className="text-xs text-gray-400 group-hover:text-gray-600">Account</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+              {/* Main phone mockup using uploaded image */}
+              <div className="relative z-10 transform rotate-1 hover:rotate-0 transition-transform duration-500">
+                <div className="w-[300px] h-[600px] relative overflow-hidden rounded-[3rem] shadow-2xl">
+                  <Image
+                    src="/5.jpg"
+                    alt="Rockland app interface on phone"
+                    fill
+                    className="object-cover rounded-[3rem]"
+                  />
                 </div>
               </div>
 
@@ -425,12 +242,8 @@ export default function RocklandLanding(): JSX.Element {
                 </div>
                 <h3 className="font-bold mb-2">Understanding the Three Types of Geological Rocks</h3>
                 <p className="text-sm text-gray-600 mb-3">Explore igneous, sedimentary, and metamorphic rocks and learn how they form through Earth's geological processes.</p>
-                <div className="flex items-center justify-between mt-4">
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm text-gray-500">2.1k views</div>
-                    <div className="text-sm text-gray-500">5 min read</div>
-                  </div>
-                  <Heart className="w-4 h-4 text-gray-400 hover:text-red-500 cursor-pointer transition-colors" />
+                <div className="flex items-center mt-4">
+                  <div className="text-sm text-gray-500">1.5k likes</div>
                 </div>
               </CardContent>
             </Card>
@@ -463,12 +276,8 @@ export default function RocklandLanding(): JSX.Element {
                 </div>
                 <h3 className="font-bold mb-2">Complete Rock Identification Field Guide</h3>
                 <p className="text-sm text-gray-600 mb-3">Master the art of identifying rocks in the field using texture, color, crystal structure, and formation clues.</p>
-                <div className="flex items-center justify-between mt-4">
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm text-gray-500">3.7k views</div>
-                    <div className="text-sm text-gray-500">12 min read</div>
-                  </div>
-                  <Heart className="w-4 h-4 text-gray-400 hover:text-red-500 cursor-pointer transition-colors" />
+                <div className="flex items-center mt-4">
+                  <div className="text-sm text-gray-500">1.5k likes</div>
                 </div>
               </CardContent>
             </Card>
@@ -501,15 +310,106 @@ export default function RocklandLanding(): JSX.Element {
                 </div>
                 <h3 className="font-bold mb-2">The Science of Crystal Formation and Growth</h3>
                 <p className="text-sm text-gray-600 mb-3">Dive deep into crystallography and understand how temperature, pressure, and chemical composition create stunning crystal formations.</p>
-                <div className="flex items-center justify-between mt-4">
-                  <div className="flex items-center gap-4">
-                    <div className="text-sm text-gray-500">1.9k views</div>
-                    <div className="text-sm text-gray-500">8 min read</div>
-                  </div>
-                  <Heart className="w-4 h-4 text-gray-400 hover:text-red-500 cursor-pointer transition-colors" />
+                <div className="flex items-center mt-4">
+                  <div className="text-sm text-gray-500">1.5k likes</div>
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">What Our Users Say</h2>
+            <p className="text-lg text-gray-600">Join thousands of rock enthusiasts who love using Rockland</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Testimonial 1 */}
+            <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mr-4 flex items-center justify-center">
+                  <span className="text-white font-bold">JM</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Jessica Martinez</h4>
+                </div>
+              </div>
+              <div className="flex mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+              </div>
+              <p className="text-gray-600 italic">"Rockland has revolutionized my field studies! The AI identification is incredibly accurate, and I love how I can track all my discoveries in one place. The quiz feature keeps me engaged and learning."</p>
+            </Card>
+
+            {/* Testimonial 2 */}
+            <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full mr-4 flex items-center justify-center">
+                  <span className="text-white font-bold">DT</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">David Thompson</h4>
+                </div>
+              </div>
+              <div className="flex mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+              </div>
+              <p className="text-gray-600 italic">"As a hobbyist collector for 15 years, I've never seen anything like this. The interactive maps help me discover new locations, and the community features let me connect with fellow enthusiasts worldwide."</p>
+            </Card>
+
+            {/* Testimonial 3 */}
+            <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mr-4 flex items-center justify-center">
+                  <span className="text-white font-bold">LW</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Lisa Wong</h4>
+                </div>
+              </div>
+              <div className="flex mb-3">
+                {[...Array(4)].map((_, i) => (
+                  <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                ))}
+                <svg className="w-4 h-4 text-gray-300 fill-current" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </div>
+              <p className="text-gray-600 italic">"My earth science students absolutely love using Rockland for their field trips! It makes learning interactive and fun. The educational content is top-notch and perfectly aligned with our curriculum."</p>
+            </Card>
+          </div>
+
+          {/* Stats Section */}
+          <div className="mt-16 grid md:grid-cols-4 gap-8 text-center">
+            <div className="p-6">
+              <div className="text-3xl font-bold text-green-600 mb-2">25K+</div>
+              <p className="text-gray-600">Active Users</p>
+            </div>
+            <div className="p-6">
+              <div className="text-3xl font-bold text-green-600 mb-2">500K+</div>
+              <p className="text-gray-600">Rocks Identified</p>
+            </div>
+            <div className="p-6">
+              <div className="text-3xl font-bold text-green-600 mb-2">4.8</div>
+              <p className="text-gray-600">App Store Rating</p>
+            </div>
+            <div className="p-6">
+              <div className="text-3xl font-bold text-green-600 mb-2">150+</div>
+              <p className="text-gray-600">Countries</p>
+            </div>
           </div>
         </div>
       </section>
@@ -627,7 +527,7 @@ export default function RocklandLanding(): JSX.Element {
         </div>
       </section>
 
-{/* Download Section */}
+      {/* Download Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-12">Download Rockland and Start Exploring Now!</h2>
