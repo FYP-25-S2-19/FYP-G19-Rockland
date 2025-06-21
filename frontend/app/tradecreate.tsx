@@ -1,5 +1,5 @@
 "use client";
-
+import { useRouter } from "expo-router"
 import { useState } from "react";
 import {
   View,
@@ -14,6 +14,7 @@ import Amethyst from "../assets/images/Amethyst.jpg";
 import Quartz from "../assets/images/Quartz.webp";
 import Obsidian from "../assets/images/Obsidian.webp";
 import Granite from "../assets/images/Granite.webp";
+import BackIcon from "../assets/images/back.svg"
 
 // Rock type definitions
 type Rock = {
@@ -33,6 +34,7 @@ type FilterState = {
 };
 
 export default function CreateTradeOfferScreen() {
+  const router = useRouter()
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedRockToGive, setSelectedRockToGive] = useState<Rock | null>(
     null
@@ -120,7 +122,7 @@ export default function CreateTradeOfferScreen() {
       setStep(1);
       setSelectedRockToReceive(null);
     } else {
-      console.log("Back to previous screen");
+      router.back();
     }
   };
 
@@ -276,16 +278,17 @@ export default function CreateTradeOfferScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      {/* Header */}
-      <View className="bg-white border-b border-gray-200 px-4 py-4">
-        <View className="flex-row items-center">
-          <TouchableOpacity onPress={handleBack} className="mr-4">
-            <Text className="text-gray-900 text-xl">←</Text>
-          </TouchableOpacity>
-          <Text className="text-gray-900 font-semibold text-lg">
-            Create Trade Offer
-          </Text>
-        </View>
+      {/* Top Navigation */}
+      <View className="bg-white border-b border-gray-200 px-4 py-4 relative items-center justify-center">
+        <TouchableOpacity 
+          onPress={handleBack} 
+          className="absolute left-4 top-4"
+          style={{ zIndex: 10 }}
+        >
+          <BackIcon width={24} height={24} />
+        </TouchableOpacity>
+
+        <Text className="text-gray-900 font-semibold text-lg">Create Trade Offer</Text>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
