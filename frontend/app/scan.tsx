@@ -6,6 +6,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useEffect } from "react";
 
 export default function Scan() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -15,7 +16,13 @@ export default function Scan() {
   const [modalVisible, setModalVisible] = useState(false);
   const [isScreenFocused, setIsScreenFocused] = useState(true);
   const router = useRouter();
+  useEffect(() => {
+    if (!permission?.granted) {
+      requestPermission();
+    }
+  }, []);
 
+  
   useFocusEffect(
     useCallback(() => {
       setIsScreenFocused(true);
