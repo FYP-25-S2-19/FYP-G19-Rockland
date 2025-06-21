@@ -67,8 +67,13 @@ export default function LoginScreen() {
           <View className="mb-5">
             <Text className="text-base font-medium text-gray-700 mb-2">Email</Text>
             <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-3.5 text-base text-gray-800 bg-gray-50"
-              textAlignVertical="center"
+              className="border border-gray-300 rounded-lg px-4 text-base text-gray-800 bg-gray-50"
+              style={{
+                height: 48,
+                paddingVertical: 10, 
+                lineHeight: 20,
+                textAlignVertical: 'center',
+              }}
               value={email}
               onChangeText={setEmail}
               placeholder="Enter your email"
@@ -83,7 +88,13 @@ export default function LoginScreen() {
             <Text className="text-base font-medium text-gray-700 mb-2">Password</Text>
             <View className="flex-row items-center border border-gray-300 rounded-lg bg-gray-50">
               <TextInput
-                className="flex-1 px-4 py-3 text-base text-gray-800"
+                className="flex-1 px-4 text-base text-gray-800"
+                style={{
+                  height: 48,
+                  paddingVertical: 10,
+                  lineHeight: 20,
+                  textAlignVertical: 'center',
+                }}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Enter your password"
