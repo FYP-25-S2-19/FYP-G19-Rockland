@@ -65,7 +65,11 @@ export default function HomeScreen() {
           <TouchableOpacity className="flex-1 bg-green-600 py-4 rounded-xl items-center mr-1.5" activeOpacity={0.8}>
             <Text className="text-base font-semibold text-white">Take Quiz</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="flex-1 bg-green-600 py-4 rounded-xl items-center ml-1.5" activeOpacity={0.8}>
+          <TouchableOpacity
+            onPress={() => router.push("/leaderboard")}
+            className="flex-1 bg-green-600 py-4 rounded-xl items-center ml-1.5"
+            activeOpacity={0.8}
+          >
             <Text className="text-base font-semibold text-white">Leaderboard</Text>
           </TouchableOpacity>
         </View>
