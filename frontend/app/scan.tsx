@@ -45,7 +45,7 @@ export default function Scan() {
     const photo = await cameraRef.current?.takePictureAsync();
     const photoUri = photo?.uri ?? null;
     if (photoUri) {
-      router.push({ pathname: "/scan-result", params: { image: photoUri } });
+      router.replace({ pathname: "/scan-result", params: { image: photoUri } });
     }
   };
 
