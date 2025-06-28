@@ -76,124 +76,160 @@ export default function LeaderboardScreen() {
   const currentUserIndex = data.findIndex((u) => u.name === 'You');
   const currentUser = data[currentUserIndex];
 
-  const truncateName = (name: string, limit: number = 10) =>
-    name.length > limit ? name.slice(0, limit) + '..' : name;
+  const handleGoBack = () => router.back();
 
   const getProfileImage = (img?: any) => img || fallbackImage;
 
   return (
     <SafeAreaView className="flex-1 bg-green-200">
-      <View className="px-4 pt-4">
-        {/* Header */}
-        <View className="flex-row items-center mb-4">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-10 h-10 bg-white border border-gray-600 rounded-xl items-center justify-center"
-          >
-            <BackIcon width={20} height={20} />
-          </TouchableOpacity>
-          <Text className="flex-1 text-center text-2xl font-bold -ml-10">Leaderboard</Text>
-        </View>
+      {/* Header */}
+      <View className="flex-row items-center justify-center px-4 pt-4 mb-6 relative">
+        <TouchableOpacity onPress={handleGoBack} className="absolute left-4 ml-2 mt-2">
+          <BackIcon width={24} height={24} />
+        </TouchableOpacity>
+        <Text className="text-xl font-bold">Leaderboard</Text>
+      </View>
 
-        {/* Timeframe Buttons */}
-        <View className="flex-row justify-center mb-8">
-          {timeframes.map((time) => (
-            <TouchableOpacity
-              key={time}
-              onPress={() => setSelected(time)}
-              className={`w-[90px] py-2 rounded-[12px] mx-1 ${
-                selected === time ? 'bg-green-600' : 'bg-gray-300'
+      {/* Timeframe Selector */}
+      <View className="flex-row justify-center mb-8">
+        {timeframes.map((time) => (
+          <TouchableOpacity
+            key={time}
+            onPress={() => setSelected(time)}
+            className={`w-[90px] py-2 rounded-[12px] mx-2 ${
+              selected === time ? 'bg-green-600' : 'bg-gray-300'
+            }`}
+          >
+            <Text
+              className={`text-sm font-medium text-center ${
+                selected === time ? 'text-white' : 'text-black'
               }`}
             >
-              <Text
-                className={`text-sm font-medium text-center ${
-                  selected === time ? 'text-white' : 'text-black'
-                }`}
-              >
-                {time}
-              </Text>
-            </TouchableOpacity>
-          ))}
+              {time}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Podium */}
+      <View className="flex-row justify-center items-end space-x-12 mb-12">
+        {/* 🥈 Second Place */}
+        <View className="items-center w-[100px] -mb-4">
+          <View className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-300 mb-1">
+            <Image source={getProfileImage(topThree[1].image)} className="w-full h-full" />
+          </View>
+          <Text className="text-3xl mb-1">🥈</Text>
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={{
+              width: 80,
+              textAlign: 'center',
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: topThree[1].name === 'You' ? '#db2777' : '#000',
+            }}
+          >
+            {topThree[1].name}
+          </Text>
+          <Text className="text-sm text-black">{topThree[1].score} pts</Text>
         </View>
 
-        {/* Podium */}
-        <View className="flex-row justify-center items-end mb-6 space-x-4">
-          {[1, 0, 2].map((pos) => (
-            <View
-              key={pos}
-              className={`items-center ${pos === 0 ? 'w-[110px] -mt-6 z-10' : 'w-[100px] -mb-4'}`}
-            >
-              <View className="items-center">
-                {pos === 0 && <CrownIcon width={36} height={36} style={{ marginBottom: -12 }} />}
-                <View
-                  className={`${
-                    pos === 0 ? 'w-24 h-24' : 'w-20 h-20'
-                  } rounded-full overflow-hidden border-4 ${
-                    pos === 0
-                      ? 'border-[#EF9E1C]'
-                      : pos === 2
-                      ? 'border-[#CD7F32]'
-                      : 'border-gray-300'
-                  } mb-1`}
-                >
-                  <Image source={getProfileImage(topThree[pos].image)} className="w-full h-full" />
-                </View>
-                <Text className="text-3xl mb-1">
-                  {pos === 0 ? '🥇' : pos === 1 ? '🥈' : '🥉'}
-                </Text>
-                <Text
-                  className={`w-[80px] text-sm font-bold text-center truncate ${
-                    topThree[pos].name === 'You' ? 'text-pink-600' : 'text-black'
-                  }`}
-                >
-                  {truncateName(topThree[pos].name)}
-                </Text>
-                <Text className="text-sm text-black">{topThree[pos].score} pts</Text>
-              </View>
-            </View>
-          ))}
+        {/* 🥇 First Place */}
+        <View className="items-center w-[110px] -mt-6 z-10">
+          <CrownIcon width={36} height={36} style={{ marginBottom: -12 }} />
+          <View className="w-28 h-28 rounded-full overflow-hidden border-4 border-[#EF9E1C] mb-1">
+            <Image source={getProfileImage(topThree[0].image)} className="w-full h-full" />
+          </View>
+          <Text className="text-3xl mb-1">🥇</Text>
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={{
+              width: 80,
+              textAlign: 'center',
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: topThree[0].name === 'You' ? '#db2777' : '#000',
+            }}
+          >
+            {topThree[0].name}
+          </Text>
+          <Text className="text-sm text-black">{topThree[0].score} pts</Text>
+        </View>
+
+        {/* 🥉 Third Place */}
+        <View className="items-center w-[100px] -mb-4">
+          <View className="w-24 h-24 rounded-full overflow-hidden border-4 border-[#CD7F32] mb-1">
+            <Image source={getProfileImage(topThree[2].image)} className="w-full h-full" />
+          </View>
+          <Text className="text-3xl mb-1">🥉</Text>
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={{
+              width: 80,
+              textAlign: 'center',
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: topThree[2].name === 'You' ? '#db2777' : '#000',
+            }}
+          >
+            {topThree[2].name}
+          </Text>
+          <Text className="text-sm text-black">{topThree[2].score} pts</Text>
         </View>
       </View>
 
-      {/* Remaining Users Section */}
+      {/* Remaining Users */}
       <View
         style={{
           backgroundColor: '#459B6C',
           flex: 1,
-          marginTop: 16,
-          paddingTop: 16,
-          paddingBottom: 0,
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
+          paddingTop: 16,
+          paddingBottom: 8,
         }}
       >
         <FlatList
           data={topTen}
-          keyExtractor={(item, index) => index.toString()}
+          keyExtractor={(_, index) => index.toString()}
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: currentUserIndex > 9 ? 90 : 0,
+            paddingBottom: currentUserIndex > 9 ? 100 : 16,
           }}
           renderItem={({ item, index }) => (
             <View
-              className={`flex-row justify-between items-center px-4 py-3 mb-2 mx-2 ${
+              className={`flex-row justify-between items-center px-4 py-4 mb-2 mx-2 ${
                 item.name === 'You' ? 'bg-pink-200' : 'bg-white'
               } rounded-[12px]`}
             >
               <View className="flex-row items-center">
-                <Text className="text-sm font-semibold w-6 text-gray-700">{index + 4}</Text>
-                <Image source={getProfileImage(item.image)} className="w-8 h-8 rounded-full mx-2" />
+                <Text className="text-sm font-semibold w-6 text-gray-700">
+                  {index + 4}
+                </Text>
+                <Image
+                  source={getProfileImage(item.image)}
+                  className="w-8 h-8 rounded-full mx-2"
+                />
                 <Text
                   className={`text-sm w-[140px] truncate ${
-                    item.name === 'You' ? 'text-pink-600 font-semibold' : 'text-gray-800'
+                    item.name === 'You'
+                      ? 'text-pink-600 font-semibold'
+                      : 'text-gray-800'
                   }`}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
-                  {truncateName(item.name, 16)}
+                  {item.name}
                 </Text>
               </View>
               <Text
                 className={`text-sm ${
-                  item.name === 'You' ? 'font-bold text-pink-600' : 'font-normal text-gray-700'
+                  item.name === 'You'
+                    ? 'font-bold text-pink-600'
+                    : 'font-normal text-gray-700'
                 }`}
               >
                 {item.score} pts
@@ -209,16 +245,26 @@ export default function LeaderboardScreen() {
           className="absolute bottom-0 left-0 right-0 px-6 py-3"
           style={{ backgroundColor: '#459B6C' }}
         >
-          <View className="flex-row justify-between items-center px-4 py-3 rounded-[12px] bg-pink-200">
+          <View className="flex-row justify-between items-center px-4 py-4 rounded-[12px] bg-pink-200">
             <View className="flex-row items-center">
-              <Text className="text-sm font-semibold w-6 text-gray-700">{currentUserIndex + 1}</Text>
+              <Text className="text-sm font-semibold w-6 text-gray-700">
+                {currentUserIndex + 1}
+              </Text>
               <Image
                 source={getProfileImage(currentUser.image)}
                 className="w-8 h-8 rounded-full mx-2"
               />
-              <Text className="text-sm font-semibold text-pink-600 w-[140px] truncate">You</Text>
+              <Text
+                className="text-sm font-semibold text-pink-600 w-[140px] truncate"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                You
+              </Text>
             </View>
-            <Text className="text-sm font-bold text-pink-600">{currentUser.score} pts</Text>
+            <Text className="text-sm font-bold text-pink-600">
+              {currentUser.score} pts
+            </Text>
           </View>
         </View>
       )}
