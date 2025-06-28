@@ -62,7 +62,7 @@ export default function HomeScreen() {
 
         {/* Take Quiz & Leaderboard */}
         <View className="flex-row px-5 mb-8">
-          <TouchableOpacity className="flex-1 bg-green-600 py-4 rounded-xl items-center mr-1.5" activeOpacity={0.8}>
+          <TouchableOpacity onPress={() => router.push("/quiz")} className="flex-1 bg-green-600 py-4 rounded-xl items-center mr-1.5" activeOpacity={0.8}>
             <Text className="text-base font-semibold text-white">Take Quiz</Text>
           </TouchableOpacity>
           <TouchableOpacity
