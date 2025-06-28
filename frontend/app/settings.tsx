@@ -20,7 +20,7 @@ export default function SettingsScreen() {
   };
 
   const handleFAQ = () => {
-    console.log("FAQ Page");
+    router.push("/faq");
   };
 
   const handleApplyExpert = () => {
