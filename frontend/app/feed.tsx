@@ -107,17 +107,31 @@ export default function FeedScreen() {
       </View>
 
       {/* Tabs */}
-      <View className="flex-row justify-around border-b border-gray-200 pb-2 mb-2">
-        <TouchableOpacity onPress={() => handleTabPress("Articles")}>
-          <Text className={`text-base font-semibold ${activeTab === "Articles" ? "text-black border-b-2 border-black pb-1" : "text-gray-400"}`}>
-            Articles
-          </Text>
+      <View className="flex-row justify-around border-b border-gray-200 px-4 mb-4">
+        <TouchableOpacity onPress={() => handleTabPress("Articles")} className="flex-1">
+          <View
+            className="items-center pb-2 border-b-2"
+            style={{
+              borderBottomColor: activeTab === "Articles" ? "#000" : "transparent",
+            }}
+          >
+            <Text className={`text-base font-semibold ${activeTab === "Articles" ? "text-black" : "text-gray-400"}`}>
+              Articles
+            </Text>
+          </View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => handleTabPress("Discussions")}>
-          <Text className={`text-base font-semibold ${activeTab === "Discussions" ? "text-black border-b-2 border-black pb-1" : "text-gray-400"}`}>
-            Discussions
-          </Text>
+        <TouchableOpacity onPress={() => handleTabPress("Discussions")} className="flex-1">
+          <View
+            className="items-center pb-2 border-b-2"
+            style={{
+              borderBottomColor: activeTab === "Discussions" ? "#000" : "transparent",
+            }}
+          >
+            <Text className={`text-base font-semibold ${activeTab === "Discussions" ? "text-black" : "text-gray-400"}`}>
+              Discussions
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
 

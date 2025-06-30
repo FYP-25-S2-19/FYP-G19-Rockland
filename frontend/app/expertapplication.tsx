@@ -63,12 +63,11 @@ export default function ExpertApplication() {
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           
           {/* Header */}
-          <View className="flex-row items-center justify-between mb-6">
-            <TouchableOpacity onPress={() => router.back()} className="p-2">
+          <View className="flex-row items-center justify-center px-4 py-4 border-b border-gray-300 mb-4">
+            <TouchableOpacity onPress={() => router.back()} className="absolute left-2">
               <BackIcon width={24} height={24} />
             </TouchableOpacity>
-            <Text className="text-lg font-bold">Expert Application Form</Text>
-            <View style={{ width: 24 }} />
+            <Text className="text-xl font-bold">Expert Application Form</Text>
           </View>
 
           {/* Why */}
