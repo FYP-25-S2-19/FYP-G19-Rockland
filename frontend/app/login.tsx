@@ -9,6 +9,8 @@ import {
   SafeAreaView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import VisibilityOn from "../assets/images/visibility.svg";
+import VisibilityOff from "../assets/images/visibility_off.svg";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -92,7 +94,7 @@ export default function LoginScreen() {
                 style={{
                   height: 48,
                   paddingVertical: 10,
-                  lineHeight: 20,
+                  lineHeight: 18,
                   textAlignVertical: 'center',
                 }}
                 value={password}
@@ -106,7 +108,12 @@ export default function LoginScreen() {
                 onPress={() => setShowPassword(!showPassword)}
                 activeOpacity={0.7}
               >
-                <Text className="text-lg">{showPassword ? "👁️" : "👁️‍🗨️"}</Text>
+                <Text className="text-lg">{showPassword ? (
+                    <VisibilityOn width={20} height={20} />
+                  ) : (
+                    <VisibilityOff width={20} height={20} />
+                  )}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
