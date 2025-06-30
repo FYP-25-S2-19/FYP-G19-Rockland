@@ -47,11 +47,11 @@ export default function FaqScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
-      <View className="flex-row items-center justify-center px-4 pt-4 pb-3 border-b border-gray-200 relative">
+      <View className="flex-row items-center justify-center px-5 pt-5 pb-3 border-b border-gray-300 relative">
         <TouchableOpacity className="absolute left-4" onPress={() => router.back()}>
-          <BackIcon width={22} height={22} />
+          <BackIcon width={24} height={24} />
         </TouchableOpacity>
-        <Text className="text-lg font-bold">FAQ</Text>
+        <Text className="text-xl font-bold">FAQ</Text>
       </View>
 
       {/* Content */}
