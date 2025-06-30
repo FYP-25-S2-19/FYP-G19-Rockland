@@ -31,9 +31,18 @@ export default function HomeScreen() {
   const handleSearchClick = () => {
     router.push("/searchrock");
   };
+  
+  const shadowStyle = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.15,
+  shadowRadius: 4,
+  elevation: 6, // Android only
+  };
+
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-green-100">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="items-center pt-5 pb-6">
@@ -44,7 +53,7 @@ export default function HomeScreen() {
         {/* Search */}
         <View className="px-5 mb-5">
           <TouchableOpacity onPress={handleSearchClick} activeOpacity={0.8}>
-            <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3 border border-gray-600">
+            <View className="flex-row items-center bg-white rounded-xl px-4 py-3 border border-gray-600">
               <SearchIcon width={24} height={24} style={{ marginRight: 10 }} />
               <Text className="text-base text-gray-400">Search rocks, minerals...</Text>
             </View>
@@ -54,7 +63,7 @@ export default function HomeScreen() {
         {/* Unlock Features — show only for free user */}
         {role === "free" && (
           <TouchableOpacity className="flex-row items-center bg-[#EF9E1C] mx-5 py-4 px-5 rounded-xl mb-5" activeOpacity={0.8}>
-            <Text className="text-xl mr-3"><CrownIcon width={22} height={22} style={{ marginRight: 10 }} fill="white" /></Text>
+            <Text className="text-xl mr-3"><CrownIcon width={22} height={22} style={[{ marginRight: 10}, shadowStyle]} fill="white" /></Text>
             <Text className="flex-1 text-base font-semibold text-white">Tap to unlock full features</Text>
             <Text className="text-lg text-white">→</Text>
           </TouchableOpacity>
@@ -62,13 +71,14 @@ export default function HomeScreen() {
 
         {/* Take Quiz & Leaderboard */}
         <View className="flex-row px-5 mb-8">
-          <TouchableOpacity onPress={() => router.push("/quiz")} className="flex-1 bg-green-600 py-4 rounded-xl items-center mr-1.5" activeOpacity={0.8}>
+          <TouchableOpacity onPress={() => router.push("/quiz")} className="flex-1 bg-green-600 py-4 rounded-xl items-center mr-1.5" activeOpacity={0.8} style={[shadowStyle]}>
             <Text className="text-base font-semibold text-white">Take Quiz</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push("/leaderboard")}
             className="flex-1 bg-green-600 py-4 rounded-xl items-center ml-1.5"
             activeOpacity={0.8}
+            style={[shadowStyle]}
           >
             <Text className="text-base font-semibold text-white">Leaderboard</Text>
           </TouchableOpacity>
