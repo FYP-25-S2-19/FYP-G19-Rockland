@@ -10,7 +10,7 @@ export const sampleArticles = [
     authorImage: profilePicture,
     isPremium: false,
     thumbnail: article1,
-    title: "What are the type of geological rocks?",
+    title: "What are the type of geological rocks that appear in singapore?",
     category: "Beginner",
     preview:
       "Geological rocks are classified into three main types based on their formation process. Igneous rocks are formed from cooled molten lava or magma, resulting in solid, crystalline structures. Sedimentary rocks are created from accumulated particles like sand, silt, and organic material, compacted over millions of years. Metamorphic rocks originate when existing rocks undergo extreme heat and pressure, altering their physical and chemical properties, producing entirely new rock formations.",
