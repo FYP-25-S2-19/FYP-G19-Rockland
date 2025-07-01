@@ -16,10 +16,17 @@ import BottomTabBar from "../components/BottomTabBar";
 import ProfilePicture from "../assets/images/profilepicture.png";
 import CrownIcon from "../assets/images/crown.svg";
 import SettingIcon from "../assets/images/Settings.svg";
+import ArrowRightIcon from "../assets/images/arrow_right.svg";
+import AccountActiveIcon from "../assets/icons/account_active.svg";
+import BackpackIcon from "../assets/images/backpack.svg";
+import AddIcon from "../assets/images/addicon.svg";
+import TradeIcon from "../assets/images/tradeicon.svg";
+import MedalIcon from "../assets/images/medalicon.svg";
+import { LinearGradient } from 'expo-linear-gradient';
+
 
 export default function AccountScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [userRole, setUserRole] = useState("free");
 
   useEffect(() => {
@@ -39,59 +46,160 @@ export default function AccountScreen() {
   const handleAddRock = () => router.push("/AddRockScreen");
   const handleSettingsNavigation = () => router.push("/settings");
 
+  const shadowStyle = {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  };
+
+  type MenuItemProps = {
+    icon: React.ComponentType<{ width: number; height: number; fill?: string }>;
+    label: string;
+    onPress: () => void;
+    last?: boolean;
+  };
+
+  const MenuItem = ({
+    icon: Icon,
+    label,
+    onPress,
+    last = false,
+  }: MenuItemProps) => (
+    <TouchableOpacity
+      className={`flex-row justify-between items-center py-5 ${
+        !last ? "border-b border-gray-100" : ""
+      }`}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View className="flex-row items-center gap-x-5">
+        <Icon width={20} height={20} fill="gray" />
+        <Text className="text-base font-medium text-gray-900">{label}</Text>
+      </View>
+      <ArrowRightIcon width={18} height={18} fill="gray" />
+    </TouchableOpacity>
+  );
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingBottom: 20,
+    <SafeAreaView className="flex-1 bg-gray-50">
+  <View className="flex-1">
+    <ScrollView
+      contentContainerStyle={{
+        flexGrow: 1,
+        paddingBottom: 100,
+      }}
+    >
+      {/* HEADER SECTION */}
+      <LinearGradient
+        colors={
+          userRole === 'premium'
+            ? ['#EF9E1C', '#FDE68A'] // premium orange gradient
+            : ['#459B6C', '#AFDBB8'] // free user green gradient
+        }
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={{
+          height: 200,
+          justifyContent: 'flex-start',
+          paddingTop: 20,
+          paddingHorizontal: 20,
+          borderBottomLeftRadius: 30,
+          borderBottomRightRadius: 30,
+          marginBottom: 30,
         }}
       >
-        {/* Page Title */}
-        <View className="flex-row items-center justify-center py-5 relative mb-8">
-          <Text className="text-xl font-bold text-gray-900">Account</Text>
+        <Text className="text-white text-2xl font-bold text-center">Account</Text>
+        <TouchableOpacity
+          onPress={handleSettings}
+          style={{
+            position: 'absolute',
+            top: 20,
+            right: 20,
+            backgroundColor: 'rgba(255,255,255,0.3)',
+            borderRadius: 999,
+            padding: 6,
+          }}
+        >
+          <SettingIcon width={24} height={24} fill="white" />
+        </TouchableOpacity>
+      </LinearGradient>
 
-          {/* Absolute right icon */}
-          <TouchableOpacity
-            onPress={handleSettings}
-            className="absolute right-5"
+      {/* CONTENT SECTION */}
+      <View
+        className="bg-gray-50 rounded-t-3xl -mt-20 px-5 pt-10"
+        style={{flex: 1,}}>
+        {/* PROFILE IMAGE */}
+        <View style={{ alignItems: "center", marginTop: -100 }}>
+          <View
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 6,
+              elevation: 8,
+              borderRadius: 100,
+              backgroundColor: "white",
+            }}
           >
-            <SettingIcon width={24} height={24} />
-          </TouchableOpacity>
+            <Image
+              source={ProfilePicture}
+              style={{
+                width: 150,
+                height: 150,
+                borderRadius: 100,
+                borderWidth: 6,
+                borderColor: "white",
+              }}
+            />
+          </View>
         </View>
-        {/* Profile Header */}
-        <View className="items-center mb-8 px-5 relative">
-          <Image
-            source={ProfilePicture}
-            style={{ width: 100, height: 100, borderRadius: 50 }}
-          />
-          <Text className="text-xl font-bold text-gray-900 mt-4">Anna Kim</Text>
-          <Text className="text-sm text-gray-500 mt-1">
-            {userRole === "premium" ? "Premium User" : "Free User"}
-          </Text>
+
+        {/* USER NAME + ROLE */}
+        <View className="items-center mt-4 mb-4">
+          <Text className="text-2xl font-bold text-gray-900">Anna Kim</Text>
+          <View className="flex-row items-center mt-2">
+            {userRole === "premium" && (
+              <CrownIcon width={18} height={18} fill="#EF9E1C" style={{ marginRight: 4 }} />
+            )}
+            <Text
+              className={`text-base ${
+                userRole === "premium"
+                  ? "text-[#EF9E1C] font-semibold"
+                  : "text-gray-500"
+              }`}
+            >
+              {userRole === "premium" ? "Premium User" : "Free User"}
+            </Text>
+          </View>
         </View>
 
         {/* Top Buttons */}
-        <View className="flex-row px-5 mb-10">
+        <View className="flex-row mb-10">
           <TouchableOpacity
-            className="flex-1 bg-green-600 py-4 rounded-xl items-center flex-row justify-center mr-1.5"
+            className="flex-1 bg-green-600 py-4 rounded-xl items-center justify-center mr-1.5 relative"
             onPress={handleProfile}
             activeOpacity={0.8}
+            style={[shadowStyle]}
           >
+            <View className="absolute left-4">
+              <AccountActiveIcon width={20} height={20} />
+            </View>
             <Text className="text-white text-base font-semibold">Profile</Text>
           </TouchableOpacity>
 
           {userRole === "free" && (
             <TouchableOpacity
-              className="flex-1 bg-[#EF9E1C] py-4 rounded-xl items-center flex-row justify-center ml-1.5"
+              className="flex-1 bg-[#EF9E1C] py-4 rounded-xl items-center justify-center ml-1.5 relative"
               onPress={handleSubscribe}
               activeOpacity={0.8}
+              style={[shadowStyle]}
             >
-              <CrownIcon
-                style={{ width: 20, height: 20, marginRight: 8 }}
-                fill="white"
-              />
-              <Text className="text-white text-base font-semibold">
+              <View className="absolute left-4">
+                <CrownIcon width={20} height={20} fill="white" />
+              </View>
+              <Text className="text-white text-base font-semibold ml-4">
                 Subscribe Now
               </Text>
             </TouchableOpacity>
@@ -99,71 +207,36 @@ export default function AccountScreen() {
         </View>
 
         {/* Menu List */}
-        <View className="flex-1 px-5">
-          <TouchableOpacity
-            className="flex-row justify-between items-center py-5 border-b border-gray-100"
-            onPress={handleMyCollection}
-            activeOpacity={0.7}
+        <View>
+          <View
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.06,
+              shadowRadius: 10,
+              elevation: 2,
+            }}
           >
-            <Text className="text-base font-medium text-gray-900">
-              My Collection
-            </Text>
-            <Text className="text-xl text-gray-400">›</Text>
-          </TouchableOpacity>
-
-          {userRole === "premium" && (
-            <>
-              <TouchableOpacity
-                className="flex-row justify-between items-center py-5 border-b border-gray-100"
-                onPress={handleAddRock}
-                activeOpacity={0.7}
-              >
-                <Text className="text-base font-medium text-gray-900">
-                  Add New Rock Entry
-                </Text>
-                <Text className="text-xl text-gray-400">›</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="flex-row justify-between items-center py-5 border-b border-gray-100"
-                onPress={handleTradeList}
-                activeOpacity={0.7}
-              >
-                <Text className="text-base font-medium text-gray-900">
-                  Trade Rock Collection
-                </Text>
-                <Text className="text-xl text-gray-400">›</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="flex-row justify-between items-center py-5 border-b border-gray-100"
-                onPress={handleBadgesAndAchievements}
-                activeOpacity={0.7}
-              >
-                <Text className="text-base font-medium text-gray-900">
-                  Badges and Achievements
-                </Text>
-                <Text className="text-xl text-gray-400">›</Text>
-              </TouchableOpacity>
-            </>
-          )}
-
-          <TouchableOpacity
-            className="flex-row justify-between items-center py-5 border-b border-gray-100"
-            onPress={handleSettingsNavigation}
-            activeOpacity={0.7}
-          >
-            <Text className="text-base font-medium text-gray-900">
-              Settings
-            </Text>
-            <Text className="text-xl text-gray-400">›</Text>
-          </TouchableOpacity>
+            <MenuItem icon={BackpackIcon} label="My Collection" onPress={handleMyCollection} />
+            {userRole === "premium" && (
+              <>
+                <MenuItem icon={AddIcon} label="Add New Rock Entry" onPress={handleAddRock} />
+                <MenuItem icon={TradeIcon} label="Trade Rock Collection" onPress={handleTradeList} />
+                <MenuItem icon={MedalIcon} label="Badges and Achievements" onPress={handleBadgesAndAchievements} />
+              </>
+            )}
+            <MenuItem icon={SettingIcon} label="Settings" onPress={handleSettingsNavigation} last />
+          </View>
         </View>
+      </View>
+    </ScrollView>
 
-        <View className="h-10" />
-      </ScrollView>
-
-      <BottomTabBar activeTab="Account" />
-    </SafeAreaView>
+    <BottomTabBar activeTab="Account" />
+  </View>
+</SafeAreaView>
   );
 }
