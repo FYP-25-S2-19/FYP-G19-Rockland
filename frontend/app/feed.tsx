@@ -34,6 +34,8 @@ export default function FeedScreen() {
     sampleArticles.map((article) => ({ ...article, liked: false }))
   );
 
+  
+
   // Load role from AsyncStorage
   useEffect(() => {
     const loadRole = async () => {
@@ -82,11 +84,19 @@ export default function FeedScreen() {
     }
   };
 
+  const shadowStyle = {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 4,
+      elevation: 6,
+    };
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Search Bar */}
       <View className="flex-row px-4 py-3 items-center">
-        <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-4 h-12 mr-3 border border-gray-600">
+        <View className="flex-1 flex-row items-center bg-white rounded-xl px-4 h-12 mr-3 border-2 border-[#459B6C]">
           <SearchIcon width={20} height={20} style={{ marginRight: 10 }} />
           <TextInput
             className="flex-1 text-base text-gray-800 p-0"
@@ -100,7 +110,7 @@ export default function FeedScreen() {
 
         <TouchableOpacity
           onPress={() => setFilterModalVisible(true)}
-          className="p-3 bg-gray-100 rounded-xl border border-gray-600"
+          className="p-3 bg-white rounded-xl border-2 border-[#459B6C]"
         >
           <FilterIcon width={20} height={20} />
         </TouchableOpacity>
@@ -112,10 +122,10 @@ export default function FeedScreen() {
           <View
             className="items-center pb-2 border-b-2"
             style={{
-              borderBottomColor: activeTab === "Articles" ? "#000" : "transparent",
+              borderBottomColor: activeTab === "Articles" ? "#459B6C" : "transparent",
             }}
           >
-            <Text className={`text-base font-semibold ${activeTab === "Articles" ? "text-black" : "text-gray-400"}`}>
+            <Text className={`text-base font-bold ${activeTab === "Articles" ? "text-black" : "text-gray-400"}`}>
               Articles
             </Text>
           </View>
@@ -125,10 +135,10 @@ export default function FeedScreen() {
           <View
             className="items-center pb-2 border-b-2"
             style={{
-              borderBottomColor: activeTab === "Discussions" ? "#000" : "transparent",
+              borderBottomColor: activeTab === "Discussions" ? "#459B6C" : "transparent",
             }}
           >
-            <Text className={`text-base font-semibold ${activeTab === "Discussions" ? "text-black" : "text-gray-400"}`}>
+            <Text className={`text-base font-bold ${activeTab === "Discussions" ? "text-black" : "text-gray-400"}`}>
               Discussions
             </Text>
           </View>
@@ -137,7 +147,7 @@ export default function FeedScreen() {
 
       {/* Premium Banner (only for free user) */}
       {userRole === "free" && (
-        <TouchableOpacity className="flex-row bg-[#EF9E1C] mx-4 p-4 rounded-xl mb-4 items-center">
+        <TouchableOpacity className="flex-row bg-[#EF9E1C] mx-4 p-4 rounded-xl mb-4 items-center" style={[shadowStyle]}>
           <CrownIcon width={22} height={22} style={{ marginRight: 10 }} fill="white" />
           <Text className="flex-1 text-base font-semibold text-white">
             Subscribe Now to Unlock Full Articles
@@ -150,6 +160,7 @@ export default function FeedScreen() {
       {activeTab === "Articles" ? (
         <FlatList
           data={filteredArticles}
+          style={[shadowStyle]}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <ArticleCard
