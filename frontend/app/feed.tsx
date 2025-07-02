@@ -91,6 +91,7 @@ export default function FeedScreen() {
       shadowRadius: 4,
       elevation: 6,
     };
+    
 
   return (
     <SafeAreaView className="flex-1 bg-white">
