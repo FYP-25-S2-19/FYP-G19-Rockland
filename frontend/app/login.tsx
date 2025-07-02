@@ -18,21 +18,31 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = async () => {
-    let role = null;
+    try {
+      const response = await fetch("http://192.168.10.145:5000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
-    if (email === "free@rockland.com" && password === "rock123") {
-      role = "free";
-    } else if (email === "premium@rockland.com" && password === "rock123") {
-      role = "premium";
-    } else if (email === "expert@rockland.com" && password === "rock123") {
-      role = "expert";
-    }
+      const data = await response.json();
 
-    if (role) {
-      await AsyncStorage.setItem("userRole", role);
-      router.replace("/home");
-    } else {
-      alert("Invalid email or password");
+      if (response.ok) {
+        await AsyncStorage.setItem("authToken", data.token);
+        await AsyncStorage.setItem("userId", data.user_id.toString());
+        // Optionally fetch role or userTypeID from your backend if needed
+        router.push("/home");
+      } else {
+        alert(data.error || "Login failed");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Unable to connect to the server.");
     }
   };
 
@@ -56,23 +66,29 @@ export default function LoginScreen() {
           <View className="items-center mb-8">
             <Text className="text-2xl font-bold text-gray-800 mb-2">Login</Text>
             <View className="flex-row items-center">
-              <Text className="text-sm text-gray-500">Don't have an account? </Text>
+              <Text className="text-sm text-gray-500">
+                Don't have an account?{" "}
+              </Text>
               <TouchableOpacity onPress={handleRegister} activeOpacity={0.7}>
-                <Text className="text-sm text-green-600 font-medium">Register</Text>
+                <Text className="text-sm text-green-600 font-medium">
+                  Register
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Email */}
           <View className="mb-5">
-            <Text className="text-base font-medium text-gray-700 mb-2">Email</Text>
+            <Text className="text-base font-medium text-gray-700 mb-2">
+              Email
+            </Text>
             <TextInput
               className="border border-gray-300 rounded-lg px-4 text-base text-gray-800 bg-gray-50"
               style={{
                 height: 48,
-                paddingVertical: 10, 
+                paddingVertical: 10,
                 lineHeight: 20,
-                textAlignVertical: 'center',
+                textAlignVertical: "center",
               }}
               value={email}
               onChangeText={setEmail}
@@ -85,7 +101,9 @@ export default function LoginScreen() {
 
           {/* Password */}
           <View className="mb-5">
-            <Text className="text-base font-medium text-gray-700 mb-2">Password</Text>
+            <Text className="text-base font-medium text-gray-700 mb-2">
+              Password
+            </Text>
             <View className="flex-row items-center border border-gray-300 rounded-lg bg-gray-50">
               <TextInput
                 className="flex-1 px-4 text-base text-gray-800"
@@ -93,7 +111,7 @@ export default function LoginScreen() {
                   height: 48,
                   paddingVertical: 10,
                   lineHeight: 20,
-                  textAlignVertical: 'center',
+                  textAlignVertical: "center",
                 }}
                 value={password}
                 onChangeText={setPassword}
@@ -121,13 +139,20 @@ export default function LoginScreen() {
               <View
                 className={`w-5 h-5 border-2 rounded border-gray-300 mr-2 items-center justify-center ${rememberMe ? "bg-green-600 border-green-600" : ""}`}
               >
-                {rememberMe && <Text className="text-white text-xs font-bold">✓</Text>}
+                {rememberMe && (
+                  <Text className="text-white text-xs font-bold">✓</Text>
+                )}
               </View>
               <Text className="text-sm text-gray-700">Remember me</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7}>
-              <Text className="text-sm text-green-600 font-medium">Forgot Password?</Text>
+            <TouchableOpacity
+              onPress={handleForgotPassword}
+              activeOpacity={0.7}
+            >
+              <Text className="text-sm text-green-600 font-medium">
+                Forgot Password?
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -137,7 +162,9 @@ export default function LoginScreen() {
             onPress={handleLogin}
             activeOpacity={0.8}
           >
-            <Text className="text-white text-lg font-semibold text-center">Log In</Text>
+            <Text className="text-white text-lg font-semibold text-center">
+              Log In
+            </Text>
           </TouchableOpacity>
 
           {/* Divider */}
