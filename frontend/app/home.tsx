@@ -6,6 +6,7 @@ import BottomTabBar from "../components/BottomTabBar";
 import CrownIcon from "../assets/images/crown.svg";
 import SearchIcon from "../assets/images/search.svg";
 import ArrowRightIcon from "../assets/images/arrow_right.svg";
+import { LinearGradient } from 'expo-linear-gradient';
 import { sampleArticles } from "../data/article";
 
 const graniteImg = require("../assets/images/granite.png");
@@ -42,7 +43,13 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-green-100">
+      <LinearGradient
+        colors={['#91D29E', '#FFFFFF']}
+        start={{ x: -1, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1 }}
+      >
+    <SafeAreaView className="flex-1 bg-transparent">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View className="items-center pt-6 pb-4">
@@ -216,5 +223,6 @@ export default function HomeScreen() {
 
       <BottomTabBar activeTab="Home" />
     </SafeAreaView>
+    </LinearGradient>
   );
 }

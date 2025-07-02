@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import {
   View,
@@ -10,6 +10,7 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import BackIcon from "../assets/images/back.svg";
 import CalendarIcon from "../assets/images/calendar.svg";
@@ -17,9 +18,19 @@ import VisibilityIcon from "../assets/images/visibility.svg";
 import VisibilityOffIcon from "../assets/images/visibility_off.svg";
 import ChevronDownIcon from "../assets/images/chevron-down.svg";
 import EditIcon from "../assets/images/edit-line.svg";
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [userRole, setUserRole] = useState("free");
+
+  useEffect(() => {
+    const loadRole = async () => {
+      const role = await AsyncStorage.getItem("userRole");
+      setUserRole(role || "free");
+    };
+    loadRole();
+  }, []);
 
   const initial = {
     firstName: "Lois",
@@ -105,9 +116,29 @@ export default function ProfileScreen() {
     }
   };
 
+  const cardStyle = {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+    borderRadius: 16,
+    backgroundColor: "white",
+    padding: 20,
+    marginBottom: 24,
+  };
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="border-b border-gray-100 px-4 py-4">
+    <LinearGradient
+      colors={userRole === 'premium'
+      ? ['#F3B24B', '#FFFFFF'] // Premium: orange → light yellow
+      : ['#91D29E', '#FFFFFF']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+      style={{ flex: 1 }}
+    >
+    <SafeAreaView className="flex-1 bg-transparent">
+      <View className="border-b border-gray-100 px-4 py-4 bg-white">
         <View className="flex-row items-center justify-between">
           {isEditing ? (
             <TouchableOpacity onPress={handleCancel} activeOpacity={0.7}>
@@ -156,7 +187,6 @@ export default function ProfileScreen() {
             {isEditing && (
               <TouchableOpacity
                 onPress={() => {
-                  // TODO: Handle image selection
                   console.log("Change profile picture");
                 }}
                 style={{
@@ -166,8 +196,8 @@ export default function ProfileScreen() {
                   backgroundColor: "#fff",
                   borderRadius: 20,
                   padding: 6,
-                  elevation: 3, // for Android shadow
-                  shadowColor: "#000", // for iOS shadow
+                  elevation: 3,
+                  shadowColor: "#000",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.2,
                   shadowRadius: 2,
@@ -179,7 +209,8 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View className="mb-8">
+        {/* Account Info Card */}
+        <View style={cardStyle}>
           {["First Name", "Last Name", "Email"].map((label, index) => {
             const value = [firstName, lastName, email][index];
             const setter = [setFirstName, setLastName, setEmail][index];
@@ -199,7 +230,7 @@ export default function ProfileScreen() {
             );
           })}
 
-          <View className="mb-5">
+          <View className="mb-1">
             <Text className="text-base font-medium text-gray-700 mb-2">Password</Text>
             <View className={`flex-row items-center rounded-lg ${isEditing ? "bg-white border border-gray-400" : "bg-gray-100 border border-gray-200"}`}>
               <TextInput
@@ -219,14 +250,14 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View className="mb-8">
+        {/* Profiling Card */}
+        <View style={cardStyle}>
           <Text className="text-xl font-semibold text-gray-800 mb-5">Profiling</Text>
 
+          {/* Date of Birth */}
           <View className="mb-5">
             <Text className="text-base font-medium text-gray-700 mb-2">Date of Birth</Text>
-            <View className={`flex-row items-center rounded-lg px-4 ${
-              isEditing ? "bg-white border border-gray-400" : "bg-gray-100 border border-gray-200"
-            }`}>
+            <View className={`flex-row items-center rounded-lg px-4 ${isEditing ? "bg-white border border-gray-400" : "bg-gray-100 border border-gray-200"}`}>
               <TextInput
                 className="flex-1 text-base text-gray-800"
                 value={dateOfBirth}
@@ -252,6 +283,7 @@ export default function ProfileScreen() {
             )}
           </View>
 
+          {/* Interest */}
           <View className="mb-5">
             <Text className="text-base font-medium text-gray-700 mb-2">Interest</Text>
             <TouchableOpacity
@@ -263,10 +295,7 @@ export default function ProfileScreen() {
                 <View className="flex-row flex-wrap gap-2 flex-1">
                   {interests.length > 0 ? (
                     interests.map((item, index) => (
-                      <View
-                        key={index}
-                        className="flex-row items-center bg-[#C9E9CF] px-2.5 py-1.5 rounded-[6px]"
-                      >
+                      <View key={index} className="flex-row items-center bg-[#C9E9CF] px-2.5 py-1.5 rounded-[6px]">
                         <Text className="text-gray-800 text-sm mr-1">{item}</Text>
                         {isEditing && (
                           <TouchableOpacity onPress={() => handleToggleInterest(item)}>
@@ -287,26 +316,14 @@ export default function ProfileScreen() {
 
             {showDropdown && (
               <View className="border border-gray-300 rounded-lg mt-2 bg-white max-h-40">
-                <ScrollView
-                  nestedScrollEnabled
-                  keyboardShouldPersistTaps="handled"
-                  style={{ maxHeight: 160 }}
-                >
+                <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={{ maxHeight: 160 }}>
                   {[...interests, ...availableInterests.filter(i => !interests.includes(i))].map((interest, index) => (
                     <TouchableOpacity
                       key={index}
-                      className={`px-4 py-2 ${
-                        interests.includes(interest) ? "bg-[#C9E9CF]" : ""
-                      }`}
+                      className={`px-4 py-2 ${interests.includes(interest) ? "bg-[#C9E9CF]" : ""}`}
                       onPress={() => handleToggleInterest(interest)}
                     >
-                      <Text
-                        className={`text-base ${
-                          interests.includes(interest)
-                            ? "text-gray-800 font-semibold"
-                            : "text-gray-800"
-                        }`}
-                      >
+                      <Text className={`text-base ${interests.includes(interest) ? "text-gray-800 font-semibold" : "text-gray-800"}`}>
                         {interest}
                       </Text>
                     </TouchableOpacity>
@@ -316,6 +333,7 @@ export default function ProfileScreen() {
             )}
           </View>
 
+          {/* Gender */}
           <View className="mb-5">
             <Text className="text-base font-medium text-gray-700 mb-2">Gender</Text>
             <View className="flex-row flex-wrap gap-x-6 gap-y-4">
@@ -328,9 +346,7 @@ export default function ProfileScreen() {
                 >
                   <View className="w-5 h-5 rounded-full border-2 border-gray-300 mr-2 justify-center items-center">
                     <View
-                      className={`w-2.5 h-2.5 rounded-full ${
-                        selectedGender === gender ? "bg-green-600" : "bg-transparent"
-                      }`}
+                      className={`w-2.5 h-2.5 rounded-full ${selectedGender === gender ? "bg-green-600" : "bg-transparent"}`}
                     />
                   </View>
                   <Text className="text-base text-gray-800">{gender}</Text>
@@ -343,5 +359,6 @@ export default function ProfileScreen() {
         <View className="h-10" />
       </ScrollView>
     </SafeAreaView>
+    </LinearGradient>
   );
 }

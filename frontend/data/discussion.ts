@@ -1,3 +1,20 @@
+export type Comment = {
+  id: number;
+  user: string;
+  time: string;
+  text: string;
+  replyTo?: number;
+};
+
+export type Discussion = {
+  id: number;
+  user: string;
+  timestamp: string;
+  text: string;
+  comments: Comment[];
+  isNew: boolean;
+};
+
 export const sampleDiscussions: Discussion[] = [
   {
     id: 1,
