@@ -3,13 +3,9 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Check, X, ArrowLeft, Star, Zap, Users, Crown, Camera, MapPin, MessageCircle, Trophy, Archive } from "lucide-react"
-import { useState } from "react"
+import { Check, X, ArrowLeft, Star, Users, Crown, Camera, MapPin, MessageCircle, Trophy, Archive } from "lucide-react"
 
 export default function PricingPage() {
-  const [isAnnual, setIsAnnual] = useState(false)
-
   const features = {
     basic: [
       { name: "Photo-based rock identification", included: true, icon: Camera },
@@ -68,31 +64,6 @@ export default function PricingPage() {
           <p className="text-lg text-emerald-100 mb-8">
             Discover, identify, and collect rocks with our comprehensive platform
           </p>
-
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 bg-white/10 rounded-full p-1 max-w-xs mx-auto">
-            <button
-              onClick={() => setIsAnnual(false)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                !isAnnual ? "bg-white text-green-600" : "text-white"
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setIsAnnual(true)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                isAnnual ? "bg-white text-green-600" : "text-white"
-              }`}
-            >
-              Annual
-            </button>
-          </div>
-          {isAnnual && (
-            <p className="text-emerald-100 text-sm mt-2">
-              <Badge className="bg-yellow-500 text-yellow-900 mr-2">Save 20%</Badge>2 months free with annual billing
-            </p>
-          )}
         </div>
       </section>
 
@@ -197,11 +168,10 @@ export default function PricingPage() {
                     <Star className="w-6 h-6 text-green-600 mr-2" />
                     <h3 className="text-lg font-bold text-green-600">PREMIUM</h3>
                   </div>
-                  <div className="mb-2">
-                    <span className="text-5xl font-bold">${isAnnual ? "4" : "5"}</span>
+                  <div className="mb-6">
+                    <span className="text-5xl font-bold">$5</span>
                     <span className="text-gray-500">/month</span>
                   </div>
-                  {isAnnual && <p className="text-sm text-green-600 mb-4">Billed annually ($48/year)</p>}
                   <p className="text-gray-600 mb-8">For serious rock collectors and students</p>
 
                   <Link href="/registration">
@@ -295,53 +265,6 @@ export default function PricingPage() {
           </div>
         </div>
       </section>
-
-      {/* FAQ Section */}
-      <section className="py-16">
-        <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Pricing FAQ</h2>
-
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">How does the photo identification work?</h3>
-                <p className="text-gray-600">
-                  Simply take a photo of any rock using your phone camera. Our AI analyzes the image and provides identification with detailed geological information, location data, and formation details.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">What's included in expert consultations?</h3>
-                <p className="text-gray-600">
-                  Premium users can book one-on-one sessions with certified geologists and rock experts. Get personalized advice, detailed analysis of your finds, and answers to specific questions about your collection.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">How does the quiz reward system work?</h3>
-                <p className="text-gray-600">
-                  Complete geology quizzes to earn points and unlock badges. Points can be used to access premium educational content and participate in community challenges.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">Can I upgrade or downgrade my plan anytime?</h3>
-                <p className="text-gray-600">
-                  Yes! You can upgrade to Premium anytime and start enjoying unlimited features immediately. If you downgrade, you'll keep Premium features until your current billing period ends.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-
 
       {/* Footer */}
       <footer className="bg-green-600 text-white py-16">
