@@ -11,25 +11,55 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/features/page": [
+    "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/features/page.js"
+      "static/chunks/app/login/page.js"
     ],
-    "/pricing/page": [
+    "/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/pricing/page.js"
+      "static/chunks/app/dashboard/page.js"
     ],
-    "/faq/page": [
+    "/applications/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/faq/page.js"
+      "static/chunks/app/applications/page.js"
     ],
-    "/_not-found/page": [
+    "/usertype/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/usertype/page.js"
+    ],
+    "/useraccount/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/useraccount/page.js"
+    ],
+    "/forummanagement/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/forummanagement/page.js"
+    ],
+    "/userprofiling/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/userprofiling/page.js"
+    ],
+    "/landingpagemanagement/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/landingpagemanagement/page.js"
+    ],
+    "/faqmanagement/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/faqmanagement/page.js"
+    ],
+    "/adminprofile/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/adminprofile/page.js"
     ]
   }
 }
