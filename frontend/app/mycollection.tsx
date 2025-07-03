@@ -8,15 +8,30 @@ import {
   Modal,
   FlatList,
   Dimensions,
-  ViewStyle,
 } from "react-native";
 import { useRouter } from "expo-router";
 import BackIcon from "../assets/images/back.svg";
 import SearchIcon from "../assets/images/search.svg";
 import FilterIcon from "../assets/images/filter.svg";
 import SavedRockCard from "../components/SavedRockCard";
+import FilterModalMyCollection from "../components/FilterModalCollection";
 
-const sampleRocks = [
+// Types
+type Rarity = "Common" | "Rare" | "Legendary";
+type Method = "Scanned" | "Discovered";
+
+type Rock = {
+  id: number;
+  name: string;
+  type: string;
+  rarity: Rarity;
+  method: Method;
+  location: string;
+  collectedDate: string;
+  image: any;
+};
+
+const sampleRocks: Rock[] = [
   {
     id: 1,
     image: require("../assets/images/granite.png"),
@@ -74,9 +89,23 @@ export default function MyCollectionScreen() {
   const [searchText, setSearchText] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"All" | "Scanned" | "Discovered">("All");
-  const [rocks, setRocks] = useState(sampleRocks);
+  const [rocks, setRocks] = useState<Rock[]>(sampleRocks);
   const [selectedRockId, setSelectedRockId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const [selectedFilters, setSelectedFilters] = useState<{
+    rarities: Rarity[];
+    locations: string[];
+    startDate: Date | null;
+    endDate: Date | null;
+    sortOption: string;
+  }>({
+    rarities: [],
+    locations: [],
+    startDate: null,
+    endDate: null,
+    sortOption: "Most Recent",
+  });
 
   const screenWidth = Dimensions.get("window").width;
   const numColumns = 2;
@@ -109,7 +138,48 @@ export default function MyCollectionScreen() {
       rock.location.toLowerCase().includes(searchText.toLowerCase());
 
     const matchesTab = activeTab === "All" || rock.method === activeTab;
-    return matchesSearch && matchesTab;
+    const matchesRarity =
+      selectedFilters.rarities.length === 0 ||
+      selectedFilters.rarities.includes(rock.rarity);
+
+    const matchesLocation =
+      selectedFilters.locations.length === 0 ||
+      selectedFilters.locations.includes(rock.location);
+
+    const rockDate = new Date(rock.collectedDate);
+    const matchesStartDate =
+      !selectedFilters.startDate ||
+      rockDate >= new Date(selectedFilters.startDate);
+    const matchesEndDate =
+      !selectedFilters.endDate ||
+      rockDate <= new Date(selectedFilters.endDate);
+
+    return (
+      matchesSearch &&
+      matchesTab &&
+      matchesRarity &&
+      matchesLocation &&
+      matchesStartDate &&
+      matchesEndDate
+    );
+  });
+
+  const sortedRocks = [...filteredRocks].sort((a, b) => {
+    switch (selectedFilters.sortOption) {
+      case "Most Recent":
+        return new Date(b.collectedDate).getTime() - new Date(a.collectedDate).getTime();
+      case "Earliest":
+        return new Date(a.collectedDate).getTime() - new Date(b.collectedDate).getTime();
+      case "A-Z":
+        return a.name.localeCompare(b.name);
+      case "Z-A":
+        return b.name.localeCompare(a.name);
+      case "Rarity":
+        const order = { Common: 0, Rare: 1, Legendary: 2 };
+        return order[b.rarity] - order[a.rarity];
+      default:
+        return 0;
+    }
   });
 
   return (
@@ -124,16 +194,11 @@ export default function MyCollectionScreen() {
 
       {/* Search & Filter */}
       <View className="flex-row px-4 py-3 items-center mb-1">
-        <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-4 h-12 mr-3 border border-gray-500">
+        <View className="flex-1 flex-row items-center bg-white rounded-xl px-4 h-12 mr-3 border-2 border-[#459B6C]">
           <SearchIcon width={20} height={20} style={{ marginRight: 10 }} />
           <TextInput
             className="flex-1 text-base text-gray-800"
-            style={{
-              height: 48,
-              paddingVertical: 12,
-              paddingHorizontal: 0,
-              lineHeight: 20,
-            }}
+            style={{ height: 48, paddingVertical: 12, paddingHorizontal: 0, lineHeight: 20 }}
             value={searchText}
             onChangeText={setSearchText}
             placeholder="Search..."
@@ -142,7 +207,7 @@ export default function MyCollectionScreen() {
         </View>
         <TouchableOpacity
           onPress={() => setFilterModalVisible(true)}
-          className="p-3 bg-gray-100 rounded-xl border border-gray-500"
+          className="p-3 bg-white rounded-xl border-2 border-[#459B6C]"
         >
           <FilterIcon width={20} height={20} />
         </TouchableOpacity>
@@ -152,9 +217,7 @@ export default function MyCollectionScreen() {
       <View className="flex-row justify-around border-b border-gray-200 px-4 mb-4">
         {["All", "Scanned", "Discovered"].map((tab) => {
           const count =
-            tab === "All"
-              ? rocks.length
-              : rocks.filter((rock) => rock.method === tab).length;
+            tab === "All" ? rocks.length : rocks.filter((rock) => rock.method === tab).length;
 
           return (
             <TouchableOpacity
@@ -164,22 +227,12 @@ export default function MyCollectionScreen() {
             >
               <View
                 className="items-center pb-2 border-b-2"
-                style={{
-                  borderBottomColor: activeTab === tab ? "#000" : "transparent",
-                }}
+                style={{ borderBottomColor: activeTab === tab ? "#459B6C" : "transparent" }}
               >
-                <Text
-                  className={`text-base font-semibold ${
-                    activeTab === tab ? "text-black" : "text-gray-400"
-                  }`}
-                >
+                <Text className={`text-base font-semibold ${activeTab === tab ? "text-[#459B6C]" : "text-gray-400"}`}>
                   {tab}
                 </Text>
-                <Text
-                  className={`text-sm ${
-                    activeTab === tab ? "text-black font-bold" : "text-gray-400"
-                  }`}
-                >
+                <Text className={`text-sm ${activeTab === tab ? "text-[#459B6C] font-bold" : "text-gray-400"}`}>
                   {count}
                 </Text>
               </View>
@@ -189,9 +242,9 @@ export default function MyCollectionScreen() {
       </View>
 
       {/* Rock Grid */}
-      {filteredRocks.length > 0 ? (
+      {sortedRocks.length > 0 ? (
         <FlatList
-          data={filteredRocks}
+          data={sortedRocks}
           keyExtractor={(item) => item.id.toString()}
           numColumns={numColumns}
           contentContainerStyle={{
@@ -204,8 +257,8 @@ export default function MyCollectionScreen() {
             marginBottom: 20,
           }}
           renderItem={({ item, index }) => {
-            const isLastItem = index === filteredRocks.length - 1;
-            const isOdd = filteredRocks.length % numColumns === 1;
+            const isLastItem = index === sortedRocks.length - 1;
+            const isOdd = sortedRocks.length % numColumns === 1;
             const isLastRowSingle = isOdd && isLastItem;
 
             return (
@@ -213,17 +266,15 @@ export default function MyCollectionScreen() {
                 style={{
                   width: cardWidth,
                   marginRight:
-                    index % numColumns !== numColumns - 1 && !isLastRowSingle
-                      ? gap
-                      : 0,
+                    index % numColumns !== numColumns - 1 && !isLastRowSingle ? gap : 0,
                 }}
               >
                 <SavedRockCard
                   image={item.image}
                   name={item.name}
                   type={item.type}
-                  rarity={item.rarity as "Common" | "Rare" | "Legendary"}
-                  method={item.method as "Scanned" | "Discovered"}
+                  rarity={item.rarity}
+                  method={item.method}
                   location={item.location}
                   collectedDate={item.collectedDate}
                   onDelete={() => confirmDelete(item.id)}
@@ -275,24 +326,15 @@ export default function MyCollectionScreen() {
       </Modal>
 
       {/* Filter Modal */}
-      <Modal
+      <FilterModalMyCollection
         visible={filterModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setFilterModalVisible(false)}
-      >
-        <View className="flex-1 justify-end bg-black bg-opacity-30">
-          <View className="bg-white p-5 rounded-t-2xl shadow-lg">
-            <Text className="text-lg font-semibold mb-4">Filter Options</Text>
-            <TouchableOpacity
-              onPress={() => setFilterModalVisible(false)}
-              className="mt-2 bg-gray-800 py-3 rounded-lg"
-            >
-              <Text className="text-white text-center font-semibold">Apply</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setFilterModalVisible(false)}
+        defaultValues={selectedFilters}
+        onApply={(filters) => {
+          setSelectedFilters(filters);
+          setFilterModalVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
