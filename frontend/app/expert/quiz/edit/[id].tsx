@@ -212,15 +212,18 @@ export default function EditQuiz() {
           >
             <Text className="text-gray-500 text-sm mb-2">Question {index + 1}</Text>
             <TextInput
-              value={q.question}
-              onChangeText={(text) => {
-                const updated = [...questions];
-                updated[index].question = text;
-                setQuestions(updated);
-              }}
-              placeholder="Question"
-              className="text-base font-medium border border-gray-300 rounded-lg px-3 py-2 mb-4"
-            />
+                value={q.question}
+                onChangeText={(text) => {
+                    const updated = [...questions];
+                    updated[index].question = text;
+                    setQuestions(updated);
+                }}
+                placeholder="Question"
+                placeholderTextColor="#9CA3AF"
+                multiline
+                textAlignVertical="top"
+                className="text-base font-medium border border-gray-300 rounded-lg px-3 py-2 mb-4"
+                />
 
             {q.options.map((option, optIdx) => (
               <View key={optIdx} className="flex-row items-center mb-2">
