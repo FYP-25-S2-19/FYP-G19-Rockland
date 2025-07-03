@@ -14,17 +14,68 @@ import BackIcon from "../assets/images/back.svg";
 import FilterIcon from "../assets/images/filter.svg";
 import { rockData } from "../data/rocks";
 import { LinearGradient } from "expo-linear-gradient";
+import FilterModalRock from "../components/FilterModalRock";
 
 export default function SearchRockScreen() {
   const router = useRouter();
   const [searchText, setSearchText] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
-  const filteredRocks = rockData.filter(
-    (rock) =>
-      rock.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      rock.type.toLowerCase().includes(searchText.toLowerCase())
-  );
+  // Filter state from modal
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedRarities, setSelectedRarities] = useState<string[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState("Sort by Most Liked");
+
+  const applyFilters = ({
+    types,
+    rarities,
+    locations,
+    sortOption,
+  }: {
+    types: string[];
+    rarities: string[];
+    locations: string[];
+    sortOption: string;
+  }) => {
+    setSelectedTypes(types);
+    setSelectedRarities(rarities);
+    setSelectedLocations(locations);
+    setSortBy(sortOption);
+    setFilterModalVisible(false);
+  };
+
+  // Filtering logic
+  const filteredRocks = rockData
+   .filter((rock) => {
+        const matchSearch =
+          rock.name.toLowerCase().includes(searchText.toLowerCase()) ||
+          rock.type.toLowerCase().includes(searchText.toLowerCase());
+
+        const matchType =
+          selectedTypes.length === 0 || selectedTypes.includes(rock.type);
+
+        const matchRarity =
+          selectedRarities.length === 0 || selectedRarities.includes(rock.rarity);
+
+        const matchLocation =
+          selectedLocations.length === 0 ||
+          rock.commonLocations.some((loc) => selectedLocations.includes(loc));
+
+        return matchSearch && matchType && matchRarity && matchLocation;
+      })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "Sort by A-Z":
+          return a.name.localeCompare(b.name);
+        case "Sort by Z-A":
+          return b.name.localeCompare(a.name);
+        case "Sort by Most Commented":
+          return b.comments.length - a.comments.length;
+        default:
+          return 0;
+      }
+    });
 
   const shadowStyle = {
     shadowColor: "#000",
@@ -51,7 +102,7 @@ export default function SearchRockScreen() {
           <View className="w-10" />
         </View>
 
-        {/* Search Bar + Filter */}
+        {/* Search + Filter */}
         <View className="flex-row items-center px-4 py-3 mb-4 gap-x-3">
           <View
             className="flex-1 flex-row items-center bg-white rounded-xl px-4 h-12"
@@ -60,14 +111,11 @@ export default function SearchRockScreen() {
             <SearchIcon width={20} height={20} style={{ marginRight: 10 }} />
             <TextInput
               className="flex-1 text-base text-gray-800 p-0"
-              style={{
-                paddingVertical: 0,
-                textAlignVertical: "center",
-              }}
               value={searchText}
               onChangeText={setSearchText}
               placeholder="Search..."
               placeholderTextColor="#9ca3af"
+              style={{ paddingVertical: 0 }}
             />
           </View>
 
@@ -83,11 +131,8 @@ export default function SearchRockScreen() {
         {/* Rock List */}
         <FlatList
           data={filteredRocks}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingBottom: 100,
-          }}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() =>
@@ -123,7 +168,6 @@ export default function SearchRockScreen() {
                     </Text>
                   </View>
                 </View>
-
                 <View
                   className="px-3 py-1 rounded-full"
                   style={{
@@ -143,6 +187,19 @@ export default function SearchRockScreen() {
             </TouchableOpacity>
           )}
         />
+
+        {/* Filter Modal */}
+        <FilterModalRock
+        visible={filterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        onApply={applyFilters}
+        defaultValues={{
+          types: selectedTypes,
+          rarities: selectedRarities,
+          locations: selectedLocations,
+          sortOption: sortBy,
+        }}
+      />
       </SafeAreaView>
     </LinearGradient>
   );

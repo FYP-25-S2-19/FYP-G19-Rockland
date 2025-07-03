@@ -64,9 +64,8 @@ export default function HomeScreen() {
           <TouchableOpacity
             onPress={handleSearchClick}
             activeOpacity={0.85}
-            style={[shadowStyle]}
           >
-            <View className="flex-row items-center bg-white rounded-2xl px-4 py-3 border-2 border-[#459B6C]">
+            <View className="flex-row items-center bg-white rounded-2xl px-4 py-3" style={[shadowStyle]}>
               <SearchIcon width={22} height={22} style={{ marginRight: 10 }} />
               <Text className="text-base text-gray-400">
                 Search rocks, minerals...
@@ -133,7 +132,7 @@ export default function HomeScreen() {
                 .map((item, index) => (
                   <TouchableOpacity
                     key={item.name}
-                    className={`flex-1 bg-white rounded-2xl border border-[#459B6C] ${
+                    className={`flex-1 bg-white rounded-2xl ${
                       index === 0 ? "mr-2" : "ml-2"
                     }`}
                     activeOpacity={0.85}
@@ -166,7 +165,7 @@ export default function HomeScreen() {
                 .map((item, index) => (
                   <TouchableOpacity
                     key={item.name}
-                    className={`flex-1 bg-white rounded-2xl border border-[#459B6C] ${
+                    className={`flex-1 bg-white rounded-2xl ${
                       index === 0 ? "mr-2" : "ml-2"
                     }`}
                     activeOpacity={0.85}

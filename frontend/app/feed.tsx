@@ -13,7 +13,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ArticleCard from "../components/ArticleCard";
 import DiscussionCard from "../components/DiscussionCard";
-import FilterModal from "../components/FilterModal";
+import FilterModal from "../components/FilterModalFeed";
 import BottomTabBar from "../components/BottomTabBar";
 import CrownIcon from "../assets/images/crown.svg";
 import FilterIcon from "../assets/images/filter.svg";
