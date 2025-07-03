@@ -1,302 +1,147 @@
 "use client";
 
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import {
   View,
   Text,
   TouchableOpacity,
   SafeAreaView,
-  StyleSheet,
+  ScrollView,
+  Image,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import BottomTabBar from "../components/BottomTabBar";
+import ProfilePicture from "../assets/images/profilepicture.png";
+import CrownIcon from "../assets/images/crown.svg";
+import SettingIcon from "../assets/images/Settings.png";
 
 export default function AccountScreen() {
-  const [activeBottomTab, setActiveBottomTab] = useState("Account");
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [userRole, setUserRole] = useState("free");
 
-  const handleSettings = () => {
-    console.log("Settings pressed");
-  };
+  useEffect(() => {
+    const loadRole = async () => {
+      const role = await AsyncStorage.getItem("userRole");
+      setUserRole(role || "free");
+    };
+    loadRole();
+  }, []);
 
-  const handleProfile = () => {
-    router.push("/profile");
-  };
-
-  const handleSubscribe = () => {
-    console.log("Subscribe Now pressed");
-  };
-
-  const handleMyCollection = () => {
-    console.log("My Collection pressed");
-  };
-
-  const handleSettingsNavigation = () => {
-    console.log("Settings navigation pressed");
-  };
-
-  const handleBottomTabPress = (tab: string) => {
-    setActiveBottomTab(tab);
-
-    switch (tab) {
-      case "Home":
-        router.push("/home"); // or "/" if it's index.tsx
-        break;
-      case "Feed":
-        router.push("/feed");
-        break;
-      case "Scan":
-        router.push("/scan");
-        break;
-      case "Maps":
-        router.push("/maps");
-        break;
-      case "Account":
-        router.push("/account");
-        break;
-      default:
-        break;
-    }
-  };
+  const handleSettings = () => router.push("/settings");
+  const handleProfile = () => router.push("/profile");
+  const handleSubscribe = () => console.log("Subscribe Now pressed");
+  const handleMyCollection = () => router.push("/mycollection");
+  const handleBadgesAndAchievements = () => router.push("/badges");
+  const handleTradeList = () => router.push("/tradelist");
+  const handleAddRock = () => router.push("/AddRockScreen");
+  const handleSettingsNavigation = () => router.push("/settings");
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View style={styles.userInfo}>
-            {/* Avatar */}
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatarIcon}>👤</Text>
-            </View>
-            <View style={styles.userDetails}>
-              <Text style={styles.userName}>Anna Kim</Text>
-              <Text style={styles.userStatus}>Free User</Text>
-            </View>
-          </View>
+    <SafeAreaView className="flex-1 bg-white">
+      <ScrollView
+        className="flex-1 px-5"
+        contentContainerStyle={{
+          paddingTop: insets.top + 20,
+          paddingBottom: 20,
+        }}
+      >
+        {/* Profile Header */}
+        <View className="items-center mb-8">
+          <Image source={ProfilePicture} style={{ width: 100, height: 100, borderRadius: 50 }} />
+          <Text className="text-xl font-bold text-gray-900 mt-4">Anna Kim</Text>
+          <Text className="text-sm text-gray-500 mt-1">
+            {userRole === "premium" ? "Premium User" : "Free User"}
+          </Text>
 
-          {/* Settings Icon */}
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={handleSettings}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.settingsIcon}>⚙️</Text>
+          <TouchableOpacity onPress={handleSettings} className="absolute top-0 right-0 p-2">
+            <Image source={SettingIcon} style={{ width: 24, height: 24 }} />
           </TouchableOpacity>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
+        {/* Top Buttons */}
+        <View className="flex-row mb-10">
           <TouchableOpacity
-            style={styles.profileButton}
+            className="flex-1 bg-green-600 py-4 rounded-xl items-center flex-row justify-center mr-1.5"
             onPress={handleProfile}
             activeOpacity={0.8}
           >
-            <Text style={styles.profileButtonText}>Profile</Text>
+            <Text className="text-white text-base font-semibold">Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.subscribeButton}
-            onPress={handleSubscribe}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
-          </TouchableOpacity>
+          {userRole === "free" && (
+            <TouchableOpacity
+              className="flex-1 bg-[#EF9E1C] py-4 rounded-xl items-center flex-row justify-center ml-1.5"
+              onPress={handleSubscribe}
+              activeOpacity={0.8}
+            >
+              <CrownIcon style={{ width: 20, height: 20, marginRight: 8 }} fill="white" />
+              <Text className="text-white text-base font-semibold">Subscribe Now</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Navigation List */}
-        <View style={styles.navigationList}>
+        {/* Menu List */}
+        <View className="flex-1">
+          {/* Always show My Collection */}
           <TouchableOpacity
-            style={styles.navigationItem}
+            className="flex-row justify-between items-center py-5 border-b border-gray-100"
             onPress={handleMyCollection}
             activeOpacity={0.7}
           >
-            <Text style={styles.navigationText}>My Collection</Text>
-            <Text style={styles.arrowIcon}>›</Text>
+            <Text className="text-base font-medium text-gray-900">My Collection</Text>
+            <Text className="text-xl text-gray-400">›</Text>
           </TouchableOpacity>
 
+          {/* Extra menu for premium */}
+          {userRole === "premium" && (
+            <>
+              <TouchableOpacity
+                className="flex-row justify-between items-center py-5 border-b border-gray-100"
+                onPress={handleAddRock}
+                activeOpacity={0.7}
+              >
+                <Text className="text-base font-medium text-gray-900">Add New Rock Entry</Text>
+                <Text className="text-xl text-gray-400">›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-row justify-between items-center py-5 border-b border-gray-100"
+                onPress={handleTradeList}
+                activeOpacity={0.7}
+              >
+                <Text className="text-base font-medium text-gray-900">Trade Rock Collection</Text>
+                <Text className="text-xl text-gray-400">›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-row justify-between items-center py-5 border-b border-gray-100"
+                onPress={handleBadgesAndAchievements}
+                activeOpacity={0.7}
+              >
+                <Text className="text-base font-medium text-gray-900">Badges and Achievements</Text>
+                <Text className="text-xl text-gray-400">›</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* Always show Settings */}
           <TouchableOpacity
-            style={styles.navigationItem}
+            className="flex-row justify-between items-center py-5 border-b border-gray-100"
             onPress={handleSettingsNavigation}
             activeOpacity={0.7}
           >
-            <Text style={styles.navigationText}>Setting</Text>
-            <Text style={styles.arrowIcon}>›</Text>
+            <Text className="text-base font-medium text-gray-900">Settings</Text>
+            <Text className="text-xl text-gray-400">›</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Bottom Tab Bar */}
-      <View style={styles.bottomTabBar}>
-        {[
-          { name: "Home", icon: "🏠" },
-          { name: "Feed", icon: "📰" },
-          { name: "Scan", icon: "📷" },
-          { name: "Maps", icon: "🗺️" },
-          { name: "Account", icon: "👤" },
-        ].map((tab, index) => {
-          const isActive = activeBottomTab === tab.name;
+        <View className="h-10" />
+      </ScrollView>
 
-          return (
-            <TouchableOpacity
-              key={index}
-              style={styles.bottomTab}
-              onPress={() => handleBottomTabPress(tab.name)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.bottomTabIcon,
-                  isActive && styles.activeBottomTabIcon,
-                ]}
-              >
-                {tab.icon}
-              </Text>
-              <Text
-                style={[
-                  styles.bottomTabLabel,
-                  isActive && styles.activeBottomTabLabel,
-                ]}
-              >
-                {tab.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <BottomTabBar activeTab="Account" />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 32,
-  },
-  userInfo: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  avatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#f3f4f6",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  avatarIcon: {
-    fontSize: 32,
-    color: "#9ca3af",
-  },
-  userDetails: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#1f2937",
-    marginBottom: 4,
-  },
-  userStatus: {
-    fontSize: 14,
-    color: "#6b7280",
-  },
-  settingsButton: {
-    padding: 8,
-  },
-  settingsIcon: {
-    fontSize: 24,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 40,
-  },
-  profileButton: {
-    flex: 1,
-    backgroundColor: "#16a34a",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  profileButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  subscribeButton: {
-    flex: 1,
-    backgroundColor: "#f97316",
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  subscribeButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  navigationList: {
-    flex: 1,
-  },
-  navigationItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-  },
-  navigationText: {
-    fontSize: 16,
-    color: "#1f2937",
-    fontWeight: "500",
-  },
-  arrowIcon: {
-    fontSize: 20,
-    color: "#9ca3af",
-  },
-  bottomTabBar: {
-    flexDirection: "row",
-    backgroundColor: "#ffffff",
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    paddingVertical: 8,
-    paddingBottom: 20,
-  },
-  bottomTab: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  bottomTabIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-    opacity: 0.6,
-  },
-  activeBottomTabIcon: {
-    opacity: 1,
-  },
-  bottomTabLabel: {
-    fontSize: 12,
-    color: "#6b7280",
-    fontWeight: "500",
-  },
-  activeBottomTabLabel: {
-    color: "#16a34a",
-    fontWeight: "600",
-  },
-});
