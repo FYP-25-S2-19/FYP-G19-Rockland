@@ -94,13 +94,16 @@ export default function CreateQuiz() {
       <TextInput
         value={q.question}
         onChangeText={(text) => {
-          const updated = [...questions];
-          updated[index].question = text;
-          setQuestions(updated);
+            const updated = [...questions];
+            updated[index].question = text;
+            setQuestions(updated);
         }}
         placeholder="Question"
+        placeholderTextColor="#9CA3AF"
+        multiline
+        textAlignVertical="top"
         className="text-base font-medium border border-gray-300 rounded-lg px-3 py-2 mb-4"
-      />
+        />
 
       {q.options.map((option: string, optIdx: number) => (
         <View key={optIdx} className="flex-row items-center mb-2">
@@ -128,6 +131,7 @@ export default function CreateQuiz() {
               setQuestions(updated);
             }}
             placeholder={`Option ${optIdx + 1}`}
+            placeholderTextColor="#9CA3AF"
             className="flex-1 border-b border-gray-300 text-base"
           />
           <TouchableOpacity
@@ -202,8 +206,9 @@ export default function CreateQuiz() {
           value={quizDescription}
           onChangeText={setQuizDescription}
           placeholder="Quiz description"
+          placeholderTextColor="#9CA3AF"
           multiline
-          className="text-base border border-gray-300 rounded-lg px-3 py-2 text-gray-700 mb-4"
+          className="text-base border border-gray-300 rounded-lg px-3 py-2 text-gray-600 mb-4"
         />
 
         <View className="mb-4">
