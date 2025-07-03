@@ -41,7 +41,7 @@ export default function QuizScreen() {
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
       <View className="flex-row items-center justify-center px-4 pt-4 mb-8 relative">
-        <TouchableOpacity onPress={() => router.back()} className="absolute left-4 mt-2">
+        <TouchableOpacity onPress={() => router.replace('/home')} className="absolute left-4 mt-2">
           <BackIcon width={24} height={24} />
         </TouchableOpacity>
         <Text className="text-xl font-bold">Quizzes</Text>

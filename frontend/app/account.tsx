@@ -44,6 +44,7 @@ export default function AccountScreen() {
   const handleBadgesAndAchievements = () => router.push("/badges");
   const handleTradeList = () => router.push("/tradelist");
   const handleAddRock = () => router.push("/AddRockScreen");
+  const handleExpertQuiz = () => router.push("/expert/quizhome");
   const handleSettingsNavigation = () => router.push("/settings");
 
   const shadowStyle = {
@@ -227,6 +228,7 @@ export default function AccountScreen() {
                 <MenuItem icon={AddIcon} label="Add New Rock Entry" onPress={handleAddRock} />
                 <MenuItem icon={TradeIcon} label="Trade Rock Collection" onPress={handleTradeList} />
                 <MenuItem icon={MedalIcon} label="Badges and Achievements" onPress={handleBadgesAndAchievements} />
+                <MenuItem icon={AddIcon} label="Expert Quiz Home Page" onPress={handleExpertQuiz} />
               </>
             )}
             <MenuItem icon={SettingIcon} label="Settings" onPress={handleSettingsNavigation} last />
