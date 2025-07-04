@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
 
@@ -46,13 +46,33 @@ const onDemandCategories = [
 
 export default function Dashboard() {
   const router = useRouter()
+  const [userInfo, setUserInfo] = useState({
+    name: '',
+    email: '',
+    userType: ''
+  })
 
   useEffect(() => {
-    // Check if user is logged in (for prototype)
-    const isLoggedIn = localStorage.getItem('isAdminLoggedIn')
-    if (!isLoggedIn) {
+    // Check if user is logged in using the correct keys from your login system
+    const authToken = localStorage.getItem('authToken')
+    const isLoggedIn = localStorage.getItem('isLoggedIn')
+    
+    if (!authToken || isLoggedIn !== 'true') {
+      // Not logged in, redirect to login
       router.push('/login')
+      return
     }
+
+    // Get user info
+    const userName = localStorage.getItem('userName') || 'Admin'
+    const userEmail = localStorage.getItem('userEmail') || ''
+    const userTypeName = localStorage.getItem('userTypeName') || 'Admin'
+    
+    setUserInfo({
+      name: userName,
+      email: userEmail,
+      userType: userTypeName
+    })
   }, [router])
 
   const handleNavigation = (item: string) => {
@@ -85,6 +105,15 @@ export default function Dashboard() {
         router.push('/adminprofile')
         break
       case "logout":
+        // Clear all auth data
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('userId')
+        localStorage.removeItem('userEmail')
+        localStorage.removeItem('userName')
+        localStorage.removeItem('userType')
+        localStorage.removeItem('userTypeName')
+        localStorage.removeItem('isLoggedIn')
+        // Also clear old keys if they exist
         localStorage.removeItem('isAdminLoggedIn')
         localStorage.removeItem('adminEmail')
         router.push('/login')
@@ -97,7 +126,7 @@ export default function Dashboard() {
   return (
     <AdminLayout
       activeMenuItem="home"
-      title="Hi, Admin 👋"
+      title={`Hi, ${userInfo.name.split(' ')[0] || 'Admin'} 👋`}
       subtitle=""
       onNavigate={handleNavigation}
     >

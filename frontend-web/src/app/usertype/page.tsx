@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -15,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
-  Search,
   Eye,
   Edit,
   Trash2,
@@ -47,11 +46,24 @@ interface UserType {
   isActive: boolean
 }
 
+// API response type for user types from database
+interface ApiUserType {
+  user_type_id: number
+  name: string
+  description: string | null
+  has_admin_permission: boolean
+  has_freeuser_permission: boolean
+  has_premium_permission: boolean
+  has_expert_permission: boolean
+}
+
+// API configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
 export default function UserTypeManagement() {
   const router = useRouter()
   const [entries, setEntries] = useState("10")
   const [currentPage, setCurrentPage] = useState(1)
-  const [searchQuery, setSearchQuery] = useState("")
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [confirmAction, setConfirmAction] = useState<{
@@ -64,66 +76,181 @@ export default function UserTypeManagement() {
   const [selectedUserType, setSelectedUserType] = useState<UserType | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editFormData, setEditFormData] = useState({
+    id: "",
     name: "",
     description: "",
-    permissions: "",
+    has_admin_permission: false,
+    has_freeuser_permission: false,
+    has_premium_permission: false,
+    has_expert_permission: false,
   })
 
-  // Sample user type data with 4 permission levels
-  const userTypes: UserType[] = [
-    {
-      id: "1",
-      name: "Admin",
-      description: "Full system access with all administrative privileges",
-      permissions: {
-        adminPermission: true,
-        freeUserPermission: true,
-        premiumUserPermission: true,
-        expertUserPermission: true,
-      },
-      userCount: 3,
-      isActive: true,
-    },
-    {
-      id: "2",
-      name: "Expert User",
-      description: "Advanced user with expert-level features and content access",
-      permissions: {
-        adminPermission: false,
-        freeUserPermission: true,
-        premiumUserPermission: true,
-        expertUserPermission: true,
-      },
-      userCount: 45,
-      isActive: true,
-    },
-    {
-      id: "3",
-      name: "Premium User",
-      description: "Enhanced user with premium features and extended access",
-      permissions: {
-        adminPermission: false,
-        freeUserPermission: true,
-        premiumUserPermission: true,
-        expertUserPermission: false,
-      },
-      userCount: 234,
-      isActive: true,
-    },
-    {
-      id: "4",
-      name: "Free User",
-      description: "Basic user with limited access to core features",
-      permissions: {
-        adminPermission: false,
-        freeUserPermission: true,
-        premiumUserPermission: false,
-        expertUserPermission: false,
-      },
-      userCount: 1567,
-      isActive: true,
-    },
-  ]
+  // Add form data state for create dialog
+  const [createFormData, setCreateFormData] = useState({
+    name: "",
+    description: "",
+    has_admin_permission: false,
+    has_freeuser_permission: false,
+    has_premium_permission: false,
+    has_expert_permission: false,
+  })
+
+  // State for user types from database
+  const [userTypes, setUserTypes] = useState<UserType[]>([])
+  const [isLoadingData, setIsLoadingData] = useState(true)
+
+  // Fetch user types from database
+  const fetchUserTypes = async () => {
+    try {
+      setIsLoadingData(true)
+      const response = await fetch(`${API_BASE_URL}/api/usertypes/all`)
+      const data = await response.json()
+      
+      if (data.success) {
+        // Transform the data to match your frontend interface
+        const transformedData = data.usertypes.map((ut: ApiUserType) => ({
+          id: ut.user_type_id.toString(),
+          name: ut.name,
+          description: ut.description || "",
+          permissions: {
+            adminPermission: ut.has_admin_permission,
+            freeUserPermission: ut.has_freeuser_permission,
+            premiumUserPermission: ut.has_premium_permission,
+            expertUserPermission: ut.has_expert_permission,
+          },
+          userCount: 0, // You'll need a separate endpoint to get user counts
+          isActive: true, // Add this field to your database if needed
+        }))
+        setUserTypes(transformedData)
+      } else {
+        console.error('Failed to fetch user types:', data.error)
+        alert('Failed to fetch user types: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Error fetching user types:', error)
+      alert('Failed to fetch user types. Please try again.')
+    } finally {
+      setIsLoadingData(false)
+    }
+  }
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchUserTypes()
+  }, [])
+
+  // Create user type function
+  const handleCreateUserType = async () => {
+    setIsLoading(true)
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/usertypes/create_usertype`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(createFormData),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Success - close dialog and reset form
+        setShowAddDialog(false)
+        setCreateFormData({
+          name: "",
+          description: "",
+          has_admin_permission: false,
+          has_freeuser_permission: false,
+          has_premium_permission: false,
+          has_expert_permission: false,
+        })
+        
+        // Show success message
+        alert('User type created successfully!')
+        
+        // Refresh the data
+        await fetchUserTypes()
+        
+      } else {
+        // Handle error
+        alert(`Error: ${data.message}`)
+      }
+    } catch (error) {
+      console.error('Error creating user type:', error)
+      alert('Failed to create user type. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Update user type function
+  const handleUpdateUserType = async () => {
+    setIsLoading(true)
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/usertypes/update_usertype`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_type_id: parseInt(editFormData.id),
+          name: editFormData.name,
+          description: editFormData.description,
+          has_admin_permission: editFormData.has_admin_permission,
+          has_freeuser_permission: editFormData.has_freeuser_permission,
+          has_premium_permission: editFormData.has_premium_permission,
+          has_expert_permission: editFormData.has_expert_permission,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Success - close dialog
+        setShowEditDialog(false)
+        
+        // Show success message
+        alert('User type updated successfully!')
+        
+        // Refresh the data
+        await fetchUserTypes()
+        
+        // Update the selected user type if in detail view
+        if (selectedUserType && viewMode === "detail") {
+          // Refresh the selected user type data
+          await fetchUserTypes()
+          const updatedUserType = userTypes.find(ut => ut.id === editFormData.id)
+          if (updatedUserType) {
+            setSelectedUserType(updatedUserType)
+          }
+        }
+        
+      } else {
+        // Handle error
+        alert(`Error: ${data.message}`)
+      }
+    } catch (error) {
+      console.error('Error updating user type:', error)
+      alert('Failed to update user type. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Reset form when dialog is opened
+  const handleOpenAddDialog = () => {
+    setCreateFormData({
+      name: "",
+      description: "",
+      has_admin_permission: false,
+      has_freeuser_permission: false,
+      has_premium_permission: false,
+      has_expert_permission: false,
+    })
+    setShowAddDialog(true)
+  }
 
   const handleNavigation = (item: string) => {
     switch (item) {
@@ -164,20 +291,17 @@ export default function UserTypeManagement() {
     }
   }
 
-  const filteredUserTypes = userTypes.filter(
-    (userType) =>
-      userType.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      userType.description.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const filteredUserTypes = userTypes
 
   const handleAction = async (action: "suspend" | "delete" | "activate", userTypeId: string) => {
     setIsLoading(true)
-    // Simulate API call
+    // TODO: Implement actual API call for suspend/delete/activate
     await new Promise((resolve) => setTimeout(resolve, 1500))
     setIsLoading(false)
     setShowConfirmDialog(false)
     setConfirmAction(null)
-    // Here you would update the user type data
+    // Refresh data after action
+    await fetchUserTypes()
   }
 
   const getPermissionIcon = (hasPermission: boolean) => {
@@ -189,10 +313,13 @@ export default function UserTypeManagement() {
       case "Admin":
         return <Shield className="w-4 h-4 text-red-600" />
       case "Expert User":
+      case "Expert":
         return <Crown className="w-4 h-4 text-purple-600" />
       case "Premium User":
+      case "Premium":
         return <Star className="w-4 h-4 text-yellow-600" />
       case "Free User":
+      case "Free":
         return <UserPlus className="w-4 h-4 text-blue-600" />
       default:
         return <User className="w-4 h-4 text-gray-600" />
@@ -204,10 +331,13 @@ export default function UserTypeManagement() {
       case "Admin":
         return "bg-red-100 text-red-700 border-red-200"
       case "Expert User":
+      case "Expert":
         return "bg-purple-100 text-purple-700 border-purple-200"
       case "Premium User":
+      case "Premium":
         return "bg-yellow-100 text-yellow-700 border-yellow-200"
       case "Free User":
+      case "Free":
         return "bg-blue-100 text-blue-700 border-blue-200"
       default:
         return "bg-gray-100 text-gray-700 border-gray-200"
@@ -222,20 +352,15 @@ export default function UserTypeManagement() {
   const handleEditUserType = (userType: UserType) => {
     setSelectedUserType(userType)
     setEditFormData({
+      id: userType.id,
       name: userType.name,
       description: userType.description,
-      permissions: getPermissionDescription(userType.permissions),
+      has_admin_permission: userType.permissions.adminPermission,
+      has_freeuser_permission: userType.permissions.freeUserPermission,
+      has_premium_permission: userType.permissions.premiumUserPermission,
+      has_expert_permission: userType.permissions.expertUserPermission,
     })
     setShowEditDialog(true)
-  }
-
-  const getPermissionDescription = (permissions: UserType["permissions"]) => {
-    const activePermissions = []
-    if (permissions.adminPermission) activePermissions.push("Admin access")
-    if (permissions.freeUserPermission) activePermissions.push("Free user access")
-    if (permissions.premiumUserPermission) activePermissions.push("Premium access")
-    if (permissions.expertUserPermission) activePermissions.push("Expert access")
-    return activePermissions.join(", ") || "No permissions"
   }
 
   const handleBackToList = () => {
@@ -243,13 +368,23 @@ export default function UserTypeManagement() {
     setSelectedUserType(null)
   }
 
-  const handleUpdateUserType = async () => {
-    setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    setShowEditDialog(false)
-    // Here you would update the user type data
+  // Show loading spinner while fetching data
+  if (isLoadingData) {
+    return (
+      <AdminLayout
+        activeMenuItem="user-type"
+        title="Hi, Admin 👋"
+        subtitle="Manage user types and permissions"
+        onNavigate={handleNavigation}
+      >
+        <div className="p-8 flex items-center justify-center">
+          <div className="text-center">
+            <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-green-600" />
+            <p className="text-gray-600">Loading user types...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    )
   }
 
   // User Type Detail View
@@ -284,7 +419,7 @@ export default function UserTypeManagement() {
               </div>
             </div>
 
-            {/* Detail Form */}
+            {/* Detail Form - Read Only */}
             <div className="p-6 space-y-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">User Type</label>
@@ -342,20 +477,17 @@ export default function UserTypeManagement() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => selectedUserType && handleEditUserType(selectedUserType)}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Update
-                </Button>
+              {/* Removed the Update button from detail view */}
+              <div className="flex justify-center pt-4">
+                <p className="text-sm text-gray-500 italic">
+                  To update this user type, please go back to the Type List and click the Update button.
+                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Update User Type Dialog */}
+        {/* Update User Type Dialog - Still available for direct edit calls */}
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -382,7 +514,13 @@ export default function UserTypeManagement() {
                 <label className="text-sm font-medium text-gray-700">Permission given</label>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="edit-admin" checked={selectedUserType?.permissions.adminPermission || false} />
+                    <Checkbox 
+                      id="edit-admin" 
+                      checked={editFormData.has_admin_permission}
+                      onCheckedChange={(checked) => 
+                        setEditFormData({ ...editFormData, has_admin_permission: checked as boolean })
+                      }
+                    />
                     <label
                       htmlFor="edit-admin"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -391,7 +529,13 @@ export default function UserTypeManagement() {
                     </label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="edit-free" checked={selectedUserType?.permissions.freeUserPermission || false} />
+                    <Checkbox 
+                      id="edit-free" 
+                      checked={editFormData.has_freeuser_permission}
+                      onCheckedChange={(checked) => 
+                        setEditFormData({ ...editFormData, has_freeuser_permission: checked as boolean })
+                      }
+                    />
                     <label
                       htmlFor="edit-free"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -400,7 +544,13 @@ export default function UserTypeManagement() {
                     </label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="edit-premium" checked={selectedUserType?.permissions.premiumUserPermission || false} />
+                    <Checkbox 
+                      id="edit-premium" 
+                      checked={editFormData.has_premium_permission}
+                      onCheckedChange={(checked) => 
+                        setEditFormData({ ...editFormData, has_premium_permission: checked as boolean })
+                      }
+                    />
                     <label
                       htmlFor="edit-premium"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -409,7 +559,13 @@ export default function UserTypeManagement() {
                     </label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="edit-expert" checked={selectedUserType?.permissions.expertUserPermission || false} />
+                    <Checkbox 
+                      id="edit-expert" 
+                      checked={editFormData.has_expert_permission}
+                      onCheckedChange={(checked) => 
+                        setEditFormData({ ...editFormData, has_expert_permission: checked as boolean })
+                      }
+                    />
                     <label
                       htmlFor="edit-expert"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -456,10 +612,20 @@ export default function UserTypeManagement() {
                 <h2 className="text-2xl font-bold text-gray-900">User Type</h2>
                 <p className="text-gray-600 mt-1">Configure user types and their permission levels</p>
               </div>
-              <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowAddDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add New User Type
-              </Button>
+              <div className="flex items-center space-x-3">
+                <Button 
+                  variant="outline"
+                  onClick={fetchUserTypes}
+                  disabled={isLoadingData}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingData ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={handleOpenAddDialog}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New User Type
+                </Button>
+              </div>
             </div>
 
             {/* Controls */}
@@ -478,19 +644,6 @@ export default function UserTypeManagement() {
                     </SelectContent>
                   </Select>
                   <span className="text-sm text-gray-500">entries</span>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                {/* Search */}
-                <div className="relative w-80">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search user types..."
-                    className="pl-10 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
                 </div>
               </div>
             </div>
@@ -512,95 +665,103 @@ export default function UserTypeManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUserTypes.map((userType) => (
-                  <TableRow key={userType.id} className="hover:bg-gray-50 transition-colors">
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        {getUserTypeIcon(userType.name)}
-                        <div>
-                          <div className="font-medium text-gray-900">{userType.name}</div>
-                          <Badge className={`border text-xs ${getUserTypeBadgeColor(userType.name)}`}>
-                            {userType.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-gray-600 max-w-xs">
-                      <p className="line-clamp-2">{userType.description}</p>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {getPermissionIcon(userType.permissions.adminPermission)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {getPermissionIcon(userType.permissions.freeUserPermission)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {getPermissionIcon(userType.permissions.premiumUserPermission)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {getPermissionIcon(userType.permissions.expertUserPermission)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="font-medium">
-                        {userType.userCount.toLocaleString()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center space-x-2">
-                        <Button
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-3"
-                          onClick={() => handleViewUserType(userType)}
-                        >
-                          <Eye className="w-3 h-3 mr-1" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-white h-8 px-3"
-                          onClick={() => handleEditUserType(userType)}
-                        >
-                          <Edit className="w-3 h-3 mr-1" />
-                          Update
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className={`h-8 px-3 ${
-                            userType.name === "Admin"
-                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                              : userType.isActive
-                                ? "text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
-                                : "text-green-600 hover:bg-green-50 hover:text-green-700 border-green-200"
-                          }`}
-                          disabled={userType.name === "Admin"}
-                          onClick={() => {
-                            if (userType.name !== "Admin") {
-                              setConfirmAction({
-                                type: userType.isActive ? "suspend" : "activate",
-                                userTypeId: userType.id,
-                                userTypeName: userType.name,
-                              })
-                              setShowConfirmDialog(true)
-                            }
-                          }}
-                        >
-                          {userType.isActive ? (
-                            <>
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Suspend
-                            </>
-                          ) : (
-                            <>
-                              <Check className="w-3 h-3 mr-1" />
-                              Activate
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                {filteredUserTypes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                      No user types found
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredUserTypes.map((userType) => (
+                    <TableRow key={userType.id} className="hover:bg-gray-50 transition-colors">
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          {getUserTypeIcon(userType.name)}
+                          <div>
+                            <div className="font-medium text-gray-900">{userType.name}</div>
+                            <Badge className={`border text-xs ${getUserTypeBadgeColor(userType.name)}`}>
+                              {userType.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-gray-600 max-w-xs">
+                        <p className="line-clamp-2">{userType.description}</p>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {getPermissionIcon(userType.permissions.adminPermission)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {getPermissionIcon(userType.permissions.freeUserPermission)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {getPermissionIcon(userType.permissions.premiumUserPermission)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {getPermissionIcon(userType.permissions.expertUserPermission)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className="font-medium">
+                          {userType.userCount.toLocaleString()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center space-x-2">
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-3"
+                            onClick={() => handleViewUserType(userType)}
+                          >
+                            <Eye className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white h-8 px-3"
+                            onClick={() => handleEditUserType(userType)}
+                          >
+                            <Edit className="w-3 h-3 mr-1" />
+                            Update
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className={`h-8 px-3 ${
+                              userType.name === "Admin"
+                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                : userType.isActive
+                                  ? "text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
+                                  : "text-green-600 hover:bg-green-50 hover:text-green-700 border-green-200"
+                            }`}
+                            disabled={userType.name === "Admin"}
+                            onClick={() => {
+                              if (userType.name !== "Admin") {
+                                setConfirmAction({
+                                  type: userType.isActive ? "suspend" : "activate",
+                                  userTypeId: userType.id,
+                                  userTypeName: userType.name,
+                                })
+                                setShowConfirmDialog(true)
+                              }
+                            }}
+                          >
+                            {userType.isActive ? (
+                              <>
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Suspend
+                              </>
+                            ) : (
+                              <>
+                                <Check className="w-3 h-3 mr-1" />
+                                Activate
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
@@ -700,17 +861,31 @@ export default function UserTypeManagement() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">User Type Name</label>
-              <Input placeholder="Enter user type name" />
+              <Input 
+                placeholder="Enter user type name" 
+                value={createFormData.name}
+                onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
-              <Input placeholder="Enter description" />
+              <Input 
+                placeholder="Enter description" 
+                value={createFormData.description}
+                onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
+              />
             </div>
             <div className="space-y-3">
               <label className="text-sm font-medium">Permissions</label>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="admin" />
+                  <Checkbox 
+                    id="admin" 
+                    checked={createFormData.has_admin_permission}
+                    onCheckedChange={(checked) => 
+                      setCreateFormData({ ...createFormData, has_admin_permission: checked as boolean })
+                    }
+                  />
                   <label
                     htmlFor="admin"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -719,7 +894,13 @@ export default function UserTypeManagement() {
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="free" />
+                  <Checkbox 
+                    id="free" 
+                    checked={createFormData.has_freeuser_permission}
+                    onCheckedChange={(checked) => 
+                      setCreateFormData({ ...createFormData, has_freeuser_permission: checked as boolean })
+                    }
+                  />
                   <label
                     htmlFor="free"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -728,7 +909,13 @@ export default function UserTypeManagement() {
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="premium" />
+                  <Checkbox 
+                    id="premium" 
+                    checked={createFormData.has_premium_permission}
+                    onCheckedChange={(checked) => 
+                      setCreateFormData({ ...createFormData, has_premium_permission: checked as boolean })
+                    }
+                  />
                   <label
                     htmlFor="premium"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -737,7 +924,13 @@ export default function UserTypeManagement() {
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="expert" />
+                  <Checkbox 
+                    id="expert" 
+                    checked={createFormData.has_expert_permission}
+                    onCheckedChange={(checked) => 
+                      setCreateFormData({ ...createFormData, has_expert_permission: checked as boolean })
+                    }
+                  />
                   <label
                     htmlFor="expert"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -749,11 +942,121 @@ export default function UserTypeManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={isLoading}>
               Cancel
             </Button>
-            <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowAddDialog(false)}>
+            <Button 
+              className="bg-green-600 hover:bg-green-700" 
+              onClick={handleCreateUserType}
+              disabled={isLoading || !createFormData.name.trim()}
+            >
+              {isLoading && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
               Create User Type
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update User Type Dialog - Only accessible from list view */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center">Update User Type</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">User Type</label>
+              <Input
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                placeholder="Enter user type name"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Description</label>
+              <Input
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                placeholder="Enter description"
+              />
+            </div>
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-gray-700">Permission given</label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="edit-admin" 
+                    checked={editFormData.has_admin_permission}
+                    onCheckedChange={(checked) => 
+                      setEditFormData({ ...editFormData, has_admin_permission: checked as boolean })
+                    }
+                  />
+                  <label
+                    htmlFor="edit-admin"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Admin Permission
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="edit-free" 
+                    checked={editFormData.has_freeuser_permission}
+                    onCheckedChange={(checked) => 
+                      setEditFormData({ ...editFormData, has_freeuser_permission: checked as boolean })
+                    }
+                  />
+                  <label
+                    htmlFor="edit-free"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Free User Permission
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="edit-premium" 
+                    checked={editFormData.has_premium_permission}
+                    onCheckedChange={(checked) => 
+                      setEditFormData({ ...editFormData, has_premium_permission: checked as boolean })
+                    }
+                  />
+                  <label
+                    htmlFor="edit-premium"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Premium User Permission
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="edit-expert" 
+                    checked={editFormData.has_expert_permission}
+                    onCheckedChange={(checked) => 
+                      setEditFormData({ ...editFormData, has_expert_permission: checked as boolean })
+                    }
+                  />
+                  <label
+                    htmlFor="edit-expert"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Expert User Permission
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col space-y-2">
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white w-full"
+              onClick={handleUpdateUserType}
+              disabled={isLoading}
+            >
+              {isLoading && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+              Update
+            </Button>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isLoading} className="w-full">
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
