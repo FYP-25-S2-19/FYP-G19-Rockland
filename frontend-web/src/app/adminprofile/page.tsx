@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Eye,
   EyeOff,
@@ -22,25 +23,52 @@ import {
   Shield,
   Clock,
   User,
+  Loader2,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
+
+interface AdminProfile {
+  user_id: number
+  email: string
+  first_name: string
+  last_name: string
+  date_of_birth: string
+  contact_number: string
+  gender: string
+  region: string
+  status: string
+  total_points: number
+  user_type_id: number
+  user_type_name: string
+  created_date: string
+}
+
+// API configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function AdminProfile() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null)
+  
+  // Form data for editing
   const [formData, setFormData] = useState({
-    firstName: "Kieron",
-    lastName: "Yolin",
-    dateOfBirth: "12/10/2004",
-    contactNumber: "82622526",
-    email: "kieronyolin12@gmail.com",
+    firstName: "",
+    lastName: "",
+    dateOfBirth: "",
+    contactNumber: "",
+    email: "",
     password: "••••••••••••",
-    role: "Admin",
-    status: "Active",
-    createdDate: "09/04/2025",
+    gender: "",
+    region: "",
+    role: "",
+    status: "",
+    createdDate: "",
   })
 
   const handleNavigation = (item: string) => {
@@ -75,6 +103,7 @@ export default function AdminProfile() {
       case "logout":
         localStorage.removeItem('isAdminLoggedIn')
         localStorage.removeItem('adminEmail')
+        localStorage.removeItem('adminToken')
         router.push('/login')
         break
       default:
@@ -82,13 +111,207 @@ export default function AdminProfile() {
     }
   }
 
+  // Fetch admin profile data using existing view_user endpoint (same method as user account)
+  const fetchAdminProfile = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const token = localStorage.getItem('adminToken')
+      const adminEmail = localStorage.getItem('adminEmail')
+      
+      if (!adminEmail) {
+        setError('Admin email not found. Please log in again.')
+        return
+      }
+
+      // Using the same view_user endpoint as in user account implementation
+      const response = await fetch(`${API_BASE_URL}/api/users/view_user?email=${encodeURIComponent(adminEmail)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        // Convert the backend response to match frontend interface (same as user account)
+        const adminDetails: AdminProfile = {
+          user_id: data.user.user_id,
+          email: data.user.email,
+          first_name: data.user.first_name,
+          last_name: data.user.last_name,
+          date_of_birth: data.user.date_of_birth,
+          contact_number: data.user.contact_number,
+          gender: data.user.gender,
+          region: data.user.region,
+          status: data.user.status,
+          total_points: data.user.total_points,
+          user_type_id: data.user.user_type_id,
+          user_type_name: data.user.user_type_name,
+          created_date: data.user.created_date
+        }
+        
+        setAdminProfile(adminDetails)
+        
+        // Update form data
+        setFormData({
+          firstName: adminDetails.first_name || '',
+          lastName: adminDetails.last_name || '',
+          dateOfBirth: formatDate(adminDetails.date_of_birth),
+          contactNumber: adminDetails.contact_number || '',
+          email: adminDetails.email || '',
+          password: "••••••••••••",
+          gender: adminDetails.gender || '',
+          region: adminDetails.region || '',
+          role: adminDetails.user_type_name || 'Admin',
+          status: adminDetails.status || 'Active',
+          createdDate: formatDate(adminDetails.created_date),
+        })
+      } else {
+        setError(data.error || 'Failed to fetch admin profile')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching admin profile')
+      console.error('Error fetching admin profile:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-GB')
+  }
+
+  // Convert display date back to YYYY-MM-DD format for backend
+  const convertToBackendDate = (displayDate: string) => {
+    if (!displayDate) return ''
+    
+    // If it's already in YYYY-MM-DD format, return as is
+    if (displayDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return displayDate
+    }
+    
+    // Convert from DD/MM/YYYY to YYYY-MM-DD
+    const parts = displayDate.split('/')
+    if (parts.length === 3) {
+      const [day, month, year] = parts
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    }
+    
+    // Try to parse as date and convert
+    try {
+      const date = new Date(displayDate)
+      return date.toISOString().split('T')[0]
+    } catch {
+      return ''
+    }
+  }
+
+  // Load admin profile on component mount
+  useEffect(() => {
+    fetchAdminProfile()
+  }, [])
+
   const handleUpdate = async () => {
-    setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsLoading(false)
-    setShowConfirmDialog(true)
-    // Here you would update the profile data
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const token = localStorage.getItem('adminToken')
+      const adminEmail = localStorage.getItem('adminEmail')
+      
+      if (!adminEmail) {
+        setError('Admin email not found. Please log in again.')
+        return
+      }
+
+      // Prepare update data - convert date back to YYYY-MM-DD format for backend
+      const updateData = {
+        email: adminEmail, // Use original email for identification
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        date_of_birth: convertToBackendDate(formData.dateOfBirth),
+        contact_number: formData.contactNumber.trim(),
+        gender: formData.gender.trim(),
+        region: formData.region.trim(),
+        // Only include password if it's been changed (not the placeholder)
+        ...(formData.password !== "••••••••••••" && formData.password.trim() && {
+          password: formData.password
+        })
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/users/update_user`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        // Update the admin profile state with the returned data
+        if (data.user) {
+          const updatedProfile: AdminProfile = {
+            user_id: data.user.user_id,
+            email: data.user.email,
+            first_name: data.user.first_name,
+            last_name: data.user.last_name,
+            date_of_birth: data.user.date_of_birth,
+            contact_number: data.user.contact_number,
+            gender: data.user.gender,
+            region: data.user.region,
+            status: data.user.status,
+            total_points: data.user.total_points,
+            user_type_id: data.user.user_type_id,
+            user_type_name: data.user.user_type_name,
+            created_date: data.user.created_date
+          }
+          
+          setAdminProfile(updatedProfile)
+          
+          // Update form data with fresh data from server
+          setFormData({
+            firstName: updatedProfile.first_name || '',
+            lastName: updatedProfile.last_name || '',
+            dateOfBirth: formatDate(updatedProfile.date_of_birth),
+            contactNumber: updatedProfile.contact_number || '',
+            email: updatedProfile.email || '',
+            password: "••••••••••••", // Reset password field
+            gender: updatedProfile.gender || '',
+            region: updatedProfile.region || '',
+            role: updatedProfile.user_type_name || 'Admin',
+            status: updatedProfile.status || 'Active',
+            createdDate: formatDate(updatedProfile.created_date),
+          })
+        }
+        
+        setShowConfirmDialog(true)
+      } else {
+        setError(data.error || 'Failed to update profile')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while updating profile')
+      console.error('Error updating profile:', err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -96,6 +319,45 @@ export default function AdminProfile() {
       ...prev,
       [field]: value,
     }))
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <AdminLayout
+        activeMenuItem="my-profile"
+        title="Hi, Admin 👋"
+        subtitle="Manage your profile information"
+        onNavigate={handleNavigation}
+      >
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+          <span className="ml-2 text-gray-600">Loading profile...</span>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <AdminLayout
+        activeMenuItem="my-profile"
+        title="Hi, Admin 👋"
+        subtitle="Manage your profile information"
+        onNavigate={handleNavigation}
+      >
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={fetchAdminProfile} className="bg-green-600 hover:bg-green-700">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      </AdminLayout>
+    )
   }
 
   return (
@@ -108,7 +370,19 @@ export default function AdminProfile() {
       <div className="p-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 max-w-4xl mx-auto">
           <div className="p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-8">My Profile</h2>
+            {/* Header with refresh button */}
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold text-gray-900">My Profile</h2>
+              <Button
+                variant="outline"
+                onClick={fetchAdminProfile}
+                className="flex items-center space-x-2"
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </Button>
+            </div>
 
             <div className="space-y-6">
               {/* First Row - Name */}
@@ -176,7 +450,47 @@ export default function AdminProfile() {
                 </div>
               </div>
 
-              {/* Fourth Row - Password and Role */}
+              {/* Fourth Row - Gender and Region */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Gender</label>
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) => handleInputChange("gender", value)}
+                  >
+                    <SelectTrigger className="h-12 bg-gray-50 border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Rather not say">Rather not say</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Region</label>
+                  <Select
+                    value={formData.region}
+                    onValueChange={(value) => handleInputChange("region", value)}
+                  >
+                    <SelectTrigger className="h-12 bg-gray-50 border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                      <SelectValue placeholder="Select region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Singapore">Singapore</SelectItem>
+                      <SelectItem value="Malaysia">Malaysia</SelectItem>
+                      <SelectItem value="Thailand">Thailand</SelectItem>
+                      <SelectItem value="Indonesia">Indonesia</SelectItem>
+                      <SelectItem value="Philippines">Philippines</SelectItem>
+                      <SelectItem value="Vietnam">Vietnam</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Fifth Row - Password and Role */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Password</label>
@@ -202,7 +516,7 @@ export default function AdminProfile() {
                   <div className="relative">
                     <Shield className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                     <Input
-                      className="pl-10 h-12 bg-gray-50 border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      className="pl-10 h-12 bg-gray-50 border-gray-200 cursor-not-allowed"
                       value={formData.role}
                       readOnly
                     />
@@ -210,12 +524,14 @@ export default function AdminProfile() {
                 </div>
               </div>
 
-              {/* Fifth Row - Status and Created Date */}
+              {/* Sixth Row - Status and Created Date */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Status</label>
                   <div className="flex items-center h-12 px-3 bg-gray-50 border border-gray-200 rounded-md">
-                    <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                    <div className={`w-3 h-3 rounded-full mr-3 ${
+                      formData.status === 'Active' ? 'bg-green-500' : 'bg-red-500'
+                    }`}></div>
                     <span className="text-gray-900 font-medium">{formData.status}</span>
                   </div>
                 </div>
@@ -224,7 +540,7 @@ export default function AdminProfile() {
                   <div className="relative">
                     <Clock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                     <Input
-                      className="pl-10 h-12 bg-gray-50 border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      className="pl-10 h-12 bg-gray-50 border-gray-200 cursor-not-allowed"
                       value={formData.createdDate}
                       readOnly
                     />
@@ -240,13 +556,15 @@ export default function AdminProfile() {
                   disabled={isLoading}
                 >
                   {isLoading && <RefreshCw className="w-5 h-5 mr-2 animate-spin" />}
-                  Update
+                  Update Profile
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full h-12 text-base font-medium border-gray-300 hover:bg-gray-50 bg-transparent"
+                  onClick={fetchAdminProfile}
                 >
-                  Cancel
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh Data
                 </Button>
               </div>
             </div>
@@ -259,7 +577,9 @@ export default function AdminProfile() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Profile Updated Successfully</DialogTitle>
-            <DialogDescription>Your profile information has been updated successfully.</DialogDescription>
+            <DialogDescription>
+              Your profile information has been updated successfully. The changes have been saved to the database.
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowConfirmDialog(false)}>
