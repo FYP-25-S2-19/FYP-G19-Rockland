@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, X, Eye, EyeOff } from "lucide-react"
+import { ChevronLeft, Eye, EyeOff, AlertCircle } from "lucide-react"
 import Image from "next/image"
 
 export default function RegistrationPage() {
@@ -16,7 +15,10 @@ export default function RegistrationPage() {
   const [step, setStep] = useState(1)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [interests, setInterests] = useState(["Volcanic Rock", "Fossils", "Mineral & Crystal"])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [interests, setInterests] = useState<string[]>([])
+  
   const availableInterests = [
     "Volcanic Rock",
     "Fossils", 
@@ -31,15 +33,17 @@ export default function RegistrationPage() {
     "Rock Collecting",
     "Crystal Healing"
   ]
+  
   const [formData, setFormData] = useState({
-    firstName: "Lois",
-    lastName: "Becket",
-    email: "loisbecket@gmail.com",
-    password: "•••••••",
-    confirmPassword: "•••••••",
-    dateOfBirth: "18/03/2024",
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    dateOfBirth: "",
+    contactNumber: "",
     region: "Singapore",
-    gender: "Female",
+    gender: "Rather not say",
     plan: "Free Plan",
   })
 
@@ -51,8 +55,36 @@ export default function RegistrationPage() {
     }
   }
 
+  const validateStep1 = () => {
+    setError("")
+    
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      setError("Please enter your first and last name")
+      return false
+    }
+    
+    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError("Please enter a valid email address")
+      return false
+    }
+    
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long")
+      return false
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match")
+      return false
+    }
+    
+    return true
+  }
+
   const handleNext = () => {
-    setStep(2)
+    if (validateStep1()) {
+      setStep(2)
+    }
   }
 
   const handleBack = () => {
@@ -63,9 +95,88 @@ export default function RegistrationPage() {
     }
   }
 
-  const handleCreateAccount = () => {
-    // Handle account creation
-    console.log("Creating account with:", formData)
+  const handleCreateAccount = async () => {
+    setError("")
+    setIsLoading(true)
+
+    try {
+      // Validate date format
+      if (!formData.dateOfBirth) {
+        setError("Please enter your date of birth")
+        setIsLoading(false)
+        return
+      }
+
+      // Convert date from DD/MM/YYYY to YYYY-MM-DD for backend
+      const dateParts = formData.dateOfBirth.split('/')
+      let formattedDate = formData.dateOfBirth
+      
+      if (dateParts.length === 3) {
+        // If in DD/MM/YYYY format, convert to YYYY-MM-DD
+        formattedDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`
+      }
+
+      // Map plan to user_type_id
+      const userTypeMapping: Record<string, number> = {
+        "Free Plan": 1,
+        "Premium Plan": 2,
+        "Expert Plan": 3
+      }
+
+      const requestData = {
+        email: formData.email.toLowerCase().trim(),
+        password: formData.password,
+        first_name: formData.firstName.trim(),
+        last_name: formData.lastName.trim(),
+        date_of_birth: formattedDate,
+        contact_number: formData.contactNumber || null,
+        gender: formData.gender === "Rather not say" ? null : formData.gender,
+        region: formData.region,
+        user_type_id: userTypeMapping[formData.plan] || 1,
+        interests: interests // Store for future use
+      }
+
+      console.log('Sending registration request:', requestData)
+
+      const response = await fetch('http://localhost:5000/api/users/create_user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      })
+
+      const data = await response.json()
+      console.log('Registration response:', data)
+
+      if (response.ok && data.success) {
+        // Registration successful
+        alert('Account created successfully! Please login.')
+        router.push('/login')
+      } else {
+        // Handle specific error messages
+        const errorMessage = data.message || 'Registration failed'
+        
+        if (response.status === 409) {
+          setError('An account with this email already exists')
+        } else if (response.status === 400) {
+          if (errorMessage.includes('age')) {
+            setError('You must be at least 13 years old to register')
+          } else if (errorMessage.includes('date')) {
+            setError('Please enter a valid date in DD/MM/YYYY format')
+          } else {
+            setError(errorMessage)
+          }
+        } else {
+          setError(errorMessage)
+        }
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      setError('Unable to connect to server. Please ensure the backend is running.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -86,14 +197,9 @@ export default function RegistrationPage() {
         </div>
 
         <div className="relative mb-8">
-          <Image
-            src="/1.png"
-            alt="Rockland Registration Illustration"
-            width={288}
-            height={288}
-            className="w-72 h-72 object-contain"
-            priority
-          />
+          <div className="w-72 h-72 bg-white/20 rounded-full flex items-center justify-center">
+            <span className="text-white text-9xl">🪨</span>
+          </div>
         </div>
 
         <h2 className="text-white text-4xl font-bold">REGISTRATION</h2>
@@ -102,6 +208,14 @@ export default function RegistrationPage() {
       {/* Right Side - Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+
           {step === 1 ? (
             <>
               <div className="text-center mb-6">
@@ -118,6 +232,7 @@ export default function RegistrationPage() {
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     className="mt-1"
+                    placeholder="Enter your first name"
                   />
                 </div>
 
@@ -130,6 +245,7 @@ export default function RegistrationPage() {
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                     className="mt-1"
+                    placeholder="Enter your last name"
                   />
                 </div>
 
@@ -143,6 +259,7 @@ export default function RegistrationPage() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="mt-1"
+                    placeholder="your.email@example.com"
                   />
                 </div>
 
@@ -157,6 +274,7 @@ export default function RegistrationPage() {
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       className="pr-10"
+                      placeholder="At least 6 characters"
                     />
                     <Button
                       type="button"
@@ -181,6 +299,7 @@ export default function RegistrationPage() {
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                       className="pr-10"
+                      placeholder="Re-enter your password"
                     />
                     <Button
                       type="button"
@@ -206,7 +325,7 @@ export default function RegistrationPage() {
             <>
               <div className="text-center mb-6">
                 <h3 className="text-xl font-semibold text-gray-800">Step 2: Profiling</h3>
-                <p className="text-sm text-gray-500 mt-1">Tell us about your self!</p>
+                <p className="text-sm text-gray-500 mt-1">Tell us about yourself!</p>
               </div>
 
               <div className="space-y-4">
@@ -219,6 +338,20 @@ export default function RegistrationPage() {
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                     className="mt-1"
+                    placeholder="DD/MM/YYYY"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="contactNumber" className="text-sm text-gray-600">
+                    Contact Number (Optional)
+                  </Label>
+                  <Input
+                    id="contactNumber"
+                    value={formData.contactNumber}
+                    onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
+                    className="mt-1"
+                    placeholder="+65 1234 5678"
                   />
                 </div>
 
@@ -238,24 +371,51 @@ export default function RegistrationPage() {
                       <SelectItem value="Malaysia">Malaysia</SelectItem>
                       <SelectItem value="Thailand">Thailand</SelectItem>
                       <SelectItem value="Indonesia">Indonesia</SelectItem>
+                      <SelectItem value="Philippines">Philippines</SelectItem>
+                      <SelectItem value="Vietnam">Vietnam</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label className="text-sm text-gray-600">Interests</Label>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    {availableInterests.map((interest) => (
-                      <div key={interest} className="flex items-center space-x-2">
+                  <Label className="text-sm text-gray-600">Interests (Optional)</Label>
+                  <div className="mt-2 max-h-32 overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-2">
+                      {availableInterests.map((interest) => (
+                        <div key={interest} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`interest-${interest}`}
+                            checked={interests.includes(interest)}
+                            onChange={() => toggleInterest(interest)}
+                            className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                          />
+                          <Label htmlFor={`interest-${interest}`} className="text-sm cursor-pointer">
+                            {interest}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm text-gray-600">What's your gender?</Label>
+                  <div className="mt-2 space-y-2">
+                    {["Female", "Male", "Rather not say"].map((option) => (
+                      <div key={option} className="flex items-center space-x-2">
                         <input
-                          type="checkbox"
-                          id={`interest-${interest}`}
-                          checked={interests.includes(interest)}
-                          onChange={() => toggleInterest(interest)}
-                          className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                          type="radio"
+                          id={option.toLowerCase().replace(/\s+/g, '-')}
+                          name="gender"
+                          value={option}
+                          checked={formData.gender === option}
+                          onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                          className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
                         />
-                        <Label htmlFor={`interest-${interest}`} className="text-sm cursor-pointer">
-                          {interest}
+                        <Label htmlFor={option.toLowerCase().replace(/\s+/g, '-')} className="text-sm cursor-pointer">
+                          {option}
                         </Label>
                       </div>
                     ))}
@@ -263,93 +423,34 @@ export default function RegistrationPage() {
                 </div>
 
                 <div>
-                  <Label className="text-sm text-gray-600">What's your gender?</Label>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="female"
-                        name="gender"
-                        value="Female"
-                        checked={formData.gender === "Female"}
-                        onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                        className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
-                      />
-                      <Label htmlFor="female" className="text-sm cursor-pointer">
-                        Female
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="male"
-                        name="gender"
-                        value="Male"
-                        checked={formData.gender === "Male"}
-                        onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                        className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
-                      />
-                      <Label htmlFor="male" className="text-sm cursor-pointer">
-                        Male
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="rather-not-say"
-                        name="gender"
-                        value="Rather not say"
-                        checked={formData.gender === "Rather not say"}
-                        onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                        className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
-                      />
-                      <Label htmlFor="rather-not-say" className="text-sm cursor-pointer">
-                        Rather not say
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
                   <Label className="text-sm text-gray-600">Select Plan</Label>
                   <div className="mt-2 space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="free-plan"
-                        name="plan"
-                        value="Free Plan"
-                        checked={formData.plan === "Free Plan"}
-                        onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                        className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
-                      />
-                      <Label htmlFor="free-plan" className="text-sm cursor-pointer">
-                        Free Plan
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="premium-plan"
-                        name="plan"
-                        value="Premium Plan"
-                        checked={formData.plan === "Premium Plan"}
-                        onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                        className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
-                      />
-                      <Label htmlFor="premium-plan" className="text-sm cursor-pointer">
-                        Premium Plan
-                      </Label>
-                    </div>
+                    {["Free Plan", "Premium Plan"].map((plan) => (
+                      <div key={plan} className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id={plan.toLowerCase().replace(/\s+/g, '-')}
+                          name="plan"
+                          value={plan}
+                          checked={formData.plan === plan}
+                          onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
+                          className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                        />
+                        <Label htmlFor={plan.toLowerCase().replace(/\s+/g, '-')} className="text-sm cursor-pointer">
+                          {plan}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
               <Button
                 onClick={handleCreateAccount}
-                className="w-full mt-8 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-lg font-medium"
+                disabled={isLoading}
+                className="w-full mt-8 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
               >
-                Create Account
+                {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
             </>
           )}
