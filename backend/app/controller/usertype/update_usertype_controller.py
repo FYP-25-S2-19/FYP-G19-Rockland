@@ -16,7 +16,10 @@ class UpdateUserTypeController:
             data = request.get_json()
             
             if not data:
-                return jsonify({"success": False, "message": "No data provided"}), 400
+                return jsonify({
+                    "success": False, 
+                    "message": "No data provided"
+                }), 400
             
             # Extract required fields
             user_type_id = data.get('user_type_id')
@@ -27,37 +30,47 @@ class UpdateUserTypeController:
             has_premium_permission = data.get('has_premium_permission', False)
             has_expert_permission = data.get('has_expert_permission', False)
             
-            # Validate required fields
+            # Basic request validation only
             if not user_type_id:
-                return jsonify({"success": False, "message": "User type ID is required"}), 400
+                return jsonify({
+                    "success": False, 
+                    "message": "User type ID is required"
+                }), 400
             
-            if not name or not name.strip():
-                return jsonify({"success": False, "message": "Name is required"}), 400
+            # Convert user_type_id to integer if it's a string
+            try:
+                user_type_id = int(user_type_id)
+            except (ValueError, TypeError):
+                return jsonify({
+                    "success": False,
+                    "message": "Invalid user type ID format"
+                }), 400
             
-            # Validate that at least one permission is set
-            if not any([has_admin_permission, has_freeuser_permission, 
-                       has_premium_permission, has_expert_permission]):
-                return jsonify({"success": False, "message": "At least one permission must be granted"}), 400
-            
-            # Update the user type using the entity method
+            # Use the entity method to update user type
             success, status_code, message, updated_usertype = UserType.updateUserType(
                 user_type_id=user_type_id,
-                name=name.strip(),
-                description=description.strip() if description else None,
-                has_admin_permission=bool(has_admin_permission),
-                has_freeuser_permission=bool(has_freeuser_permission),
-                has_premium_permission=bool(has_premium_permission),
-                has_expert_permission=bool(has_expert_permission)
+                name=name,
+                description=description,
+                has_admin_permission=has_admin_permission,
+                has_freeuser_permission=has_freeuser_permission,
+                has_premium_permission=has_premium_permission,
+                has_expert_permission=has_expert_permission
             )
             
-            if success:
+            if success and updated_usertype:
                 return jsonify({
                     "success": True, 
                     "message": message,
-                    "usertype": updated_usertype.to_dict() if updated_usertype else None
+                    "usertype": updated_usertype.to_dict()
                 }), status_code
             else:
-                return jsonify({"success": False, "message": message}), status_code
+                return jsonify({
+                    "success": False, 
+                    "message": message
+                }), status_code
                 
         except Exception as e:
-            return jsonify({"success": False, "message": f"Error: {str(e)}"}), 500
+            return jsonify({
+                "success": False, 
+                "message": f"Error updating user type: {str(e)}"
+            }), 500
