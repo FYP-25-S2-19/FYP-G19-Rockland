@@ -27,6 +27,8 @@ import {
   Star,
   UserPlus,
   User,
+  AlertCircle,
+  CheckCircle,
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter } from "next/navigation"
@@ -42,7 +44,6 @@ interface UserType {
     premiumUserPermission: boolean
     expertUserPermission: boolean
   }
-  userCount: number
   isActive: boolean
 }
 
@@ -62,10 +63,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function UserTypeManagement() {
   const router = useRouter()
-  const [entries, setEntries] = useState("10")
-  const [currentPage, setCurrentPage] = useState(1)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
   const [confirmAction, setConfirmAction] = useState<{
     type: "suspend" | "delete" | "activate"
     userTypeId: string
@@ -118,8 +119,8 @@ export default function UserTypeManagement() {
             premiumUserPermission: ut.has_premium_permission,
             expertUserPermission: ut.has_expert_permission,
           },
-          userCount: 0, // You'll need a separate endpoint to get user counts
-          isActive: true, // Add this field to your database if needed
+          // Check if description contains [SUSPENDED] to determine if suspended
+          isActive: !ut.description?.includes('[SUSPENDED]'),
         }))
         setUserTypes(transformedData)
       } else {
@@ -167,7 +168,8 @@ export default function UserTypeManagement() {
         })
         
         // Show success message
-        alert('User type created successfully!')
+        setSuccessMessage('User type created successfully!')
+        setShowSuccessDialog(true)
         
         // Refresh the data
         await fetchUserTypes()
@@ -212,7 +214,8 @@ export default function UserTypeManagement() {
         setShowEditDialog(false)
         
         // Show success message
-        alert('User type updated successfully!')
+        setSuccessMessage('User type updated successfully!')
+        setShowSuccessDialog(true)
         
         // Refresh the data
         await fetchUserTypes()
@@ -220,7 +223,6 @@ export default function UserTypeManagement() {
         // Update the selected user type if in detail view
         if (selectedUserType && viewMode === "detail") {
           // Refresh the selected user type data
-          await fetchUserTypes()
           const updatedUserType = userTypes.find(ut => ut.id === editFormData.id)
           if (updatedUserType) {
             setSelectedUserType(updatedUserType)
@@ -236,6 +238,53 @@ export default function UserTypeManagement() {
       alert('Failed to update user type. Please try again.')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Suspend user type function
+  const handleSuspendUserType = async () => {
+    if (!confirmAction) return
+    
+    setIsLoading(true)
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/usertypes/suspend`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          userTypeId: confirmAction.userTypeId 
+        }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        // Show success message
+        setSuccessMessage(data.message || `User type ${confirmAction.userTypeName} has been suspended successfully`)
+        setShowSuccessDialog(true)
+        
+        // Refresh the data
+        await fetchUserTypes()
+        
+        // If viewing the suspended user type's details, refresh
+        if (selectedUserType && selectedUserType.id === confirmAction.userTypeId) {
+          const updatedUserType = userTypes.find(ut => ut.id === confirmAction.userTypeId)
+          if (updatedUserType) {
+            setSelectedUserType(updatedUserType)
+          }
+        }
+      } else {
+        alert(`Error: ${data.error}`)
+      }
+    } catch (err) {
+      console.error('Error suspending user type:', err)
+      alert('An error occurred while suspending user type')
+    } finally {
+      setIsLoading(false)
+      setShowConfirmDialog(false)
+      setConfirmAction(null)
     }
   }
 
@@ -294,14 +343,17 @@ export default function UserTypeManagement() {
   const filteredUserTypes = userTypes
 
   const handleAction = async (action: "suspend" | "delete" | "activate", userTypeId: string) => {
-    setIsLoading(true)
-    // TODO: Implement actual API call for suspend/delete/activate
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    setShowConfirmDialog(false)
-    setConfirmAction(null)
-    // Refresh data after action
-    await fetchUserTypes()
+    if (action === "suspend") {
+      await handleSuspendUserType()
+    } else {
+      // TODO: Implement activate/delete functionality
+      setIsLoading(true)
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      setIsLoading(false)
+      setShowConfirmDialog(false)
+      setConfirmAction(null)
+      await fetchUserTypes()
+    }
   }
 
   const getPermissionIcon = (hasPermission: boolean) => {
@@ -326,7 +378,11 @@ export default function UserTypeManagement() {
     }
   }
 
-  const getUserTypeBadgeColor = (name: string) => {
+  const getUserTypeBadgeColor = (name: string, isActive: boolean) => {
+    if (!isActive) {
+      return "bg-red-100 text-red-700 border-red-200"
+    }
+    
     switch (name) {
       case "Admin":
         return "bg-red-100 text-red-700 border-red-200"
@@ -366,6 +422,11 @@ export default function UserTypeManagement() {
   const handleBackToList = () => {
     setViewMode("list")
     setSelectedUserType(null)
+  }
+
+  // Check if user type can be suspended
+  const canSuspendUserType = (userType: UserType): boolean => {
+    return userType.name !== "Admin" && userType.name !== "Free"
   }
 
   // Show loading spinner while fetching data
@@ -431,6 +492,20 @@ export default function UserTypeManagement() {
                 <Input value={selectedUserType?.description || ""} readOnly className="bg-gray-50" />
               </div>
 
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Status</label>
+                <div className="flex items-center space-x-2">
+                  <div className={`w-3 h-3 rounded-full ${
+                    selectedUserType.isActive ? 'bg-green-500' : 'bg-red-500'
+                  }`}></div>
+                  <span className={`font-medium ${
+                    selectedUserType.isActive ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {selectedUserType.isActive ? 'Active' : 'Suspended'}
+                  </span>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-700">Permission [ Checkbox ]</label>
                 <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-md">
@@ -477,7 +552,6 @@ export default function UserTypeManagement() {
                 </div>
               </div>
 
-              {/* Removed the Update button from detail view */}
               <div className="flex justify-center pt-4">
                 <p className="text-sm text-gray-500 italic">
                   To update this user type, please go back to the Type List and click the Update button.
@@ -486,111 +560,6 @@ export default function UserTypeManagement() {
             </div>
           </div>
         </div>
-
-        {/* Update User Type Dialog - Still available for direct edit calls */}
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-center">Update User Type</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">User Type</label>
-                <Input
-                  value={editFormData.name}
-                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  placeholder="Enter user type name"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Description</label>
-                <Input
-                  value={editFormData.description}
-                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                  placeholder="Enter description"
-                />
-              </div>
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-gray-700">Permission given</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="edit-admin" 
-                      checked={editFormData.has_admin_permission}
-                      onCheckedChange={(checked) => 
-                        setEditFormData({ ...editFormData, has_admin_permission: checked as boolean })
-                      }
-                    />
-                    <label
-                      htmlFor="edit-admin"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Admin Permission
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="edit-free" 
-                      checked={editFormData.has_freeuser_permission}
-                      onCheckedChange={(checked) => 
-                        setEditFormData({ ...editFormData, has_freeuser_permission: checked as boolean })
-                      }
-                    />
-                    <label
-                      htmlFor="edit-free"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Free User Permission
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="edit-premium" 
-                      checked={editFormData.has_premium_permission}
-                      onCheckedChange={(checked) => 
-                        setEditFormData({ ...editFormData, has_premium_permission: checked as boolean })
-                      }
-                    />
-                    <label
-                      htmlFor="edit-premium"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Premium User Permission
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="edit-expert" 
-                      checked={editFormData.has_expert_permission}
-                      onCheckedChange={(checked) => 
-                        setEditFormData({ ...editFormData, has_expert_permission: checked as boolean })
-                      }
-                    />
-                    <label
-                      htmlFor="edit-expert"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Expert User Permission
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <DialogFooter className="flex flex-col space-y-2">
-              <Button
-                className="bg-green-600 hover:bg-green-700 text-white w-full"
-                onClick={handleUpdateUserType}
-                disabled={isLoading}
-              >
-                {isLoading && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
-                Update
-              </Button>
-              <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isLoading} className="w-full">
-                Cancel
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </AdminLayout>
     )
   }
@@ -627,29 +596,9 @@ export default function UserTypeManagement() {
                 </Button>
               </div>
             </div>
-
-            {/* Controls */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">Show</span>
-                  <Select value={entries} onValueChange={setEntries}>
-                    <SelectTrigger className="w-20 h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-sm text-gray-500">entries</span>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Table */}
+          {/* Table - Removed Users column */}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -660,14 +609,13 @@ export default function UserTypeManagement() {
                   <TableHead className="font-semibold text-center">Free User Permission</TableHead>
                   <TableHead className="font-semibold text-center">Premium User Permission</TableHead>
                   <TableHead className="font-semibold text-center">Expert User Permission</TableHead>
-                  <TableHead className="font-semibold text-center">Users</TableHead>
                   <TableHead className="font-semibold text-center">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUserTypes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                       No user types found
                     </TableCell>
                   </TableRow>
@@ -679,8 +627,8 @@ export default function UserTypeManagement() {
                           {getUserTypeIcon(userType.name)}
                           <div>
                             <div className="font-medium text-gray-900">{userType.name}</div>
-                            <Badge className={`border text-xs ${getUserTypeBadgeColor(userType.name)}`}>
-                              {userType.isActive ? "Active" : "Inactive"}
+                            <Badge className={`border text-xs ${getUserTypeBadgeColor(userType.name, userType.isActive)}`}>
+                              {userType.isActive ? "Active" : "Suspended"}
                             </Badge>
                           </div>
                         </div>
@@ -699,11 +647,6 @@ export default function UserTypeManagement() {
                       </TableCell>
                       <TableCell className="text-center">
                         {getPermissionIcon(userType.permissions.expertUserPermission)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className="font-medium">
-                          {userType.userCount.toLocaleString()}
-                        </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center space-x-2">
@@ -727,15 +670,15 @@ export default function UserTypeManagement() {
                             size="sm"
                             variant="outline"
                             className={`h-8 px-3 ${
-                              userType.name === "Admin"
+                              !canSuspendUserType(userType)
                                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                 : userType.isActive
                                   ? "text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
                                   : "text-green-600 hover:bg-green-50 hover:text-green-700 border-green-200"
                             }`}
-                            disabled={userType.name === "Admin"}
+                            disabled={!canSuspendUserType(userType)}
                             onClick={() => {
-                              if (userType.name !== "Admin") {
+                              if (canSuspendUserType(userType)) {
                                 setConfirmAction({
                                   type: userType.isActive ? "suspend" : "activate",
                                   userTypeId: userType.id,
@@ -745,7 +688,12 @@ export default function UserTypeManagement() {
                               }
                             }}
                           >
-                            {userType.isActive ? (
+                            {!canSuspendUserType(userType) ? (
+                              <>
+                                <X className="w-3 h-3 mr-1" />
+                                Protected
+                              </>
+                            ) : userType.isActive ? (
                               <>
                                 <Trash2 className="w-3 h-3 mr-1" />
                                 Suspend
@@ -765,31 +713,6 @@ export default function UserTypeManagement() {
               </TableBody>
             </Table>
           </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-            <div className="text-sm text-gray-500">
-              Showing 1 to {Math.min(Number.parseInt(entries), filteredUserTypes.length)} of{" "}
-              {filteredUserTypes.length} entries
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-              <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 w-8 h-8">
-                1
-              </Button>
-              <Button variant="outline" size="sm">
-                2
-              </Button>
-              <Button variant="outline" size="sm">
-                3
-              </Button>
-              <Button variant="outline" size="sm">
-                Next
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -797,23 +720,26 @@ export default function UserTypeManagement() {
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {confirmAction?.type === "suspend"
-                ? "Suspend User Type"
-                : confirmAction?.type === "activate"
-                  ? "Activate User Type"
-                  : "Delete User Type"}
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              <span>
+                {confirmAction?.type === "suspend"
+                  ? "Suspend User Type"
+                  : confirmAction?.type === "activate"
+                    ? "Activate User Type"
+                    : "Delete User Type"}
+              </span>
             </DialogTitle>
             <DialogDescription>
               {confirmAction?.type === "suspend" ? (
                 <>
-                  Are you sure you want to suspend the <strong>{confirmAction.userTypeName}</strong> user type? Users
-                  with this type will lose access to the platform.
+                  Are you sure you want to suspend the <strong>{confirmAction.userTypeName}</strong> user type?
+                  <br />
+                  <span className="text-orange-600 font-medium">All users with this type will be moved to Free user type.</span>
                 </>
               ) : confirmAction?.type === "activate" ? (
                 <>
-                  Are you sure you want to activate the <strong>{confirmAction.userTypeName}</strong> user type? Users
-                  with this type will regain access to the platform.
+                  Are you sure you want to activate the <strong>{confirmAction.userTypeName}</strong> user type?
                 </>
               ) : (
                 <>
@@ -846,6 +772,26 @@ export default function UserTypeManagement() {
                 : confirmAction?.type === "activate"
                   ? "Activate"
                   : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <span>Operation Successful</span>
+            </DialogTitle>
+            <DialogDescription>
+              {successMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowSuccessDialog(false)}>
+              OK
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -957,7 +903,7 @@ export default function UserTypeManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Update User Type Dialog - Only accessible from list view */}
+      {/* Update User Type Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>

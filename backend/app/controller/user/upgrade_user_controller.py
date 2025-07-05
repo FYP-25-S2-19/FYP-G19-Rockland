@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.entity.user import User
 from app.entity.usertype import UserType
 from app.models import db
-from app.controller.authentication.permission_required import permission_required
+# from app.controller.authentication.permission_required import permission_required
 
 upgrade_user_blueprint = Blueprint('upgrade_user', __name__)
 
@@ -10,13 +10,16 @@ class UpgradeUserController:
     @upgrade_user_blueprint.route('/api/users/upgrade', methods=['POST'])
     def upgrade_user():
         """
-        Upgrade user type with the following rules:
-        - Free users can be upgraded to Premium or Expert
-        - Premium users can only be upgraded to Expert
-        - Expert users cannot be upgraded further
+        Upgrade user type using the entity method
         """
         try:
             upgrade_details = request.get_json()
+            
+            if not upgrade_details:
+                return jsonify({
+                    "success": False, 
+                    "error": "No data provided"
+                }), 400
             
             user_id = upgrade_details.get('userId')
             target_user_type = upgrade_details.get('targetUserType')  # 'Premium' or 'Expert'
@@ -33,83 +36,36 @@ class UpgradeUserController:
                     "error": "Target user type is required"
                 }), 400
             
-            # Get the user
-            user = User.queryUserById(user_id)
-            if not user:
+            # Convert userId to integer if it's a string
+            try:
+                user_id = int(user_id)
+            except (ValueError, TypeError):
                 return jsonify({
-                    "success": False, 
-                    "error": "User not found"
-                }), 404
-            
-            # Get current user type
-            current_user_type = user.user_type
-            if not current_user_type:
-                return jsonify({
-                    "success": False, 
-                    "error": "User type not found"
-                }), 404
-            
-            # Get target user type from database
-            target_type_obj = UserType.queryUserTypeByName(target_user_type)
-            if not target_type_obj:
-                return jsonify({
-                    "success": False, 
-                    "error": f"Target user type '{target_user_type}' not found"
-                }), 404
-            
-            # Check upgrade rules
-            current_type_name = current_user_type.name
-            
-            if current_type_name == 'Expert':
-                return jsonify({
-                    "success": False, 
-                    "error": "Expert users cannot be upgraded further"
+                    "success": False,
+                    "error": "Invalid user ID format"
                 }), 400
             
-            elif current_type_name == 'Free':
-                # Free users can upgrade to Premium or Expert
-                if target_user_type not in ['Premium', 'Expert']:
-                    return jsonify({
-                        "success": False, 
-                        "error": "Free users can only be upgraded to Premium or Expert"
-                    }), 400
+            # Use the entity method to upgrade user
+            success, status_code, message, upgraded_user = User.upgradeUserType(
+                user_id=user_id,
+                target_user_type=target_user_type
+            )
             
-            elif current_type_name == 'Premium':
-                # Premium users can only upgrade to Expert
-                if target_user_type != 'Expert':
-                    return jsonify({
-                        "success": False, 
-                        "error": "Premium users can only be upgraded to Expert"
-                    }), 400
-            
+            if success and upgraded_user:
+                return jsonify({
+                    "success": True, 
+                    "message": message,
+                    "user": upgraded_user.to_dict()
+                }), status_code
             else:
                 return jsonify({
                     "success": False, 
-                    "error": f"Unknown current user type: {current_type_name}"
-                }), 400
-            
-            # Check if user is already at target type
-            if current_type_name == target_user_type:
-                return jsonify({
-                    "success": False, 
-                    "error": f"User is already a {target_user_type} user"
-                }), 400
-            
-            # Perform the upgrade
-            user.user_type_id = target_type_obj.user_type_id
-            db.session.commit()
-            
-            return jsonify({
-                "success": True, 
-                "message": f"User successfully upgraded from {current_type_name} to {target_user_type}",
-                "user": user.to_dict()
-            }), 200
+                    "error": message
+                }), status_code
             
         except Exception as e:
-            db.session.rollback()
-            print(f"Error upgrading user: {e}")
+            print(f"Error in upgrade_user controller: {e}")
             return jsonify({
                 "success": False, 
                 "error": f"An error occurred while upgrading user: {str(e)}"
             }), 500
-
