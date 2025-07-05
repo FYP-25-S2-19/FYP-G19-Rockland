@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
+import { getAuthInfo } from "@/lib/auth-utils" // Import the auth utilities
 
 interface UserAccount {
   user_id: number
@@ -70,8 +71,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function UserAccountPage() {
   const router = useRouter()
-  const [entries, setEntries] = useState("10")
-  const [currentPage, setCurrentPage] = useState(1)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
@@ -143,14 +142,25 @@ export default function UserAccountPage() {
     return userType === "Free" || userType === "Premium"
   }
 
-    const fetchUsers = async () => {
+  // Updated fetchUsers function with auth headers
+  const fetchUsers = async () => {
     try {
       setLoading(true)
       setError(null)
 
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/users/all`, {
         method: 'GET',
         headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
       })
@@ -175,7 +185,7 @@ export default function UserAccountPage() {
     }
   }
 
-  // Updated searchUsers function without auth headers
+  // Updated searchUsers function with auth headers
   const searchUsers = async () => {
     try {
       setIsSearching(true)
@@ -187,9 +197,19 @@ export default function UserAccountPage() {
         return
       }
 
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/users/search_user`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -216,6 +236,7 @@ export default function UserAccountPage() {
       setIsSearching(false)
     }
   }
+  
   // Clear search and show all users
   const clearSearch = () => {
     setSearchCriteria({
@@ -239,15 +260,25 @@ export default function UserAccountPage() {
     }
   }
 
-  // Updated fetchUserDetails function without auth headers
+  // Updated fetchUserDetails function with auth headers
   const fetchUserDetails = async (email: string) => {
     try {
       setIsLoading(true)
       setError(null)
 
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/users/view_user?email=${encodeURIComponent(email)}`, {
         method: 'GET',
         headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
       })
@@ -334,16 +365,26 @@ export default function UserAccountPage() {
     }
   }
 
-  // Updated handleSuspend function without auth headers
+  // Updated handleSuspend function with auth headers
   const handleSuspend = async () => {
     if (!confirmAction) return
     
     setIsLoading(true)
     
     try {
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/users/suspend`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId: confirmAction.userId }),
@@ -384,16 +425,26 @@ export default function UserAccountPage() {
     }
   }
 
-  // Updated handleUpgrade function without auth headers  
+  // Updated handleUpgrade function with auth headers  
   const handleUpgrade = async () => {
     if (!upgradeAction) return
     
     setIsLoading(true)
     
     try {
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/users/upgrade`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
@@ -659,23 +710,7 @@ export default function UserAccountPage() {
           {/* Payment History Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Payment History</h2>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">Show</span>
-                  <Select value="10" onValueChange={() => {}}>
-                    <SelectTrigger className="w-16 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-sm text-gray-500">entries</span>
-                </div>
-              </div>
+              <h2 className="text-xl font-bold text-gray-900">Payment History</h2>
             </div>
 
             <div className="overflow-x-auto">
@@ -707,25 +742,9 @@ export default function UserAccountPage() {
               </Table>
             </div>
 
+            {/* Summary */}
             <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-              <div className="text-sm text-gray-500">Showing 1 to 2 of 2 entries</div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" disabled>
-                  Previous
-                </Button>
-                <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 w-8 h-8">
-                  1
-                </Button>
-                <Button variant="outline" size="sm">
-                  2
-                </Button>
-                <Button variant="outline" size="sm">
-                  3
-                </Button>
-                <Button variant="outline" size="sm">
-                  Next
-                </Button>
-              </div>
+              <div className="text-sm text-gray-500">Showing {samplePayments.length} payment transactions</div>
             </div>
           </div>
         </div>
@@ -806,20 +825,6 @@ export default function UserAccountPage() {
             {/* Controls */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">Show</span>
-                  <Select value={entries} onValueChange={setEntries}>
-                    <SelectTrigger className="w-20 h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-sm text-gray-500">entries</span>
-                </div>
                 <Button
                   variant="outline"
                   onClick={hasSearched ? searchUsers : fetchUsers}
@@ -974,6 +979,14 @@ export default function UserAccountPage() {
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Summary */}
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              Showing {users.length} user{users.length !== 1 ? 's' : ''}
+              {hasSearched && " (filtered)"}
+            </div>
           </div>
         </div>
       </div>

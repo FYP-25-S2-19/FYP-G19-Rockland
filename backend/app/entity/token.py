@@ -5,11 +5,11 @@ import jwt
 import os
 
 class Token(db.Model):
-    __tablename__ = 'token'  # Changed to lowercase
+    __tablename__ = 'token'
 
-    token_id = db.Column(db.Integer, primary_key=True)  # Changed to lowercase
+    token_id = db.Column(db.Integer, primary_key=True)
     access_token = db.Column(db.String(512), nullable=False, unique=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)  # Updated FK reference
+    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
@@ -21,11 +21,18 @@ class Token(db.Model):
     def generateAccessToken(cls, user):
         """Generate JWT token for user"""
         try:
+            # Get user type name from the relationship
+            user_type_name = user.user_type.name if user.user_type else "Unknown"
+            
             payload = {
-                'user_id': user.user_id,  # Updated to use lowercase
+                'user_id': user.user_id,
                 'email': user.email,
-                'user_type': user.user_type_id,
-                'exp': datetime.utcnow() + timedelta(hours=24)
+                'user_type_id': user.user_type_id,        # Keep the ID for backend use
+                'user_type_name': user_type_name,         # Add the name for frontend use
+                'first_name': user.first_name,            # Add first name
+                'last_name': user.last_name,              # Add last name
+                'exp': datetime.utcnow() + timedelta(hours=24),
+                'iat': datetime.utcnow()                  # Add issued at time
             }
             
             secret = os.getenv("JWT_SECRET", "fallback-secret")
@@ -33,10 +40,13 @@ class Token(db.Model):
             
             token = jwt.encode(payload, secret, algorithm="HS256")
             print(f"✅ Token generated successfully: {token[:50]}...")
+            print(f"🎫 Token payload: user_id={user.user_id}, email={user.email}, user_type={user_type_name}")
             
             return token
         except Exception as e:
             print(f"❌ Error generating token: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     @classmethod
@@ -47,7 +57,7 @@ class Token(db.Model):
             
             # Check if active token exists
             existing_token = cls.query.filter_by(
-                user_id=user.user_id,  # Updated to lowercase
+                user_id=user.user_id,
                 is_active=True
             ).first()
             
@@ -65,7 +75,7 @@ class Token(db.Model):
             # Create token record
             new_token = cls(
                 access_token=token_string,
-                user_id=user.user_id,  # Updated to lowercase
+                user_id=user.user_id,
                 expires_at=datetime.utcnow() + timedelta(hours=24)
             )
             
@@ -83,6 +93,45 @@ class Token(db.Model):
             traceback.print_exc()
             db.session.rollback()
             return False, str(e)
+
+    @classmethod
+    def verifyAccessToken(cls, token_string):
+        """Verify and decode JWT token"""
+        try:
+            secret = os.getenv("JWT_SECRET", "fallback-secret")
+            
+            # Decode the token
+            payload = jwt.decode(token_string, secret, algorithms=["HS256"])
+            
+            # Check if token exists in database and is active
+            token_record = cls.query.filter_by(
+                access_token=token_string,
+                is_active=True
+            ).first()
+            
+            if not token_record:
+                print(f"❌ Token not found in database or inactive")
+                return None
+                
+            # Check if token is expired
+            if token_record.expires_at < datetime.utcnow():
+                print(f"❌ Token expired")
+                token_record.is_active = False
+                db.session.commit()
+                return None
+            
+            print(f"✅ Token verified successfully for user: {payload.get('email')}")
+            return payload
+            
+        except jwt.ExpiredSignatureError:
+            print(f"❌ Token signature expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            print(f"❌ Invalid token: {e}")
+            return None
+        except Exception as e:
+            print(f"❌ Error verifying token: {e}")
+            return None
 
     @classmethod
     def queryAccessToken(cls, token_string):
