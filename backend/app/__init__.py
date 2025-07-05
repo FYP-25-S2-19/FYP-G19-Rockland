@@ -31,6 +31,10 @@ def create_app():
     from .controller.user.suspend_user_controller import suspend_user_blueprint
     app.register_blueprint(suspend_user_blueprint)
 
+    from .controller.user.get_current_user import get_current_user_blueprint
+    app.register_blueprint(get_current_user_blueprint)
+
+
     ##################################################### USER TYPE CONTROLLERS##################################################################
     from .controller.usertype.create_usertype_controller import create_usertype_blueprint
     app.register_blueprint(create_usertype_blueprint)

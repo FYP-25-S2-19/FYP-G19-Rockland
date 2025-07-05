@@ -20,21 +20,31 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = async () => {
-    let role = null;
-
-    if (email === "free@rockland.com" && password === "rock123") {
-      role = "free";
-    } else if (email === "premium@rockland.com" && password === "rock123") {
-      role = "premium";
-    } else if (email === "expert@rockland.com" && password === "rock123") {
-      role = "expert";
-    }
-
-    if (role) {
-      await AsyncStorage.setItem("userRole", role);
-      router.replace("/home");
-    } else {
-      alert("Invalid email or password");
+    try {
+      const response = await fetch("http://192.168.110.43:5000/api/login/user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+  
+      const result = await response.json();
+  
+      if (result.success) {
+        // Simpan role ke storage (dari result.user.user_type_name)
+        await AsyncStorage.setItem("userRole", result.user.user_type_name.toLowerCase());
+  
+        // Optionally simpan token:
+        await AsyncStorage.setItem("accessToken", result.access_token);
+  
+        router.replace("/home");
+      } else {
+        alert(result.error || "Login failed");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Something went wrong. Please try again.");
     }
   };
 
