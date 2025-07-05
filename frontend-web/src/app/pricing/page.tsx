@@ -3,13 +3,9 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Check, X, ArrowLeft, Star, Zap, Users, Crown, Camera, MapPin, MessageCircle, Trophy, Archive } from "lucide-react"
-import { useState } from "react"
+import { Check, X, ArrowLeft, Star, Users, Crown, Camera, MapPin, MessageCircle, Trophy, Archive } from "lucide-react"
 
 export default function PricingPage() {
-  const [isAnnual, setIsAnnual] = useState(false)
-
   const features = {
     basic: [
       { name: "Photo-based rock identification", included: true, icon: Camera },
@@ -68,31 +64,6 @@ export default function PricingPage() {
           <p className="text-lg text-emerald-100 mb-8">
             Discover, identify, and collect rocks with our comprehensive platform
           </p>
-
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 bg-white/10 rounded-full p-1 max-w-xs mx-auto">
-            <button
-              onClick={() => setIsAnnual(false)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                !isAnnual ? "bg-white text-green-600" : "text-white"
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setIsAnnual(true)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                isAnnual ? "bg-white text-green-600" : "text-white"
-              }`}
-            >
-              Annual
-            </button>
-          </div>
-          {isAnnual && (
-            <p className="text-emerald-100 text-sm mt-2">
-              <Badge className="bg-yellow-500 text-yellow-900 mr-2">Save 20%</Badge>2 months free with annual billing
-            </p>
-          )}
         </div>
       </section>
 
@@ -197,11 +168,10 @@ export default function PricingPage() {
                     <Star className="w-6 h-6 text-green-600 mr-2" />
                     <h3 className="text-lg font-bold text-green-600">PREMIUM</h3>
                   </div>
-                  <div className="mb-2">
-                    <span className="text-5xl font-bold">${isAnnual ? "4" : "5"}</span>
+                  <div className="mb-6">
+                    <span className="text-5xl font-bold">$5</span>
                     <span className="text-gray-500">/month</span>
                   </div>
-                  {isAnnual && <p className="text-sm text-green-600 mb-4">Billed annually ($48/year)</p>}
                   <p className="text-gray-600 mb-8">For serious rock collectors and students</p>
 
                   <Link href="/registration">
