@@ -58,19 +58,50 @@ class User(db.Model):
             'created_date': self.created_date.isoformat() if self.created_date else None
         }
 
+    
+
     @classmethod
     def checkLogin(cls, email: str, password: str) -> bool:
         """Verify user login credentials"""
         user = cls.queryUserAccount(email)
-    
-        if not user or not user.check_password(password):
+
+        if not user:
             return False
 
+        # Check if account is suspended BEFORE checking password
+        if user.status == 'Suspended':
+            return False
+        
         # Check if account is active
         if user.status != 'Active':
             return False
 
+        # Finally check password
+        if not user.check_password(password):
+            return False
+
         return True
+
+    # Add this new method to your User class:
+
+    @classmethod 
+    def getLoginError(cls, email: str, password: str) -> str:
+        """Get specific error message for failed login"""
+        user = cls.queryUserAccount(email)
+        
+        if not user:
+            return "Invalid email or password"
+        
+        if user.status == 'Suspended':
+            return "Your account has been suspended. Please contact administrator."
+        
+        if user.status != 'Active':
+            return f"Your account is {user.status.lower()}. Please contact administrator."
+        
+        if not user.check_password(password):
+            return "Invalid email or password"
+        
+        return "Login successful"
     
     @classmethod
     def queryUserAccount(cls, email: str):
