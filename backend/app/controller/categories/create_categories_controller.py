@@ -4,15 +4,22 @@ from datetime import datetime
 # Update imports to match your project structure
 from app.models import db
 from app.entity.categories import Categories
+from app.controller.authentication.permission_required import permission_required
 
 create_categories_blueprint = Blueprint('create_categories', __name__)
 
 class CreateCategoriesController:
     @staticmethod
     @create_categories_blueprint.route('/api/categories/create_category', methods=['POST'])
-    def create_category():
+    @permission_required('has_admin_permission')  
+    def create_category(**kwargs):  # ✅ Added **kwargs
         """Create a new category"""
         try:
+            # Access current user if needed
+            current_user = kwargs.get('current_user')
+            if current_user:
+                print(f"🎯 Admin user {current_user.email} is creating a new category")
+            
             data = request.get_json()
             
             if not data:
@@ -44,6 +51,7 @@ class CreateCategoriesController:
                 }), status_code
                 
         except Exception as e:
+            print(f"Error in create_category controller: {e}")
             return jsonify({
                 'success': False,
                 'message': f'Error creating category: {str(e)}'

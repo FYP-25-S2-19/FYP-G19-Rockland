@@ -2,17 +2,20 @@ from flask import Blueprint, request, jsonify
 from app.entity.user import User
 from app.entity.usertype import UserType
 from app.models import db
-# from app.controller.authentication.permission_required import permission_required
+from app.controller.authentication.permission_required import permission_required
 
 upgrade_user_blueprint = Blueprint('upgrade_user', __name__)
 
 class UpgradeUserController:
     @upgrade_user_blueprint.route('/api/users/upgrade', methods=['POST'])
-    def upgrade_user():
+    @permission_required('has_admin_permission')
+    def upgrade_user(current_user=None):  # Add current_user parameter
         """
         Upgrade user type using the entity method
         """
         try:
+            print(f"🎯 Current admin user: {current_user.email if current_user else 'None'}")
+            
             upgrade_details = request.get_json()
             
             if not upgrade_details:
