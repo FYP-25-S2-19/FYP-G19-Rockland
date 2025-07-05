@@ -10,6 +10,12 @@ import re
 from app.models import db
 from app.entity.usertype import UserType
 
+# Association table for many-to-many relationship between User and Interest
+user_interest_association = db.Table('userinterest',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.user_id'), primary_key=True),
+    db.Column('interest_id', db.Integer, db.ForeignKey('interest.interest_id'), primary_key=True)
+)
+
 class User(db.Model):
     __tablename__ = 'user'  
 
@@ -31,6 +37,12 @@ class User(db.Model):
 
     # Relationship with UserType model
     user_type = db.relationship('UserType', backref='users')
+
+    # Many-to-many relationship with Interest using association table
+    interests = db.relationship('Interest', 
+                              secondary=user_interest_association,
+                              backref='users',
+                              lazy='dynamic')
 
     def set_password(self, password):
         """Hash the password before storing it."""
@@ -58,8 +70,6 @@ class User(db.Model):
             'created_date': self.created_date.isoformat() if self.created_date else None
         }
 
-    
-
     @classmethod
     def checkLogin(cls, email: str, password: str) -> bool:
         """Verify user login credentials"""
@@ -81,8 +91,6 @@ class User(db.Model):
             return False
 
         return True
-
-    # Add this new method to your User class:
 
     @classmethod 
     def getLoginError(cls, email: str, password: str) -> str:

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -22,26 +22,32 @@ import {
   RefreshCw,
   Tag,
   Heart,
+  AlertCircle,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
 
 interface Interest {
-  id: string
-  name: string
+  interest_id: number
+  title: string
   description: string
-  category: string
+  categories_id: number
+  category_title: string
 }
 
 interface Category {
-  id: string
-  name: string
+  categories_id: number
+  title: string
   description: string
-  interestCount: number
+  interest_count: number
 }
 
 export default function UserProfilingManagement() {
   const router = useRouter()
+  
+  // API Configuration
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+  
   const [profilingType, setProfilingType] = useState<"Interest" | "Categories">("Interest")
   const [entries, setEntries] = useState("10")
   const [currentPage, setCurrentPage] = useState(1)
@@ -56,71 +62,114 @@ export default function UserProfilingManagement() {
   } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  // Backend data states
+  const [categories, setCategories] = useState<Category[]>([])
+  const [interests, setInterests] = useState<Interest[]>([])
+  const [isLoadingData, setIsLoadingData] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   // Form states for add dialog
   const [newItemName, setNewItemName] = useState("")
   const [newItemDescription, setNewItemDescription] = useState("")
   const [newItemCategory, setNewItemCategory] = useState("")
 
-  // Sample interests data
-  const interests: Interest[] = [
-    {
-      id: "1",
-      name: "Dinosaur Fossils",
-      description: "Preserved remains of ancient reptiles that lived 230-66 million years ago.",
-      category: "Fossils",
-    },
-    {
-      id: "2",
-      name: "Limestone",
-      description:
-        "A sedimentary rock made mainly of calcium carbonate from compressed marine organisms like shells and coral.",
-      category: "Sedimentary Rocks",
-    },
-    {
-      id: "3",
-      name: "Crystal Formation",
-      description: "The process by which crystals form through nucleation and growth in supersaturated solutions.",
-      category: "Mineralogy",
-    },
-    {
-      id: "4",
-      name: "Volcanic Activity",
-      description:
-        "Geological processes involving the eruption of molten rock, ash, and gases from the Earth's interior.",
-      category: "Volcanology",
-    },
-  ]
+  // Fetch categories from backend
+  const fetchCategories = async () => {
+    try {
+      setIsLoadingData(true)
+      setError(null)
+      
+      const response = await fetch(`${API_BASE_URL}/api/categories/all`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-  // Sample categories data
-  const categories: Category[] = [
-    {
-      id: "1",
-      name: "Fossils",
-      description:
-        "Preserved remains or traces of ancient organisms (plants, animals, microorganisms) that have been naturally preserved in rock over millions of years.",
-      interestCount: 12,
-    },
-    {
-      id: "2",
-      name: "Sedimentary Rocks",
-      description:
-        "Rocks formed from compressed layers of sediments, organic matter, or minerals that accumulated over time.",
-      interestCount: 8,
-    },
-    {
-      id: "3",
-      name: "Mineralogy",
-      description:
-        "The scientific study of minerals, their crystal structure, physical properties, and chemical composition.",
-      interestCount: 15,
-    },
-    {
-      id: "4",
-      name: "Volcanology",
-      description: "The study of volcanoes, lava, magma, and related geological phenomena and processes.",
-      interestCount: 6,
-    },
-  ]
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setCategories(data.categories)
+      } else {
+        throw new Error(data.error || 'Failed to fetch categories')
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch categories')
+    } finally {
+      setIsLoadingData(false)
+    }
+  }
+
+  // Fetch interests from backend
+  const fetchInterests = async () => {
+    try {
+      setIsLoadingData(true)
+      setError(null)
+      
+      const response = await fetch(`${API_BASE_URL}/api/interests/all`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setInterests(data.interests)
+      } else {
+        throw new Error(data.error || 'Failed to fetch interests')
+      }
+    } catch (error) {
+      console.error('Error fetching interests:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch interests')
+    } finally {
+      setIsLoadingData(false)
+    }
+  }
+
+  // Fetch data when component mounts or profiling type changes
+  useEffect(() => {
+    if (profilingType === "Categories") {
+      fetchCategories()
+    } else if (profilingType === "Interest") {
+      fetchInterests()
+    }
+  }, [profilingType])
+
+  // Also fetch categories when component mounts for the dropdown in add dialog
+  useEffect(() => {
+    const fetchCategoriesForDropdown = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/categories/all`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setCategories(data.categories)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching categories for dropdown:', error)
+      }
+    }
+
+    fetchCategoriesForDropdown()
+  }, [])
 
   const handleNavigation = (item: string) => {
     switch (item) {
@@ -163,38 +212,210 @@ export default function UserProfilingManagement() {
 
   const filteredInterests = interests.filter(
     (interest) =>
-      interest.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      interest.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       interest.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      interest.category.toLowerCase().includes(searchQuery.toLowerCase()),
+      interest.category_title.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const filteredCategories = categories.filter(
     (category) =>
-      category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      category.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       category.description.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const handleDelete = async (itemId: string, itemType: "interest" | "category") => {
     setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    setShowConfirmDialog(false)
-    setConfirmAction(null)
-    // Here you would delete the item from the data
+    
+    try {
+      if (itemType === "category") {
+        // Delete category
+        const response = await fetch(`${API_BASE_URL}/api/categories/delete_category`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: parseInt(itemId)
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          // Success - refresh categories and close dialog
+          await fetchCategories()
+          setShowConfirmDialog(false)
+          setConfirmAction(null)
+          // You could add a success toast here
+        } else {
+          alert(data.error || 'Failed to delete category')
+        }
+      } else {
+        // Delete interest
+        const response = await fetch(`${API_BASE_URL}/api/interests/delete_interest`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: parseInt(itemId)
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          // Success - refresh interests and close dialog
+          await fetchInterests()
+          setShowConfirmDialog(false)
+          setConfirmAction(null)
+          // You could add a success toast here
+        } else {
+          alert(data.message || 'Failed to delete interest')
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      alert('An error occurred while deleting the item')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleAdd = async () => {
+    if (!newItemName.trim() || !newItemDescription.trim()) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    if (profilingType === "Interest" && !newItemCategory) {
+      alert('Please select a category for the interest')
+      return
+    }
+
     setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    setShowAddDialog(false)
-    // Reset form
-    setNewItemName("")
-    setNewItemDescription("")
-    setNewItemCategory("")
-    // Here you would add the new item
+    
+    try {
+      if (profilingType === "Categories") {
+        // Create category
+        const response = await fetch(`${API_BASE_URL}/api/categories/create_category`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: newItemName.trim(),
+            description: newItemDescription.trim()
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          // Success - refresh categories and close dialog
+          await fetchCategories()
+          setShowAddDialog(false)
+          // Reset form
+          setNewItemName("")
+          setNewItemDescription("")
+          setNewItemCategory("")
+          // You could add a success toast here
+        } else {
+          alert(data.message || 'Failed to create category')
+        }
+      } else {
+        // Create interest
+        const response = await fetch(`${API_BASE_URL}/api/interests/create_interest`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: newItemName.trim(),
+            description: newItemDescription.trim(),
+            categories_id: parseInt(newItemCategory)
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          // Success - refresh interests and close dialog
+          await fetchInterests()
+          setShowAddDialog(false)
+          // Reset form
+          setNewItemName("")
+          setNewItemDescription("")
+          setNewItemCategory("")
+          // You could add a success toast here
+        } else {
+          alert(data.message || 'Failed to create interest')
+        }
+      }
+    } catch (error) {
+      console.error('Error creating item:', error)
+      alert('An error occurred while creating the item')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleRefresh = () => {
+    if (profilingType === "Categories") {
+      fetchCategories()
+    } else if (profilingType === "Interest") {
+      fetchInterests()
+    }
+  }
+
+  // Loading state
+  if (isLoadingData) {
+    return (
+      <AdminLayout
+        activeMenuItem="user-profiling"
+        title="Hi, Admin 👋"
+        subtitle="Manage user interests and categories"
+        onNavigate={handleNavigation}
+      >
+        <div className="p-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="p-6 flex items-center justify-center">
+              <RefreshCw className="w-6 h-6 animate-spin mr-2" />
+              <span>Loading {profilingType.toLowerCase()}...</span>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <AdminLayout
+        activeMenuItem="user-profiling"
+        title="Hi, Admin 👋"
+        subtitle="Manage user interests and categories"
+        onNavigate={handleNavigation}
+      >
+        <div className="p-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="p-6">
+              <div className="flex items-center justify-center text-red-600 mb-4">
+                <AlertCircle className="w-6 h-6 mr-2" />
+                <span>Error loading {profilingType.toLowerCase()}: {error}</span>
+              </div>
+              <div className="flex justify-center">
+                <Button onClick={handleRefresh} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    )
   }
 
   return (
@@ -213,10 +434,20 @@ export default function UserProfilingManagement() {
                 <h2 className="text-2xl font-bold text-gray-900">User Profiling</h2>
                 <p className="text-gray-600 mt-1">Configure user interests and categories for personalization</p>
               </div>
-              <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowAddDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add New {profilingType === "Interest" ? "Interest" : "Category"}
-              </Button>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleRefresh}
+                  disabled={isLoadingData}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingData ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowAddDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add New {profilingType === "Interest" ? "Interest" : "Category"}
+                </Button>
+              </div>
             </div>
 
             {/* Controls */}
@@ -236,21 +467,6 @@ export default function UserProfilingManagement() {
                       <SelectItem value="Categories">Categories</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">Show</span>
-                  <Select value={entries} onValueChange={setEntries}>
-                    <SelectTrigger className="w-20 h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-sm text-gray-500">entries</span>
                 </div>
               </div>
 
@@ -282,7 +498,6 @@ export default function UserProfilingManagement() {
                   <TableRow className="bg-gray-50 hover:bg-gray-50">
                     {profilingType === "Interest" ? (
                       <>
-                        <TableHead className="font-semibold">Interest ID</TableHead>
                         <TableHead className="font-semibold">Interest</TableHead>
                         <TableHead className="font-semibold">Description</TableHead>
                         <TableHead className="font-semibold">Category</TableHead>
@@ -290,10 +505,8 @@ export default function UserProfilingManagement() {
                       </>
                     ) : (
                       <>
-                        <TableHead className="font-semibold">Category-ID</TableHead>
                         <TableHead className="font-semibold">Categories</TableHead>
                         <TableHead className="font-semibold">Description</TableHead>
-                        <TableHead className="font-semibold text-center">Interests</TableHead>
                         <TableHead className="font-semibold text-center">Action</TableHead>
                       </>
                     )}
@@ -302,12 +515,11 @@ export default function UserProfilingManagement() {
                 <TableBody>
                   {profilingType === "Interest"
                     ? filteredInterests.map((interest) => (
-                        <TableRow key={interest.id} className="hover:bg-gray-50 transition-colors">
-                          <TableCell className="font-medium text-gray-900">{interest.id}</TableCell>
+                        <TableRow key={interest.interest_id} className="hover:bg-gray-50 transition-colors">
                           <TableCell>
                             <div className="flex items-center space-x-2">
                               <Heart className="w-4 h-4 text-red-500" />
-                              <span className="font-medium text-gray-900">{interest.name}</span>
+                              <span className="font-medium text-gray-900">{interest.title}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-gray-600 max-w-md">
@@ -315,7 +527,7 @@ export default function UserProfilingManagement() {
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="font-medium">
-                              {interest.category}
+                              {interest.category_title}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">
@@ -326,8 +538,8 @@ export default function UserProfilingManagement() {
                               onClick={() => {
                                 setConfirmAction({
                                   type: "delete",
-                                  itemId: interest.id,
-                                  itemName: interest.name,
+                                  itemId: interest.interest_id.toString(),
+                                  itemName: interest.title,
                                   itemType: "interest",
                                 })
                                 setShowConfirmDialog(true)
@@ -339,21 +551,15 @@ export default function UserProfilingManagement() {
                         </TableRow>
                       ))
                     : filteredCategories.map((category) => (
-                        <TableRow key={category.id} className="hover:bg-gray-50 transition-colors">
-                          <TableCell className="font-medium text-gray-900">{category.id}</TableCell>
+                        <TableRow key={category.categories_id} className="hover:bg-gray-50 transition-colors">
                           <TableCell>
                             <div className="flex items-center space-x-2">
                               <Tag className="w-4 h-4 text-blue-500" />
-                              <span className="font-medium text-gray-900">{category.name}</span>
+                              <span className="font-medium text-gray-900">{category.title}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-gray-600 max-w-md">
                             <p className="line-clamp-2">{category.description}</p>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="outline" className="font-medium">
-                              {category.interestCount} interests
-                            </Badge>
                           </TableCell>
                           <TableCell className="text-center">
                             <Button
@@ -363,8 +569,8 @@ export default function UserProfilingManagement() {
                               onClick={() => {
                                 setConfirmAction({
                                   type: "delete",
-                                  itemId: category.id,
-                                  itemName: category.name,
+                                  itemId: category.categories_id.toString(),
+                                  itemName: category.title,
                                   itemType: "category",
                                 })
                                 setShowConfirmDialog(true)
@@ -379,32 +585,26 @@ export default function UserProfilingManagement() {
               </Table>
             </div>
 
-            {/* Pagination */}
+            {/* No data state */}
+            {((profilingType === "Categories" && filteredCategories.length === 0) || 
+              (profilingType === "Interest" && filteredInterests.length === 0)) && !isLoadingData && (
+              <div className="text-center py-8">
+                {profilingType === "Interest" ? (
+                  <Heart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                ) : (
+                  <Tag className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                )}
+                <p className="text-gray-500">No {profilingType.toLowerCase()} found</p>
+                <p className="text-sm text-gray-400">Try adjusting your search or add a new {profilingType.toLowerCase()}</p>
+              </div>
+            )}
+
+            {/* Summary */}
             <div className="flex items-center justify-between mt-6">
               <div className="text-sm text-gray-500">
-                Showing 1 to{" "}
-                {Math.min(
-                  Number.parseInt(entries),
-                  profilingType === "Interest" ? filteredInterests.length : filteredCategories.length,
-                )}{" "}
-                of {profilingType === "Interest" ? filteredInterests.length : filteredCategories.length} entries
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" disabled>
-                  Previous
-                </Button>
-                <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 w-8 h-8">
-                  1
-                </Button>
-                <Button variant="outline" size="sm">
-                  2
-                </Button>
-                <Button variant="outline" size="sm">
-                  3
-                </Button>
-                <Button variant="outline" size="sm">
-                  Next
-                </Button>
+                Showing {profilingType === "Interest" ? filteredInterests.length : filteredCategories.length} of{" "}
+                {profilingType === "Interest" ? interests.length : categories.length} {profilingType.toLowerCase()}
+                {searchQuery && " (filtered)"}
               </div>
             </div>
           </div>
@@ -448,10 +648,11 @@ export default function UserProfilingManagement() {
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fossils">Fossils</SelectItem>
-                    <SelectItem value="sedimentary">Sedimentary Rocks</SelectItem>
-                    <SelectItem value="mineralogy">Mineralogy</SelectItem>
-                    <SelectItem value="volcanology">Volcanology</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.categories_id} value={category.categories_id.toString()}>
+                        {category.title}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

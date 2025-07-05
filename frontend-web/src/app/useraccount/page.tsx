@@ -975,31 +975,6 @@ export default function UserAccountPage() {
               </TableBody>
             </Table>
           </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-            <div className="text-sm text-gray-500">
-              Showing 1 to {Math.min(Number.parseInt(entries), users.length)} of {users.length} entries
-              {hasSearched && ' (filtered results)'}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-              <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 w-8 h-8">
-                1
-              </Button>
-              <Button variant="outline" size="sm">
-                2
-              </Button>
-              <Button variant="outline" size="sm">
-                3
-              </Button>
-              <Button variant="outline" size="sm">
-                Next
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
 
