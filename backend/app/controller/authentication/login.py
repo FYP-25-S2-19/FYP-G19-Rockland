@@ -29,11 +29,21 @@ class LoginController:
             # Validate credentials using User entity
             login_valid = User.checkLogin(email, password)
 
+            
             if not login_valid:
-                return jsonify({
-                    "success": False, 
-                    "error": "Invalid email or password"
-                }), 401
+                error_message = User.getLoginError(email, password)
+                
+                if "suspended" in error_message.lower():
+                    return jsonify({
+                        "success": False, 
+                        "error": error_message,
+                        "status": "suspended"
+                    }), 403
+                else:
+                    return jsonify({
+                        "success": False, 
+                        "error": error_message
+                    }), 401
             
             # Get user object for token creation
             user = User.queryUserAccount(email)
