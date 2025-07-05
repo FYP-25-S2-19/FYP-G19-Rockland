@@ -23,9 +23,12 @@ import {
   Tag,
   Heart,
   AlertCircle,
+  Loader2,
+  CheckCircle,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
+import { getAuthInfo } from "@/lib/auth-utils" // Import the auth utilities
 
 interface Interest {
   interest_id: number
@@ -54,6 +57,8 @@ export default function UserProfilingManagement() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
   const [confirmAction, setConfirmAction] = useState<{
     type: "delete"
     itemId: string
@@ -73,15 +78,25 @@ export default function UserProfilingManagement() {
   const [newItemDescription, setNewItemDescription] = useState("")
   const [newItemCategory, setNewItemCategory] = useState("")
 
-  // Fetch categories from backend
+  // Updated fetchCategories function with auth headers
   const fetchCategories = async () => {
     try {
       setIsLoadingData(true)
       setError(null)
+
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
       
       const response = await fetch(`${API_BASE_URL}/api/categories/all`, {
         method: 'GET',
         headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
       })
@@ -97,23 +112,33 @@ export default function UserProfilingManagement() {
       } else {
         throw new Error(data.error || 'Failed to fetch categories')
       }
-    } catch (error) {
-      console.error('Error fetching categories:', error)
-      setError(error instanceof Error ? error.message : 'Failed to fetch categories')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching categories')
+      console.error('Error fetching categories:', err)
     } finally {
       setIsLoadingData(false)
     }
   }
 
-  // Fetch interests from backend
+  // Updated fetchInterests function with auth headers
   const fetchInterests = async () => {
     try {
       setIsLoadingData(true)
       setError(null)
+
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
       
       const response = await fetch(`${API_BASE_URL}/api/interests/all`, {
         method: 'GET',
         headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
       })
@@ -129,11 +154,40 @@ export default function UserProfilingManagement() {
       } else {
         throw new Error(data.error || 'Failed to fetch interests')
       }
-    } catch (error) {
-      console.error('Error fetching interests:', error)
-      setError(error instanceof Error ? error.message : 'Failed to fetch interests')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching interests')
+      console.error('Error fetching interests:', err)
     } finally {
       setIsLoadingData(false)
+    }
+  }
+
+  // Fetch categories for dropdown with auth headers
+  const fetchCategoriesForDropdown = async () => {
+    try {
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        return // Don't set error here as this is a background operation
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/categories/all`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setCategories(data.categories)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching categories for dropdown:', error)
     }
   }
 
@@ -148,28 +202,18 @@ export default function UserProfilingManagement() {
 
   // Also fetch categories when component mounts for the dropdown in add dialog
   useEffect(() => {
-    const fetchCategoriesForDropdown = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/categories/all`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success) {
-            setCategories(data.categories)
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching categories for dropdown:', error)
-      }
-    }
-
     fetchCategoriesForDropdown()
   }, [])
+
+  // Clear error after a few seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null)
+      }, 10000) // Clear error after 10 seconds
+      return () => clearTimeout(timer)
+    }
+  }, [error])
 
   const handleNavigation = (item: string) => {
     switch (item) {
@@ -203,6 +247,7 @@ export default function UserProfilingManagement() {
       case "logout":
         localStorage.removeItem('isAdminLoggedIn')
         localStorage.removeItem('adminEmail')
+        localStorage.removeItem('adminToken')
         router.push('/login')
         break
       default:
@@ -223,15 +268,26 @@ export default function UserProfilingManagement() {
       category.description.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
+  // Updated handleDelete function with auth headers
   const handleDelete = async (itemId: string, itemType: "interest" | "category") => {
     setIsLoading(true)
     
     try {
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
       if (itemType === "category") {
         // Delete category
         const response = await fetch(`${API_BASE_URL}/api/categories/delete_category`, {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${authInfo.token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -239,22 +295,28 @@ export default function UserProfilingManagement() {
           })
         })
 
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
         const data = await response.json()
 
         if (data.success) {
           // Success - refresh categories and close dialog
+          setSuccessMessage(data.message || 'Category deleted successfully!')
+          setShowSuccessDialog(true)
           await fetchCategories()
           setShowConfirmDialog(false)
           setConfirmAction(null)
-          // You could add a success toast here
         } else {
-          alert(data.error || 'Failed to delete category')
+          setError(data.error || 'Failed to delete category')
         }
       } else {
         // Delete interest
         const response = await fetch(`${API_BASE_URL}/api/interests/delete_interest`, {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${authInfo.token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -262,45 +324,61 @@ export default function UserProfilingManagement() {
           })
         })
 
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
         const data = await response.json()
 
         if (data.success) {
           // Success - refresh interests and close dialog
+          setSuccessMessage(data.message || 'Interest deleted successfully!')
+          setShowSuccessDialog(true)
           await fetchInterests()
           setShowConfirmDialog(false)
           setConfirmAction(null)
-          // You could add a success toast here
         } else {
-          alert(data.message || 'Failed to delete interest')
+          setError(data.error || data.message || 'Failed to delete interest')
         }
       }
-    } catch (error) {
-      console.error('Error deleting item:', error)
-      alert('An error occurred while deleting the item')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while deleting the item')
+      console.error('Error deleting item:', err)
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Updated handleAdd function with auth headers
   const handleAdd = async () => {
     if (!newItemName.trim() || !newItemDescription.trim()) {
-      alert('Please fill in all required fields')
+      setError('Please fill in all required fields')
       return
     }
 
     if (profilingType === "Interest" && !newItemCategory) {
-      alert('Please select a category for the interest')
+      setError('Please select a category for the interest')
       return
     }
 
     setIsLoading(true)
     
     try {
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
       if (profilingType === "Categories") {
         // Create category
         const response = await fetch(`${API_BASE_URL}/api/categories/create_category`, {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${authInfo.token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -309,25 +387,31 @@ export default function UserProfilingManagement() {
           })
         })
 
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
         const data = await response.json()
 
         if (data.success) {
           // Success - refresh categories and close dialog
+          setSuccessMessage(data.message || 'Category created successfully!')
+          setShowSuccessDialog(true)
           await fetchCategories()
           setShowAddDialog(false)
           // Reset form
           setNewItemName("")
           setNewItemDescription("")
           setNewItemCategory("")
-          // You could add a success toast here
         } else {
-          alert(data.message || 'Failed to create category')
+          setError(data.error || data.message || 'Failed to create category')
         }
       } else {
         // Create interest
         const response = await fetch(`${API_BASE_URL}/api/interests/create_interest`, {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${authInfo.token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -337,24 +421,29 @@ export default function UserProfilingManagement() {
           })
         })
 
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
         const data = await response.json()
 
         if (data.success) {
           // Success - refresh interests and close dialog
+          setSuccessMessage(data.message || 'Interest created successfully!')
+          setShowSuccessDialog(true)
           await fetchInterests()
           setShowAddDialog(false)
           // Reset form
           setNewItemName("")
           setNewItemDescription("")
           setNewItemCategory("")
-          // You could add a success toast here
         } else {
-          alert(data.message || 'Failed to create interest')
+          setError(data.error || data.message || 'Failed to create interest')
         }
       }
-    } catch (error) {
-      console.error('Error creating item:', error)
-      alert('An error occurred while creating the item')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while creating the item')
+      console.error('Error creating item:', err)
     } finally {
       setIsLoading(false)
     }
@@ -368,6 +457,13 @@ export default function UserProfilingManagement() {
     }
   }
 
+  const handleOpenAddDialog = () => {
+    setNewItemName("")
+    setNewItemDescription("")
+    setNewItemCategory("")
+    setShowAddDialog(true)
+  }
+
   // Loading state
   if (isLoadingData) {
     return (
@@ -377,13 +473,9 @@ export default function UserProfilingManagement() {
         subtitle="Manage user interests and categories"
         onNavigate={handleNavigation}
       >
-        <div className="p-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="p-6 flex items-center justify-center">
-              <RefreshCw className="w-6 h-6 animate-spin mr-2" />
-              <span>Loading {profilingType.toLowerCase()}...</span>
-            </div>
-          </div>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+          <span className="ml-2 text-gray-600">Loading {profilingType.toLowerCase()}...</span>
         </div>
       </AdminLayout>
     )
@@ -398,20 +490,14 @@ export default function UserProfilingManagement() {
         subtitle="Manage user interests and categories"
         onNavigate={handleNavigation}
       >
-        <div className="p-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="p-6">
-              <div className="flex items-center justify-center text-red-600 mb-4">
-                <AlertCircle className="w-6 h-6 mr-2" />
-                <span>Error loading {profilingType.toLowerCase()}: {error}</span>
-              </div>
-              <div className="flex justify-center">
-                <Button onClick={handleRefresh} variant="outline">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Retry
-                </Button>
-              </div>
-            </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 mb-4 max-w-md">{error}</p>
+            <Button onClick={handleRefresh} className="bg-green-600 hover:bg-green-700">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
           </div>
         </div>
       </AdminLayout>
@@ -443,7 +529,7 @@ export default function UserProfilingManagement() {
                   <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingData ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowAddDialog(true)}>
+                <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={handleOpenAddDialog}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add New {profilingType === "Interest" ? "Interest" : "Category"}
                 </Button>
@@ -514,73 +600,89 @@ export default function UserProfilingManagement() {
                 </TableHeader>
                 <TableBody>
                   {profilingType === "Interest"
-                    ? filteredInterests.map((interest) => (
-                        <TableRow key={interest.interest_id} className="hover:bg-gray-50 transition-colors">
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Heart className="w-4 h-4 text-red-500" />
-                              <span className="font-medium text-gray-900">{interest.title}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-gray-600 max-w-md">
-                            <p className="line-clamp-2">{interest.description}</p>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="font-medium">
-                              {interest.category_title}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
-                              onClick={() => {
-                                setConfirmAction({
-                                  type: "delete",
-                                  itemId: interest.interest_id.toString(),
-                                  itemName: interest.title,
-                                  itemType: "interest",
-                                })
-                                setShowConfirmDialog(true)
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                    ? filteredInterests.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                            No interests found
                           </TableCell>
                         </TableRow>
-                      ))
-                    : filteredCategories.map((category) => (
-                        <TableRow key={category.categories_id} className="hover:bg-gray-50 transition-colors">
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Tag className="w-4 h-4 text-blue-500" />
-                              <span className="font-medium text-gray-900">{category.title}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-gray-600 max-w-md">
-                            <p className="line-clamp-2">{category.description}</p>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
-                              onClick={() => {
-                                setConfirmAction({
-                                  type: "delete",
-                                  itemId: category.categories_id.toString(),
-                                  itemName: category.title,
-                                  itemType: "category",
-                                })
-                                setShowConfirmDialog(true)
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                      ) : (
+                        filteredInterests.map((interest) => (
+                          <TableRow key={interest.interest_id} className="hover:bg-gray-50 transition-colors">
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Heart className="w-4 h-4 text-red-500" />
+                                <span className="font-medium text-gray-900">{interest.title}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-gray-600 max-w-md">
+                              <p className="line-clamp-2">{interest.description}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-medium">
+                                {interest.category_title}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
+                                onClick={() => {
+                                  setConfirmAction({
+                                    type: "delete",
+                                    itemId: interest.interest_id.toString(),
+                                    itemName: interest.title,
+                                    itemType: "interest",
+                                  })
+                                  setShowConfirmDialog(true)
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )
+                    : filteredCategories.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                            No categories found
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        filteredCategories.map((category) => (
+                          <TableRow key={category.categories_id} className="hover:bg-gray-50 transition-colors">
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Tag className="w-4 h-4 text-blue-500" />
+                                <span className="font-medium text-gray-900">{category.title}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-gray-600 max-w-md">
+                              <p className="line-clamp-2">{category.description}</p>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
+                                onClick={() => {
+                                  setConfirmAction({
+                                    type: "delete",
+                                    itemId: category.categories_id.toString(),
+                                    itemName: category.title,
+                                    itemType: "category",
+                                  })
+                                  setShowConfirmDialog(true)
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                 </TableBody>
               </Table>
             </div>
@@ -674,7 +776,10 @@ export default function UserProfilingManagement() {
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete {confirmAction?.itemType === "interest" ? "Interest" : "Category"}</DialogTitle>
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              <span>Delete {confirmAction?.itemType === "interest" ? "Interest" : "Category"}</span>
+            </DialogTitle>
             <DialogDescription>
               Are you sure you want to delete <strong>{confirmAction?.itemName}</strong>? This action cannot be undone.
               {confirmAction?.itemType === "category" && " All interests in this category will also be affected."}
@@ -695,6 +800,26 @@ export default function UserProfilingManagement() {
             >
               {isLoading && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <span>Operation Successful</span>
+            </DialogTitle>
+            <DialogDescription>
+              {successMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowSuccessDialog(false)}>
+              OK
             </Button>
           </DialogFooter>
         </DialogContent>
