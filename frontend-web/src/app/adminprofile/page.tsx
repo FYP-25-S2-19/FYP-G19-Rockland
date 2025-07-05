@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
+import { getAuthInfo } from "@/lib/auth-utils" // Import the auth utilities
 
 interface AdminProfile {
   user_id: number
@@ -111,25 +112,35 @@ export default function AdminProfile() {
     }
   }
 
-  // Fetch admin profile data using existing view_user endpoint (same method as user account)
+  // Updated fetchAdminProfile function using auth utils with proper TypeScript handling
   const fetchAdminProfile = async () => {
     try {
       setLoading(true)
       setError(null)
       
-      const token = localStorage.getItem('adminToken')
-      const adminEmail = localStorage.getItem('adminEmail')
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
       
-      if (!adminEmail) {
-        setError('Admin email not found. Please log in again.')
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
         return
       }
 
+      // Ensure email exists before using it (TypeScript safety)
+      if (!authInfo.email) {
+        setError('No email found in authentication token. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      console.log('Auth info:', authInfo) // Debug log
+
       // Using the same view_user endpoint as in user account implementation
-      const response = await fetch(`${API_BASE_URL}/api/users/view_user?email=${encodeURIComponent(adminEmail)}`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/view_user?email=${encodeURIComponent(authInfo.email)}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
       })
@@ -141,7 +152,7 @@ export default function AdminProfile() {
       const data = await response.json()
       
       if (data.success) {
-        // Convert the backend response to match frontend interface (same as user account)
+        // Convert the backend response to match frontend interface
         const adminDetails: AdminProfile = {
           user_id: data.user.user_id,
           email: data.user.email,
@@ -222,22 +233,31 @@ export default function AdminProfile() {
     fetchAdminProfile()
   }, [])
 
+  // Updated handleUpdate function using auth utils with proper TypeScript handling
   const handleUpdate = async () => {
     try {
       setIsLoading(true)
       setError(null)
       
-      const token = localStorage.getItem('adminToken')
-      const adminEmail = localStorage.getItem('adminEmail')
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
       
-      if (!adminEmail) {
-        setError('Admin email not found. Please log in again.')
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      // Ensure email exists before using it (TypeScript safety)
+      if (!authInfo.email) {
+        setError('No email found in authentication token. Please log in again.')
+        router.push('/login')
         return
       }
 
       // Prepare update data - convert date back to YYYY-MM-DD format for backend
       const updateData = {
-        email: adminEmail, // Use original email for identification
+        email: authInfo.email, // Use email from token
         first_name: formData.firstName.trim(),
         last_name: formData.lastName.trim(),
         date_of_birth: convertToBackendDate(formData.dateOfBirth),
@@ -253,7 +273,7 @@ export default function AdminProfile() {
       const response = await fetch(`${API_BASE_URL}/api/users/update_user`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updateData)

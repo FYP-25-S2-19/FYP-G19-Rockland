@@ -45,7 +45,8 @@ export default function LoginPage() {
       }
 
       const data = await response.json()
-      console.log('Response data:', data)
+      console.log('🔍 Full login response:', data)
+      console.log('🔍 Available keys:', Object.keys(data))
 
       if (response.ok && data.success) {
         // Validate that required fields exist in response
@@ -53,7 +54,14 @@ export default function LoginPage() {
           throw new Error('Invalid response format from server')
         }
 
-        // Store authentication data
+        console.log('✅ Token received:', data.access_token.substring(0, 50) + '...')
+
+        // Store authentication data with CORRECT keys for admin profile
+        localStorage.setItem('adminToken', data.access_token)  // ← Changed from 'authToken'
+        localStorage.setItem('adminEmail', email)             // ← Changed from 'userEmail'
+        localStorage.setItem('isAdminLoggedIn', 'true')       // ← Changed from 'isLoggedIn'
+        
+        // Also store legacy keys for compatibility (optional)
         localStorage.setItem('authToken', data.access_token)
         localStorage.setItem('userId', data.user.user_id?.toString() || '')
         localStorage.setItem('userEmail', email)
@@ -65,6 +73,24 @@ export default function LoginPage() {
         }
         if (data.user.user_type_id) {
           localStorage.setItem('userType', data.user.user_type_id.toString())
+        }
+        
+        // Verify token was stored correctly
+        const storedToken = localStorage.getItem('adminToken')
+        console.log('✅ Admin token stored successfully:', !!storedToken)
+        console.log('✅ Stored token preview:', storedToken?.substring(0, 50) + '...')
+        
+        // Test token decoding immediately
+        try {
+          const parts = storedToken?.split('.')
+          if (parts && parts.length === 3) {
+            const payload = parts[1]
+            const paddedPayload = payload + '=='.substr(0, (4 - payload.length % 4) % 4)
+            const decoded = JSON.parse(atob(paddedPayload))
+            console.log('✅ Token decoded successfully:', decoded)
+          }
+        } catch (decodeError) {
+          console.error('❌ Token decode test failed:', decodeError)
         }
         
         console.log('Login successful, redirecting to dashboard')

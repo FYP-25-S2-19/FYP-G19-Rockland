@@ -3,7 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { RefreshCw, AlertCircle, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import AdminLayout from "@/components/ui/AdminLayout"
+import { getAuthInfo } from "@/lib/auth-utils" // Import the auth utilities
 
 const statsCards = [
   {
@@ -51,29 +54,55 @@ export default function Dashboard() {
     email: '',
     userType: ''
   })
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check if user is logged in using the correct keys from your login system
-    const authToken = localStorage.getItem('authToken')
-    const isLoggedIn = localStorage.getItem('isLoggedIn')
-    
-    if (!authToken || isLoggedIn !== 'true') {
-      // Not logged in, redirect to login
-      router.push('/login')
-      return
+    const checkAuthentication = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        // Get authentication info from token
+        const authInfo = getAuthInfo()
+        
+        if (!authInfo.isAuthenticated) {
+          setError(authInfo.error || 'Authentication failed. Please log in again.')
+          router.push('/login')
+          return
+        }
+
+        // Set user info from auth data
+        setUserInfo({
+          name: authInfo.userType || 'Admin',
+          email: authInfo.email || '',
+          userType: authInfo.userType || 'Admin'
+        })
+
+        // TODO: Here you can add API calls to fetch dashboard data
+        // For now, we'll just simulate a brief loading period
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred while loading dashboard')
+        console.error('Dashboard error:', err)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    // Get user info
-    const userName = localStorage.getItem('userName') || 'Admin'
-    const userEmail = localStorage.getItem('userEmail') || ''
-    const userTypeName = localStorage.getItem('userTypeName') || 'Admin'
-    
-    setUserInfo({
-      name: userName,
-      email: userEmail,
-      userType: userTypeName
-    })
+    checkAuthentication()
   }, [router])
+
+  // Clear error after a few seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null)
+      }, 10000) // Clear error after 10 seconds
+      return () => clearTimeout(timer)
+    }
+  }, [error])
 
   const handleNavigation = (item: string) => {
     switch (item) {
@@ -105,7 +134,11 @@ export default function Dashboard() {
         router.push('/adminprofile')
         break
       case "logout":
-        // Clear all auth data
+        // Clear all auth data including the token
+        localStorage.removeItem('adminToken')
+        localStorage.removeItem('isAdminLoggedIn')
+        localStorage.removeItem('adminEmail')
+        // Also clear old keys if they exist
         localStorage.removeItem('authToken')
         localStorage.removeItem('userId')
         localStorage.removeItem('userEmail')
@@ -113,14 +146,55 @@ export default function Dashboard() {
         localStorage.removeItem('userType')
         localStorage.removeItem('userTypeName')
         localStorage.removeItem('isLoggedIn')
-        // Also clear old keys if they exist
-        localStorage.removeItem('isAdminLoggedIn')
-        localStorage.removeItem('adminEmail')
         router.push('/login')
         break
       default:
         console.log("Unknown navigation item:", item)
     }
+  }
+
+  const handleRefresh = () => {
+    window.location.reload()
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <AdminLayout
+        activeMenuItem="home"
+        title="Hi, Admin 👋"
+        subtitle=""
+        onNavigate={handleNavigation}
+      >
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+          <span className="ml-2 text-gray-600">Loading dashboard...</span>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <AdminLayout
+        activeMenuItem="home"
+        title="Hi, Admin 👋"
+        subtitle=""
+        onNavigate={handleNavigation}
+      >
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 mb-4 max-w-md">{error}</p>
+            <Button onClick={handleRefresh} className="bg-green-600 hover:bg-green-700">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      </AdminLayout>
+    )
   }
 
   return (
@@ -132,7 +206,17 @@ export default function Dashboard() {
     >
       {/* Dashboard Content */}
       <div className="p-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h2>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            className="flex items-center space-x-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
+          </Button>
+        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
