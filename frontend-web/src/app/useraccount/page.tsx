@@ -143,32 +143,19 @@ export default function UserAccountPage() {
     return userType === "Free" || userType === "Premium"
   }
 
-  // Fetch all users from database using existing ViewUserController
-  const fetchUsers = async () => {
+    const fetchUsers = async () => {
     try {
       setLoading(true)
       setError(null)
-      
-      const token = localStorage.getItem('adminToken')
-      if (!token) {
-        setError('Admin token not found. Please log in again.')
-        return
-      }
 
       const response = await fetch(`${API_BASE_URL}/api/users/all`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setError('Session expired. Please log in again.')
-          router.push('/login')
-          return
-        }
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
@@ -188,7 +175,7 @@ export default function UserAccountPage() {
     }
   }
 
-  // Search users using backend controller
+  // Updated searchUsers function without auth headers
   const searchUsers = async () => {
     try {
       setIsSearching(true)
@@ -199,17 +186,10 @@ export default function UserAccountPage() {
         setError('Please enter a search term (first name, email, or date of birth)')
         return
       }
-      
-      const token = localStorage.getItem('adminToken')
-      if (!token) {
-        setError('Admin token not found. Please log in again.')
-        return
-      }
 
       const response = await fetch(`${API_BASE_URL}/api/users/search_user`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -218,11 +198,6 @@ export default function UserAccountPage() {
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setError('Session expired. Please log in again.')
-          router.push('/login')
-          return
-        }
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
@@ -241,7 +216,6 @@ export default function UserAccountPage() {
       setIsSearching(false)
     }
   }
-
   // Clear search and show all users
   const clearSearch = () => {
     setSearchCriteria({
@@ -265,32 +239,20 @@ export default function UserAccountPage() {
     }
   }
 
-  // Fetch individual user details using your existing ViewUserController
+  // Updated fetchUserDetails function without auth headers
   const fetchUserDetails = async (email: string) => {
     try {
       setIsLoading(true)
       setError(null)
-      
-      const token = localStorage.getItem('adminToken')
-      if (!token) {
-        setError('Admin token not found. Please log in again.')
-        return
-      }
 
       const response = await fetch(`${API_BASE_URL}/api/users/view_user?email=${encodeURIComponent(email)}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setError('Session expired. Please log in again.')
-          router.push('/login')
-          return
-        }
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
@@ -372,96 +334,66 @@ export default function UserAccountPage() {
     }
   }
 
-  // Updated handleSuspend function in UserAccountPage component
-const handleSuspend = async () => {
-  if (!confirmAction) return
-  
-  setIsLoading(true)
-  
-  try {
-    const token = localStorage.getItem('adminToken')
-    const adminEmail = localStorage.getItem('adminEmail')
+  // Updated handleSuspend function without auth headers
+  const handleSuspend = async () => {
+    if (!confirmAction) return
     
-    if (!token) {
-      setError('Admin token not found. Please log in again.')
-      return
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/users/suspend`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId: confirmAction.userId }),
-    })
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        setError('Session expired. Please log in again.')
-        router.push('/login')
-        return
-      }
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
+    setIsLoading(true)
     
-    if (data.success) {
-      // Check if the suspended user is the current admin
-      if (selectedUser && selectedUser.email === adminEmail) {
-        // If admin suspended themselves, log them out
-        alert('You have suspended your own account. You will be logged out.')
-        localStorage.removeItem('isAdminLoggedIn')
-        localStorage.removeItem('adminEmail')
-        localStorage.removeItem('adminToken')
-        router.push('/login')
-        return
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/suspend`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: confirmAction.userId }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
+
+      const data = await response.json()
       
-      // Show success message
-      setSuccessMessage(data.message || `User ${confirmAction.userName} has been suspended successfully`)
-      setShowSuccessDialog(true)
-      
-      // Refresh the appropriate list
-      if (hasSearched) {
-        await searchUsers()
+      if (data.success) {
+        // Show success message
+        setSuccessMessage(data.message || `User ${confirmAction.userName} has been suspended successfully`)
+        setShowSuccessDialog(true)
+        
+        // Refresh the appropriate list
+        if (hasSearched) {
+          await searchUsers()
+        } else {
+          await fetchUsers()
+        }
+        
+        // If viewing the suspended user's details, refresh
+        if (selectedUser && selectedUser.user_id.toString() === confirmAction.userId) {
+          await fetchUserDetails(selectedUser.email)
+        }
       } else {
-        await fetchUsers()
+        setError(data.error || 'Failed to suspend user')
       }
-      
-      // If viewing the suspended user's details, refresh
-      if (selectedUser && selectedUser.user_id.toString() === confirmAction.userId) {
-        await fetchUserDetails(selectedUser.email)
-      }
-    } else {
-      setError(data.error || 'Failed to suspend user')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while suspending user')
+      console.error('Error suspending user:', err)
+    } finally {
+      setIsLoading(false)
+      setShowConfirmDialog(false)
+      setConfirmAction(null)
     }
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'An error occurred while suspending user')
-    console.error('Error suspending user:', err)
-  } finally {
-    setIsLoading(false)
-    setShowConfirmDialog(false)
-    setConfirmAction(null)
   }
-}
+
+  // Updated handleUpgrade function without auth headers  
   const handleUpgrade = async () => {
     if (!upgradeAction) return
     
     setIsLoading(true)
     
     try {
-      const token = localStorage.getItem('adminToken')
-      if (!token) {
-        setError('Admin token not found. Please log in again.')
-        return
-      }
-
       const response = await fetch(`${API_BASE_URL}/api/users/upgrade`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
@@ -471,11 +403,6 @@ const handleSuspend = async () => {
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          setError('Session expired. Please log in again.')
-          router.push('/login')
-          return
-        }
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 

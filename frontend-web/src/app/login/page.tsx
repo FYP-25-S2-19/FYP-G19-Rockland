@@ -23,7 +23,6 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Add more detailed logging for debugging
       console.log('Attempting login with:', { email, password: '***' })
       
       const response = await fetch('http://localhost:5000/api/login', {
@@ -32,13 +31,12 @@ export default function LoginPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: email.trim(), // Trim whitespace
+          email: email.trim(),
           password: password
         })
       })
 
       console.log('Response status:', response.status)
-      console.log('Response headers:', response.headers)
 
       // Check if response is actually JSON
       const contentType = response.headers.get('content-type')
@@ -49,7 +47,7 @@ export default function LoginPage() {
       const data = await response.json()
       console.log('Response data:', data)
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         // Validate that required fields exist in response
         if (!data.access_token || !data.user) {
           throw new Error('Invalid response format from server')
@@ -69,23 +67,35 @@ export default function LoginPage() {
           localStorage.setItem('userType', data.user.user_type_id.toString())
         }
         
+        console.log('Login successful, redirecting to dashboard')
         // Redirect to dashboard
         router.push('/dashboard')
       } else {
-        // Handle different error status codes
+        // Handle different error status codes and response data
         let errorMessage = 'Login failed. Please check your credentials.'
         
         if (response.status === 401) {
-          errorMessage = 'Invalid email or password. Please try again.'
+          errorMessage = data.error || 'Invalid email or password. Please try again.'
         } else if (response.status === 403) {
-          errorMessage = 'Account access denied. Please contact support.'
+          // Check if this is a suspended account
+          if (data.status === 'suspended' || data.error?.toLowerCase().includes('suspended')) {
+            errorMessage = 'Your account has been suspended. Please contact administrator.'
+          } else if (data.status === 'inactive' || data.error?.toLowerCase().includes('inactive')) {
+            errorMessage = 'Your account is inactive. Please contact administrator.'
+          } else {
+            errorMessage = data.error || 'Account access denied. Please contact administrator.'
+          }
         } else if (response.status === 429) {
           errorMessage = 'Too many login attempts. Please wait and try again.'
         } else if (response.status === 500) {
           errorMessage = 'Server error. Please try again later or contact support.'
+        } else {
+          // Use the error message from the server if available
+          errorMessage = data.error || data.message || errorMessage
         }
         
-        setError(data.error || data.message || errorMessage)
+        console.log('Login failed:', errorMessage)
+        setError(errorMessage)
       }
     } catch (error) {
       console.error('Login error:', error)
@@ -123,7 +133,11 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+              <div className={`border px-4 py-3 rounded-md text-sm ${
+                error.includes('suspended') || error.includes('inactive') 
+                  ? 'bg-orange-50 border-orange-200 text-orange-700' 
+                  : 'bg-red-50 border-red-200 text-red-700'
+              }`}>
                 {error}
               </div>
             )}
@@ -192,6 +206,7 @@ export default function LoginPage() {
               <p className="font-medium">Test Credentials:</p>
               <p>Admin: admin@rockland.com / admin123</p>
               <p>Premium: premium@rockland.com / rock123</p>
+              <p className="text-orange-600">Suspended: admin@rocklands.com / admin123</p>
             </div>
           </form>
         </div>
