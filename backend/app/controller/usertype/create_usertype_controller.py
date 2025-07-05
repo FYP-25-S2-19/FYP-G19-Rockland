@@ -4,15 +4,22 @@ from datetime import datetime
 # Update imports to match your project structure
 from app.models import db
 from app.entity.usertype import UserType
+from app.controller.authentication.permission_required import permission_required
 
 create_usertype_blueprint = Blueprint('create_usertype', __name__)
 
 class CreateUserTypeController:
     @staticmethod
     @create_usertype_blueprint.route('/api/usertypes/create_usertype', methods=['POST'])
-    def create_usertype():
+    @permission_required('has_admin_permission')  
+    def create_usertype(**kwargs):  # ✅ Added **kwargs
         """Create a new user type"""
         try:
+            # Access current user if needed
+            current_user = kwargs.get('current_user')
+            if current_user:
+                print(f"🎯 Admin user {current_user.email} is creating a new user type")
+            
             data = request.get_json()
             
             if not data:
