@@ -1,14 +1,13 @@
 # Suspend User Controller
 from flask import Blueprint, request, jsonify
 from app.entity.user import User
-# Temporarily comment out the permission_required import
-# from app.controller.authentication.permission_required import permission_required
+from app.controller.authentication.permission_required import permission_required
 
 suspend_user_blueprint = Blueprint('suspend_user', __name__)
 
 class SuspendUserController:
     @suspend_user_blueprint.route('/api/users/suspend', methods=['POST'])
-    # @permission_required('has_admin_permission')  # Temporarily commented out
+    @permission_required('has_admin_permission')  # Temporarily commented out
     def suspend_user(**kwargs):
         try:
             request_data = request.get_json()
