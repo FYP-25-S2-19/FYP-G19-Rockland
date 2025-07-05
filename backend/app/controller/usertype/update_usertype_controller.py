@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.entity.usertype import UserType
 # Temporarily comment out the permission_required import
-# from app.controller.authentication.permission_required import permission_required
+from app.controller.authentication.permission_required import permission_required
 
 update_usertype_blueprint = Blueprint('update_usertype', __name__)
 
@@ -9,7 +9,7 @@ class UpdateUserTypeController:
     # Update user type (temporarily without auth for testing)
     @staticmethod
     @update_usertype_blueprint.route('/api/usertypes/update_usertype', methods=['PUT'])
-    # @permission_required('has_admin_permission')  # Temporarily commented out
+    @permission_required('has_admin_permission')  # Temporarily commented out
     def update_usertype(**kwargs):
         try:
             # Get JSON data from request
