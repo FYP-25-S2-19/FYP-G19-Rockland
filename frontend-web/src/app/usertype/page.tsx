@@ -29,10 +29,12 @@ import {
   User,
   AlertCircle,
   CheckCircle,
+  Loader2,
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
+import { getAuthInfo } from "@/lib/auth-utils" // Import the auth utilities
 
 interface UserType {
   id: string
@@ -99,12 +101,35 @@ export default function UserTypeManagement() {
   // State for user types from database
   const [userTypes, setUserTypes] = useState<UserType[]>([])
   const [isLoadingData, setIsLoadingData] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Fetch user types from database
+  // Updated fetchUserTypes function with auth headers
   const fetchUserTypes = async () => {
     try {
       setIsLoadingData(true)
-      const response = await fetch(`${API_BASE_URL}/api/usertypes/all`)
+      setError(null)
+
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/usertypes/all`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
       const data = await response.json()
       
       if (data.success) {
@@ -124,34 +149,42 @@ export default function UserTypeManagement() {
         }))
         setUserTypes(transformedData)
       } else {
-        console.error('Failed to fetch user types:', data.error)
-        alert('Failed to fetch user types: ' + data.error)
+        setError(data.error || 'Failed to fetch user types')
       }
-    } catch (error) {
-      console.error('Error fetching user types:', error)
-      alert('Failed to fetch user types. Please try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching user types')
+      console.error('Error fetching user types:', err)
     } finally {
       setIsLoadingData(false)
     }
   }
 
-  // Fetch data on component mount
-  useEffect(() => {
-    fetchUserTypes()
-  }, [])
-
-  // Create user type function
+  // Updated handleCreateUserType function with auth headers
   const handleCreateUserType = async () => {
     setIsLoading(true)
     
     try {
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/usertypes/create_usertype`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(createFormData),
       })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
 
       const data = await response.json()
 
@@ -168,32 +201,41 @@ export default function UserTypeManagement() {
         })
         
         // Show success message
-        setSuccessMessage('User type created successfully!')
+        setSuccessMessage(data.message || 'User type created successfully!')
         setShowSuccessDialog(true)
         
         // Refresh the data
         await fetchUserTypes()
         
       } else {
-        // Handle error
-        alert(`Error: ${data.message}`)
+        setError(data.error || data.message || 'Failed to create user type')
       }
-    } catch (error) {
-      console.error('Error creating user type:', error)
-      alert('Failed to create user type. Please try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while creating user type')
+      console.error('Error creating user type:', err)
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Update user type function
+  // Updated handleUpdateUserType function with auth headers
   const handleUpdateUserType = async () => {
     setIsLoading(true)
     
     try {
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/usertypes/update_usertype`, {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -207,6 +249,10 @@ export default function UserTypeManagement() {
         }),
       })
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
       const data = await response.json()
 
       if (data.success) {
@@ -214,7 +260,7 @@ export default function UserTypeManagement() {
         setShowEditDialog(false)
         
         // Show success message
-        setSuccessMessage('User type updated successfully!')
+        setSuccessMessage(data.message || 'User type updated successfully!')
         setShowSuccessDialog(true)
         
         // Refresh the data
@@ -230,33 +276,46 @@ export default function UserTypeManagement() {
         }
         
       } else {
-        // Handle error
-        alert(`Error: ${data.message}`)
+        setError(data.error || data.message || 'Failed to update user type')
       }
-    } catch (error) {
-      console.error('Error updating user type:', error)
-      alert('Failed to update user type. Please try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while updating user type')
+      console.error('Error updating user type:', err)
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Suspend user type function
+  // Updated handleSuspendUserType function with auth headers
   const handleSuspendUserType = async () => {
     if (!confirmAction) return
     
     setIsLoading(true)
     
     try {
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/usertypes/suspend`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
           userTypeId: confirmAction.userTypeId 
         }),
       })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
 
       const data = await response.json()
       
@@ -276,17 +335,32 @@ export default function UserTypeManagement() {
           }
         }
       } else {
-        alert(`Error: ${data.error}`)
+        setError(data.error || 'Failed to suspend user type')
       }
     } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while suspending user type')
       console.error('Error suspending user type:', err)
-      alert('An error occurred while suspending user type')
     } finally {
       setIsLoading(false)
       setShowConfirmDialog(false)
       setConfirmAction(null)
     }
   }
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchUserTypes()
+  }, [])
+
+  // Clear error after a few seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null)
+      }, 10000) // Clear error after 10 seconds
+      return () => clearTimeout(timer)
+    }
+  }, [error])
 
   // Reset form when dialog is opened
   const handleOpenAddDialog = () => {
@@ -333,6 +407,7 @@ export default function UserTypeManagement() {
       case "logout":
         localStorage.removeItem('isAdminLoggedIn')
         localStorage.removeItem('adminEmail')
+        localStorage.removeItem('adminToken')
         router.push('/login')
         break
       default:
@@ -429,7 +504,7 @@ export default function UserTypeManagement() {
     return userType.name !== "Admin" && userType.name !== "Free"
   }
 
-  // Show loading spinner while fetching data
+  // Loading state
   if (isLoadingData) {
     return (
       <AdminLayout
@@ -438,10 +513,31 @@ export default function UserTypeManagement() {
         subtitle="Manage user types and permissions"
         onNavigate={handleNavigation}
       >
-        <div className="p-8 flex items-center justify-center">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+          <span className="ml-2 text-gray-600">Loading user types...</span>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <AdminLayout
+        activeMenuItem="user-type"
+        title="Hi, Admin 👋"
+        subtitle="Manage user types and permissions"
+        onNavigate={handleNavigation}
+      >
+        <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-green-600" />
-            <p className="text-gray-600">Loading user types...</p>
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 mb-4 max-w-md">{error}</p>
+            <Button onClick={fetchUserTypes} className="bg-green-600 hover:bg-green-700">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
           </div>
         </div>
       </AdminLayout>
