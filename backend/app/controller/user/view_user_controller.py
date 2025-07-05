@@ -1,15 +1,14 @@
 from flask import Blueprint, request, jsonify
 from app.entity.user import User
 # Temporarily comment out the permission_required import
-# from app.controller.authentication.permission_required import permission_required
+from app.controller.authentication.permission_required import permission_required
 
 view_user_blueprint = Blueprint('view_user', __name__)
 
 class ViewUserController:
-    # Get all users for admin view (temporarily without auth for testing)
     @staticmethod
     @view_user_blueprint.route('/api/users/all', methods=['GET'])
-    # @permission_required('has_admin_permission')  # Temporarily commented out
+    @permission_required('has_admin_permission')  
     def get_all_users(**kwargs):
         try:
             users_data, status_code = User.getAllUsers()
@@ -32,10 +31,9 @@ class ViewUserController:
                 "error": f"Error: {str(e)}"
             }), 500
 
-    # View individual user detail by email (temporarily without auth for testing)
     @staticmethod
     @view_user_blueprint.route('/api/users/view_user', methods=['GET'])
-    # @permission_required('has_admin_permission')  # Temporarily commented out
+    @permission_required('has_admin_permission')  
     def view_user(**kwargs):
         try:
             user_email = request.args.get('email')
@@ -66,10 +64,9 @@ class ViewUserController:
                 "error": f"Error: {str(e)}"
             }), 500
 
-    # Search users - Add this new endpoint (without auth)
     @staticmethod
     @view_user_blueprint.route('/api/users/search_user', methods=['POST'])
-    # @permission_required('has_admin_permission')  # Temporarily commented out
+    @permission_required('has_admin_permission')  
     def search_users(**kwargs):
         try:
             request_data = request.get_json()
