@@ -16,10 +16,13 @@ def permission_required(permission_name):
         def decorated_function(*args, **kwargs):
             try:
                 print(f"🔐 Starting authentication check for permission: {permission_name}")
+                print(f"📋 Request method: {request.method}")
+                print(f"📋 Request URL: {request.url}")
                 
                 # Get the token from the Authorization header
                 auth_header = request.headers.get('Authorization')
                 print(f"📋 Auth header present: {bool(auth_header)}")
+                print(f"📋 All headers: {dict(request.headers)}")
                 
                 if not auth_header or not auth_header.startswith('Bearer '):
                     print("❌ No valid authorization header found")
@@ -38,6 +41,7 @@ def permission_required(permission_name):
                 try:
                     payload = jwt.decode(token_string, secret, algorithms=["HS256"])
                     print(f"✅ JWT decoded successfully. User ID: {payload.get('user_id')}")
+                    print(f"🎫 Token payload: {payload}")
                 except jwt.ExpiredSignatureError:
                     print("❌ JWT token has expired")
                     return jsonify({
@@ -50,10 +54,24 @@ def permission_required(permission_name):
                         'success': False,
                         'error': 'Invalid token'
                     }), 401
+                except Exception as e:
+                    print(f"❌ Error decoding JWT: {e}")
+                    return jsonify({
+                        'success': False,
+                        'error': f'Token decode error: {str(e)}'
+                    }), 401
                 
                 # Check if token exists in database and is active
                 print(f"🔍 Checking token in database...")
-                db_token = Token.queryAccessToken(token_string)
+                try:
+                    db_token = Token.queryAccessToken(token_string)
+                    print(f"✅ Token query result: {db_token}")
+                except Exception as e:
+                    print(f"❌ Error querying token: {e}")
+                    return jsonify({
+                        'success': False,
+                        'error': f'Database error: {str(e)}'
+                    }), 500
                 
                 if not db_token:
                     print("❌ Token not found in database or expired")
@@ -68,7 +86,16 @@ def permission_required(permission_name):
                 user_id = payload.get('user_id')
                 print(f"🔍 Looking up user with ID: {user_id}")
                 
-                user = User.queryUserById(user_id)
+                try:
+                    user = User.queryUserById(user_id)
+                    print(f"✅ User query result: {user}")
+                except Exception as e:
+                    print(f"❌ Error querying user: {e}")
+                    return jsonify({
+                        'success': False,
+                        'error': f'User lookup error: {str(e)}'
+                    }), 500
+                
                 if not user:
                     print(f"❌ User with ID {user_id} not found in database")
                     return jsonify({
@@ -83,9 +110,13 @@ def permission_required(permission_name):
                     print(f"❌ User account is {user.status}, deactivating token")
                     # Deactivate the token if user is not active
                     if db_token.is_active:
-                        db_token.is_active = False
-                        db.session.commit()
-                        print("🔒 Token deactivated")
+                        try:
+                            db_token.is_active = False
+                            db.session.commit()
+                            print("🔒 Token deactivated")
+                        except Exception as e:
+                            print(f"❌ Error deactivating token: {e}")
+                            db.session.rollback()
                     
                     return jsonify({
                         'success': False,
@@ -95,7 +126,17 @@ def permission_required(permission_name):
                     }), 403
                 
                 # Check if user has the required permission
-                user_type = user.user_type
+                print(f"🔍 Getting user type...")
+                try:
+                    user_type = user.user_type
+                    print(f"✅ User type object: {user_type}")
+                except Exception as e:
+                    print(f"❌ Error getting user type: {e}")
+                    return jsonify({
+                        'success': False,
+                        'error': f'User type lookup error: {str(e)}'
+                    }), 500
+                
                 if not user_type:
                     print("❌ User type not found")
                     return jsonify({
@@ -104,10 +145,20 @@ def permission_required(permission_name):
                     }), 403
                 
                 print(f"✅ User type: {user_type.name}")
+                print(f"✅ User type dict: {user_type.to_dict()}")
                 
                 # Check the specific permission
-                permission_value = getattr(user_type, permission_name, None)
-                print(f"🔍 Checking permission '{permission_name}': {permission_value}")
+                print(f"🔍 Checking permission '{permission_name}'...")
+                try:
+                    permission_value = getattr(user_type, permission_name, None)
+                    print(f"✅ Permission '{permission_name}' value: {permission_value}")
+                    print(f"✅ Has attribute: {hasattr(user_type, permission_name)}")
+                except Exception as e:
+                    print(f"❌ Error checking permission: {e}")
+                    return jsonify({
+                        'success': False,
+                        'error': f'Permission check error: {str(e)}'
+                    }), 500
                 
                 if not hasattr(user_type, permission_name) or not getattr(user_type, permission_name):
                     print(f"❌ User lacks required permission: {permission_name}")
@@ -134,91 +185,3 @@ def permission_required(permission_name):
                 
         return decorated_function
     return decorator
-
-def admin_required(f):
-    """Decorator that requires admin permissions"""
-    return permission_required('has_admin_permission')(f)
-
-def premium_required(f):
-    """Decorator that requires premium permissions"""
-    return permission_required('has_premium_permission')(f)
-
-def expert_required(f):
-    """Decorator that requires expert permissions"""
-    return permission_required('has_expert_permission')(f)
-
-def auth_required(f):
-    """Decorator that just requires valid authentication (any user type)"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        try:
-            print("🔐 Starting basic auth check...")
-            
-            # Extract token from Authorization header
-            auth_header = request.headers.get('Authorization')
-            if not auth_header or not auth_header.startswith('Bearer '):
-                print("❌ Token missing or invalid format")
-                return jsonify({
-                    'success': False, 
-                    'error': 'Token missing or invalid format'
-                }), 401
-            
-            token = auth_header.split(' ')[1]
-            print(f"🎫 Token: {token[:20]}...")
-            
-            # Verify token exists in database and is active
-            token_record = Token.queryAccessToken(token)
-            if not token_record:
-                print("❌ Token not found in database")
-                return jsonify({
-                    'success': False,
-                    'error': 'Invalid or expired token'
-                }), 401
-            
-            print(f"✅ Token found, active: {token_record.is_active}")
-            
-            # Get user
-            user = User.queryUserById(token_record.user_id)
-            if not user:
-                print(f"❌ User with ID {token_record.user_id} not found")
-                return jsonify({
-                    'success': False,
-                    'error': 'User not found'
-                }), 401
-            
-            print(f"✅ User found: {user.email}, Status: {user.status}")
-            
-            # Check if user is active
-            if user.status != 'Active':
-                print(f"❌ User account is {user.status}")
-                # Deactivate token if user is suspended
-                if token_record.is_active:
-                    token_record.is_active = False
-                    db.session.commit()
-                    print("🔒 Token deactivated")
-                
-                return jsonify({
-                    'success': False,
-                    'error': f'Account {user.status.lower()}. Please contact administrator.',
-                    'status': user.status,
-                    'redirect': '/login'
-                }), 403
-            
-            print("✅ Basic auth successful!")
-            
-            # Add user to kwargs
-            kwargs['current_user'] = user
-            
-            return f(*args, **kwargs)
-            
-        except Exception as e:
-            print(f"💥 Error in auth_required: {e}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({
-                'success': False,
-                'error': 'Authentication failed', 
-                'details': str(e)
-            }), 401
-    
-    return decorated_function
