@@ -77,4 +77,35 @@ def create_app():
     from .controller.faq.update_faq_controller import update_faq_blueprint
     app.register_blueprint(update_faq_blueprint)
 
+    ## VIDEO
+    from .controller.video.view_video_controller import view_video_blueprint
+    app.register_blueprint(view_video_blueprint)
+
+    from .controller.video.post_video_controller import post_video_blueprint
+    app.register_blueprint(post_video_blueprint)
+
+    from .controller.video.delete_video_controller import delete_video_blueprint
+    app.register_blueprint(delete_video_blueprint)
+
+    ### AppLink
+    from .controller.applink.view_applink_controller import view_applink_blueprint
+    app.register_blueprint(view_applink_blueprint)
+
+    from .controller.applink.post_applink_controller import post_applink_blueprint
+    app.register_blueprint(post_applink_blueprint)
+
+    from .controller.applink.delete_applink_controller import delete_applink_blueprint
+    app.register_blueprint(delete_applink_blueprint)
+
+    ### Testimonials
+
+    from .controller.testimonials.create_testimonials_controller import create_testimonials_blueprint
+    app.register_blueprint(create_testimonials_blueprint)
+
+    from .controller.testimonials.delete_testimonials_controller import delete_testimonials_blueprint
+    app.register_blueprint(delete_testimonials_blueprint)
+
+    from .controller.testimonials.view_testimonials_controller import view_testimonials_blueprint
+    app.register_blueprint(view_testimonials_blueprint)
+
     return app
