@@ -20,8 +20,8 @@ export default function WelcomeScreen() {
         <View className="flex-1 justify-center items-center">
           {/* Rock image */}
           <Image
-            source={{ uri: '/placeholder.svg?height=120&width=120' }}
-            className="w-30 h-30 mb-8"
+            source={{ uri: 'https://via.placeholder.com/120' }}
+            style={{ width: 120, height: 120 }}
             resizeMode="contain"
           />
 

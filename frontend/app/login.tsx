@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useRouter } from "expo-router";
+import { API_URL } from "@env";
 import {
   View,
   Text,
@@ -21,24 +22,28 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch("http://192.168.110.43:5000/api/login/user", {
+      const response = await fetch(`${API_URL}/api/login/user`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
-  
+
       const result = await response.json();
-  
+
       if (result.success) {
-        // Simpan role ke storage (dari result.user.user_type_name)
-        await AsyncStorage.setItem("userRole", result.user.user_type_name.toLowerCase());
-  
-        // Optionally simpan token:
+        const role = result.user.user_type_name.toLowerCase();
+
+        await AsyncStorage.setItem("userRole", role);
         await AsyncStorage.setItem("accessToken", result.access_token);
-  
-        router.replace("/home");
+
+        // Navigate based on role
+        if (role === "expert") {
+          router.replace("/(expert-tabs)/home");
+        } else {
+          router.replace("/(tabs)/home");
+        }
       } else {
         alert(result.error || "Login failed");
       }
@@ -82,7 +87,7 @@ export default function LoginScreen() {
               className="border border-gray-300 rounded-lg px-4 text-base text-gray-800 bg-gray-50"
               style={{
                 height: 48,
-                paddingVertical: 10, 
+                paddingVertical: 10,
                 lineHeight: 20,
                 textAlignVertical: 'center',
               }}
@@ -118,7 +123,8 @@ export default function LoginScreen() {
                 onPress={() => setShowPassword(!showPassword)}
                 activeOpacity={0.7}
               >
-                <Text className="text-lg">{showPassword ? (
+                <Text className="text-lg">
+                  {showPassword ? (
                     <VisibilityOn width={20} height={20} />
                   ) : (
                     <VisibilityOff width={20} height={20} />
