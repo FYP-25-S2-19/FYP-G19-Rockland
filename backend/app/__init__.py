@@ -64,5 +64,17 @@ def create_app():
     from .controller.interest.delete_interest_controller import delete_interest_blueprint
     app.register_blueprint(delete_interest_blueprint)
     
+    ######## FAQ
+    from .controller.faq.view_faq_controller import view_faq_blueprint
+    app.register_blueprint(view_faq_blueprint)
+
+    from .controller.faq.create_faq_controller import create_faq_blueprint
+    app.register_blueprint(create_faq_blueprint)
+
+    from .controller.faq.delete_faq_controller import delete_faq_blueprint
+    app.register_blueprint(delete_faq_blueprint)
+
+    from .controller.faq.update_faq_controller import update_faq_blueprint
+    app.register_blueprint(update_faq_blueprint)
 
     return app
