@@ -6,6 +6,9 @@ from app.entity.interest import Interest
 from app.entity.faq import Faq
 from app.entity.user import User
 from app.entity.usertype import UserType
+from app.entity.video import Video
+from app.entity.applink import AppLink
+from app.entity.testimonials import Testimonials
 from app.entity.token import Token
 from datetime import datetime
 from sqlalchemy import inspect
