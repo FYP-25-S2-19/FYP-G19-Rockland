@@ -1,5 +1,5 @@
 "use client";
-
+import { API_URL } from "@env";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import {
@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import BottomTabBar from "../components/BottomTabBar";
 import ProfilePicture from "../assets/images/profilepicture.png";
 import CrownIcon from "../assets/images/crown.svg";
 import SettingIcon from "../assets/images/Settings.svg";
@@ -35,7 +34,7 @@ export default function AccountScreen() {
         const token = await AsyncStorage.getItem("accessToken");
         if (!token) throw new Error("No token found");
 
-        const response = await fetch("http://192.168.110.43:5000/api/users/me", {
+        const response = await fetch(`${API_URL}/api/users/me`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -66,7 +65,7 @@ export default function AccountScreen() {
   const handleBadgesAndAchievements = () => router.push("/badges");
   const handleTradeList = () => router.push("/tradelist");
   const handleAddRock = () => router.push("/AddRockScreen");
-  const handleExpertQuiz = () => router.push("/expert/quizhome");
+  const handleExpertQuiz = () => router.push("/(expert-tabs)/quizhome");
   const handleSettingsNavigation = () => router.push("/settings");
 
   const shadowStyle = {
@@ -253,8 +252,6 @@ export default function AccountScreen() {
             </View>
           </View>
         </ScrollView>
-
-        <BottomTabBar activeTab="Account" />
       </View>
     </SafeAreaView>
   );

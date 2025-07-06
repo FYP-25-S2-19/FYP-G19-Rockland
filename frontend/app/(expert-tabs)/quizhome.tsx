@@ -118,9 +118,9 @@ export default function ExpertQuizHome() {
       {/* Floating + Button */}
       <TouchableOpacity
         onPress={() => router.push("/expert/quiz/create")}
-        className="absolute bottom-6 right-6 bg-[#459B6C] p-4 rounded-full shadow-lg"
+        className="absolute bottom-10 right-6 bg-[#459B6C] p-4 rounded-full shadow-lg"
       >
-        <PlusIcon width={24} height={24} fill="white"/>
+        <PlusIcon width={36} height={36} fill="white"/>
       </TouchableOpacity>
 
       {/* Delete Confirmation Modal */}
