@@ -1,44 +1,47 @@
-import { View, Text, TouchableOpacity, Animated, Platform } from "react-native";
-import { useRouter, usePathname } from "expo-router";
 import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+} from "react-native";
+import { useRouter, usePathname } from "expo-router";
 
-// Icon imports
+// Icon imports for Expert
 import HomeIcon from "../assets/icons/home.svg";
 import HomeIconActive from "../assets/icons/home_active.svg";
 import FeedIcon from "../assets/icons/feed.svg";
 import FeedIconActive from "../assets/icons/feed_active.svg";
-import ScanIcon from "../assets/icons/scan.svg";
-import ScanIconActive from "../assets/icons/scan_active.svg";
-import MapsIcon from "../assets/icons/map.svg";
-import MapsIconActive from "../assets/icons/map_active.svg";
+import QuizIcon from "../assets/icons/quiz.svg";
+import QuizIconActive from "../assets/icons/quiz_active.svg";
 import AccountIcon from "../assets/icons/account.svg";
 import AccountIconActive from "../assets/icons/account_active.svg";
+import DiscussionIcon from "../assets/icons/discussion.svg";
+import DiscussionIconActive from "../assets/icons/discussion_active.svg";
 
-const tabs = ["Home", "Feed", "Scan", "Maps", "Account"] as const;
+const expertTabs = ["Home", "Feed", "Discussion", "Quiz", "Account"] as const;
 
-const routes = {
-  Home: "/home",
-  Feed: "/feed",
-  Scan: "/scan",
-  Maps: "/maps",
-  Account: "/account",
+const expertRoutes = {
+  Home: "/(expert-tabs)/home",
+  Feed: "/(expert-tabs)/feed",
+  Discussion: "/(expert-tabs)/discussion",
+  Quiz: "/(expert-tabs)/quizhome",
+  Account: "/(expert-tabs)/account",
 } as const;
 
-type TabName = keyof typeof routes;
+type TabName = keyof typeof expertRoutes;
 
-const icons = {
+const expertIcons = {
   Home: { default: HomeIcon, active: HomeIconActive },
   Feed: { default: FeedIcon, active: FeedIconActive },
-  Scan: { default: ScanIcon, active: ScanIconActive },
-  Maps: { default: MapsIcon, active: MapsIconActive },
+  Discussion: { default: DiscussionIcon, active: DiscussionIconActive },
+  Quiz: { default: QuizIcon, active: QuizIconActive },
   Account: { default: AccountIcon, active: AccountIconActive },
 };
 
-export default function BottomTabBar() {
+export default function ExpertBottomTabBar() {
   const router = useRouter();
-  const pathname = usePathname();
-
-  const currentTab = pathname.replace("/(tabs)", "").replace("/", "");
+  const pathname = usePathname().toLowerCase();
 
   return (
     <View
@@ -51,14 +54,19 @@ export default function BottomTabBar() {
         elevation: 5,
       }}
     >
-      {tabs.map((tab) => {
-        const isActive = currentTab === tab.toLowerCase();
-        const isCenter = tab === "Scan";
-
-        const Icon = isActive ? icons[tab].active : icons[tab].default;
+      {expertTabs.map((tab) => {
+        const routeFragment =
+          expertRoutes[tab as TabName].split("/").pop()?.toLowerCase() || "";
+        const isActive = pathname.includes(`/${routeFragment}`);
+        const isCenter = tab === "Quiz";
+        const Icon = isActive
+          ? expertIcons[tab as TabName].active
+          : expertIcons[tab as TabName].default;
 
         const scaleAnim = useRef(new Animated.Value(isActive ? 1.1 : 1)).current;
-        const bumpAnim = useRef(new Animated.Value(isActive ? (isCenter ? -20 : -10) : 0)).current;
+        const bumpAnim = useRef(
+          new Animated.Value(isActive ? (isCenter ? -20 : -10) : 0)
+        ).current;
 
         useEffect(() => {
           Animated.parallel([
@@ -78,7 +86,7 @@ export default function BottomTabBar() {
         return (
           <TouchableOpacity
             key={tab}
-            onPress={() => router.push(routes[tab])}
+            onPress={() => router.push(expertRoutes[tab as TabName])}
             activeOpacity={0.8}
             className="items-center"
           >
@@ -100,7 +108,9 @@ export default function BottomTabBar() {
             </Animated.View>
             <Text
               className={`text-sm mt-1 ${
-                isActive ? "text-[#459B6C] font-bold" : "text-gray-500 font-medium"
+                isActive
+                  ? "text-[#459B6C] font-bold"
+                  : "text-gray-500 font-medium"
               }`}
             >
               {tab}

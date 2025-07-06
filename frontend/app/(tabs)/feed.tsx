@@ -11,15 +11,15 @@ import {
   Pressable,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import ArticleCard from "../components/ArticleCard";
-import DiscussionCard from "../components/DiscussionCard";
-import FilterModal from "../components/FilterModalFeed";
-import BottomTabBar from "../components/BottomTabBar";
-import CrownIcon from "../assets/images/crown.svg";
-import FilterIcon from "../assets/images/filter.svg";
-import SearchIcon from "../assets/images/search.svg";
-import { sampleArticles } from "../data/article";
-import { sampleDiscussions } from "../data/discussion";
+import ArticleCard from "../../components/ArticleCard";
+import DiscussionCard from "../../components/DiscussionCard";
+import FilterModal from "../../components/FilterModalFeed";
+import BottomTabBar from "../../components/BottomTabBar";
+import CrownIcon from "../../assets/images/crown.svg";
+import FilterIcon from "../../assets/images/filter.svg";
+import SearchIcon from "../../assets/images/search.svg";
+import { sampleArticles } from "../../data/article";
+import { sampleDiscussions } from "../../data/discussion";
 
 export default function FeedScreen() {
   const router = useRouter();
@@ -186,7 +186,6 @@ export default function FeedScreen() {
         </View>
       )}
 
-      <BottomTabBar activeTab="Feed" />
       <FilterModal visible={filterModalVisible} onClose={() => setFilterModalVisible(false)} />
 
       {/* Shared Upgrade Modal */}
