@@ -2,17 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Image } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import BottomTabBar from "../components/BottomTabBar";
-import CrownIcon from "../assets/images/crown.svg";
-import SearchIcon from "../assets/images/search.svg";
-import ArrowRightIcon from "../assets/images/arrow_right.svg";
+import BottomTabBar from "../../components/BottomTabBar";
+import CrownIcon from "../../assets/images/crown.svg";
+import SearchIcon from "../../assets/images/search.svg";
+import ArrowRightIcon from "../../assets/images/arrow_right.svg";
 import { LinearGradient } from 'expo-linear-gradient';
-import { sampleArticles } from "../data/article";
+import { sampleArticles } from "../../data/article";
 
-const graniteImg = require("../assets/images/granite.png");
-const limestoneImg = require("../assets/images/limestone.png");
-const basaltImg = require("../assets/images/basalt.png");
-const quartziteImg = require("../assets/images/quartzite.png");
+const graniteImg = require("../../assets/images/granite.png");
+const limestoneImg = require("../../assets/images/limestone.png");
+const basaltImg = require("../../assets/images/basalt.png");
+const quartziteImg = require("../../assets/images/quartzite.png");
 
 export default function HomeScreen() {
   const [role, setRole] = useState("free");
@@ -219,8 +219,6 @@ export default function HomeScreen() {
           ))}
         </View>
       </ScrollView>
-
-      <BottomTabBar activeTab="Home" />
     </SafeAreaView>
     </LinearGradient>
   );
