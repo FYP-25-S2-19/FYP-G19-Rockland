@@ -108,4 +108,15 @@ def create_app():
     from .controller.testimonials.view_testimonials_controller import view_testimonials_blueprint
     app.register_blueprint(view_testimonials_blueprint)
 
+    #### Application
+
+    from .controller.application.create_application_controller import create_application_blueprint
+    app.register_blueprint(create_application_blueprint)
+
+    from .controller.application.view_application_controller import view_application_blueprint
+    app.register_blueprint(view_application_blueprint)
+
+    from .controller.application.accept_decline_application_controller import accept_decline_application_blueprint
+    app.register_blueprint(accept_decline_application_blueprint)
+
     return app

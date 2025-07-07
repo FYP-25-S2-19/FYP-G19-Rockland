@@ -10,6 +10,9 @@ from app.entity.video import Video
 from app.entity.applink import AppLink
 from app.entity.testimonials import Testimonials
 from app.entity.token import Token
+from app.entity.application import Application
+from app.entity.application_answer import ApplicationAnswer
+from app.entity.application_file import ApplicationFile
 from datetime import datetime
 from sqlalchemy import inspect
 
