@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -15,274 +14,323 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Search, RefreshCw, Eye, Check, X, Clock, CheckCircle, XCircle, FileTextIcon } from 'lucide-react'
+import { RefreshCw, Eye, Check, X, Clock, CheckCircle, XCircle, FileTextIcon, AlertCircle } from 'lucide-react'
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
 
 interface Application {
-  id: string
-  firstName: string
-  lastName: string
+  application_id: number
+  user_id: number
+  first_name: string
+  last_name: string
   email: string
-  dateSubmitted: string
-  filesSubmitted: number
-  status?: "Accepted" | "Rejected"
-  dateProcessed?: string
-  adminId?: string
+  date_submitted: string
+  files_submitted: number
+  status: "Pending" | "Approved" | "Rejected"
+  date_processed?: string
+  admin_id?: string
   // Additional fields for detailed view
-  dateOfBirth?: string
-  contactNumber?: string
+  date_of_birth?: string
+  contact_number?: string
   interest?: string
   role?: string
   gender?: string
   region?: string
-  createdDate?: string
+  created_date?: string
   questions?: {
     question1: string
     answer1: string
     question2: string
     answer2: string
   }
-  attachedFiles?: string[]
+  attached_files?: string[]
 }
+
+// API configuration
+const getAuthInfo = () => {
+  try {
+    const token = localStorage.getItem('adminToken')
+    const email = localStorage.getItem('adminEmail')
+    
+    if (!token || !email) {
+      return { isAuthenticated: false, error: 'No authentication token found' }
+    }
+    
+    return { isAuthenticated: true, token, email }
+  } catch (error) {
+    return { isAuthenticated: false, error: 'Authentication error' }
+  }
+}
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function ApplicationsManagement() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("pending")
-  const [entries, setEntries] = useState("10")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [searchQuery, setSearchQuery] = useState("")
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [successMessage, setSuccessMessage] = useState("")
   const [confirmAction, setConfirmAction] = useState<{
     type: "accept" | "reject"
     applicationId: string
     applicantName: string
   } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<"list" | "detail">("list")
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
   const [detailPage, setDetailPage] = useState(1)
 
-  // Sample data for pending applications
-  const pendingApplications: Application[] = [
-    {
-      id: "#1",
-      firstName: "Matt",
-      lastName: "Dickerson",
-      email: "dicker@gmail.com",
-      dateSubmitted: "13/05/2025",
-      filesSubmitted: 10,
-      dateOfBirth: "12/10/2004",
-      contactNumber: "82622526",
-      interest: "Fossils, Minerals",
-      role: "Free User",
-      gender: "Male",
-      region: "Singapore",
-      createdDate: "09/04/2025",
-      questions: {
-        question1: "Why do you want to become an expert?",
-        answer1: "lorem ipsum ...",
-        question2: "Describe your background and expertise?",
-        answer2: "lorem ipsum ..."
-      },
-      attachedFiles: ["Resume_Matt.pdf", "Certification_Matt.pdf"]
-    },
-    {
-      id: "#2",
-      firstName: "Sarah",
-      lastName: "Johnson",
-      email: "sarah.j@gmail.com",
-      dateSubmitted: "12/05/2025",
-      filesSubmitted: 8,
-      dateOfBirth: "12/10/2004",
-      contactNumber: "82622526",
-      interest: "Fossils, Minerals",
-      role: "Free User",
-      gender: "Male",
-      region: "Singapore",
-      createdDate: "09/04/2025",
-      questions: {
-        question1: "Why do you want to become an expert?",
-        answer1: "lorem ipsum ...",
-        question2: "Describe your background and expertise?",
-        answer2: "lorem ipsum ..."
-      },
-      attachedFiles: ["Resume_Matt.pdf", "Certification_Matt.pdf"]
-    },
-    {
-      id: "#3",
-      firstName: "Michael",
-      lastName: "Brown",
-      email: "m.brown@gmail.com",
-      dateSubmitted: "11/05/2025",
-      filesSubmitted: 12,
-      dateOfBirth: "12/10/2004",
-      contactNumber: "82622526",
-      interest: "Fossils, Minerals",
-      role: "Free User",
-      gender: "Male",
-      region: "Singapore",
-      createdDate: "09/04/2025",
-      questions: {
-        question1: "Why do you want to become an expert?",
-        answer1: "lorem ipsum ...",
-        question2: "Describe your background and expertise?",
-        answer2: "lorem ipsum ..."
-      },
-      attachedFiles: ["Resume_Matt.pdf", "Certification_Matt.pdf"]
-    },
-    {
-      id: "#4",
-      firstName: "Emily",
-      lastName: "Davis",
-      email: "emily.davis@gmail.com",
-      dateSubmitted: "10/05/2025",
-      filesSubmitted: 6,
-      dateOfBirth: "12/10/2004",
-      contactNumber: "82622526",
-      interest: "Fossils, Minerals",
-      role: "Free User",
-      gender: "Male",
-      region: "Singapore",
-      createdDate: "09/04/2025",
-      questions: {
-        question1: "Why do you want to become an expert?",
-        answer1: "lorem ipsum ...",
-        question2: "Describe your background and expertise?",
-        answer2: "lorem ipsum ..."
-      },
-      attachedFiles: ["Resume_Matt.pdf", "Certification_Matt.pdf"]
-    },
-  ]
+  // Application data state
+  const [pendingApplications, setPendingApplications] = useState<Application[]>([])
+  const [pastApplications, setPastApplications] = useState<Application[]>([])
 
-  // Sample data for past applications
-  const pastApplications: Application[] = [
-    {
-      id: "#1",
-      firstName: "Matt",
-      lastName: "Dickerson",
-      email: "dicker@gmail.com",
-      dateSubmitted: "13/05/2025",
-      filesSubmitted: 10,
-      status: "Accepted",
-      dateProcessed: "15/05/2025",
-      adminId: "100",
-      dateOfBirth: "12/10/2004",
-      contactNumber: "82622526",
-      interest: "Fossils, Minerals",
-      role: "Free User",
-      gender: "Male",
-      region: "Singapore",
-      createdDate: "09/04/2025",
-      questions: {
-        question1: "Why do you want to become an expert?",
-        answer1: "lorem ipsum ...",
-        question2: "Describe your background and expertise?",
-        answer2: "lorem ipsum ..."
-      },
-      attachedFiles: ["Resume_Matt.pdf", "Certification_Matt.pdf"]
-    },
-    {
-      id: "#2",
-      firstName: "Jessica",
-      lastName: "Wilson",
-      email: "j.wilson@gmail.com",
-      dateSubmitted: "12/05/2025",
-      filesSubmitted: 7,
-      status: "Accepted",
-      dateProcessed: "14/05/2025",
-      adminId: "100",
-      dateOfBirth: "12/10/2004",
-      contactNumber: "82622526",
-      interest: "Fossils, Minerals",
-      role: "Free User",
-      gender: "Male",
-      region: "Singapore",
-      createdDate: "09/04/2025",
-      questions: {
-        question1: "Why do you want to become an expert?",
-        answer1: "lorem ipsum ...",
-        question2: "Describe your background and expertise?",
-        answer2: "lorem ipsum ..."
-      },
-      attachedFiles: ["Resume_Matt.pdf", "Certification_Matt.pdf"]
-    },
-    {
-      id: "#3",
-      firstName: "David",
-      lastName: "Miller",
-      email: "d.miller@gmail.com",
-      dateSubmitted: "11/05/2025",
-      filesSubmitted: 4,
-      status: "Rejected",
-      dateProcessed: "13/05/2025",
-      adminId: "100",
-      dateOfBirth: "12/10/2004",
-      contactNumber: "82622526",
-      interest: "Fossils, Minerals",
-      role: "Free User",
-      gender: "Male",
-      region: "Singapore",
-      createdDate: "09/04/2025",
-      questions: {
-        question1: "Why do you want to become an expert?",
-        answer1: "lorem ipsum ...",
-        question2: "Describe your background and expertise?",
-        answer2: "lorem ipsum ..."
-      },
-      attachedFiles: ["Resume_Matt.pdf", "Certification_Matt.pdf"]
-    },
-    {
-      id: "#4",
-      firstName: "Lisa",
-      lastName: "Anderson",
-      email: "lisa.a@gmail.com",
-      dateSubmitted: "10/05/2025",
-      filesSubmitted: 9,
-      status: "Accepted",
-      dateProcessed: "12/05/2025",
-      adminId: "100",
-      dateOfBirth: "12/10/2004",
-      contactNumber: "82622526",
-      interest: "Fossils, Minerals",
-      role: "Free User",
-      gender: "Male",
-      region: "Singapore",
-      createdDate: "09/04/2025",
-      questions: {
-        question1: "Why do you want to become an expert?",
-        answer1: "lorem ipsum ...",
-        question2: "Describe your background and expertise?",
-        answer2: "lorem ipsum ..."
-      },
-      attachedFiles: ["Resume_Matt.pdf", "Certification_Matt.pdf"]
-    },
-    {
-      id: "#5",
-      firstName: "Robert",
-      lastName: "Taylor",
-      email: "r.taylor@gmail.com",
-      dateSubmitted: "09/05/2025",
-      filesSubmitted: 3,
-      status: "Rejected",
-      dateProcessed: "11/05/2025",
-      adminId: "100",
-      dateOfBirth: "12/10/2004",
-      contactNumber: "82622526",
-      interest: "Fossils, Minerals",
-      role: "Free User",
-      gender: "Male",
-      region: "Singapore",
-      createdDate: "09/04/2025",
-      questions: {
-        question1: "Why do you want to become an expert?",
-        answer1: "lorem ipsum ...",
-        question2: "Describe your background and expertise?",
-        answer2: "lorem ipsum ..."
-      },
-      attachedFiles: ["Resume_Matt.pdf", "Certification_Matt.pdf"]
-    },
-  ]
+  // Fetch pending applications
+  const fetchPendingApplications = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/applications/pending`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setPendingApplications(data.applications)
+      } else {
+        setError(data.error || 'Failed to fetch pending applications')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching pending applications')
+      console.error('Error fetching pending applications:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch past applications
+  const fetchPastApplications = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/applications/past`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setPastApplications(data.applications)
+      } else {
+        setError(data.error || 'Failed to fetch past applications')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching past applications')
+      console.error('Error fetching past applications:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch application details
+  const fetchApplicationDetails = async (applicationId: number) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/applications/view/${applicationId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        return data.application
+      } else {
+        setError(data.error || 'Failed to fetch application details')
+        return null
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching application details')
+      console.error('Error fetching application details:', err)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Accept application
+  const acceptApplication = async (applicationId: string) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/applications/accept`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          application_id: parseInt(applicationId.replace('#', ''))
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setSuccessMessage(data.message || 'Application accepted successfully')
+        setShowSuccessDialog(true)
+        
+        // Refresh applications
+        await fetchPendingApplications()
+        await fetchPastApplications()
+      } else {
+        setError(data.message || 'Failed to accept application')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while accepting application')
+      console.error('Error accepting application:', err)
+    } finally {
+      setIsLoading(false)
+      setShowConfirmDialog(false)
+      setConfirmAction(null)
+    }
+  }
+
+  // Reject application
+  const rejectApplication = async (applicationId: string) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/applications/reject`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          application_id: parseInt(applicationId.replace('#', ''))
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setSuccessMessage(data.message || 'Application rejected successfully')
+        setShowSuccessDialog(true)
+        
+        // Refresh applications
+        await fetchPendingApplications()
+        await fetchPastApplications()
+      } else {
+        setError(data.message || 'Failed to reject application')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while rejecting application')
+      console.error('Error rejecting application:', err)
+    } finally {
+      setIsLoading(false)
+      setShowConfirmDialog(false)
+      setConfirmAction(null)
+    }
+  }
+
+  // Load applications on component mount and tab change
+  useEffect(() => {
+    if (activeTab === "pending") {
+      fetchPendingApplications()
+    } else if (activeTab === "past") {
+      fetchPastApplications()
+    }
+  }, [activeTab])
+
+  // Clear error after a few seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null)
+      }, 10000)
+      return () => clearTimeout(timer)
+    }
+  }, [error])
 
   const handleNavigation = (item: string) => {
     switch (item) {
@@ -316,6 +364,7 @@ export default function ApplicationsManagement() {
       case "logout":
         localStorage.removeItem('isAdminLoggedIn')
         localStorage.removeItem('adminEmail')
+        localStorage.removeItem('adminToken')
         router.push('/login')
         break
       default:
@@ -324,19 +373,21 @@ export default function ApplicationsManagement() {
   }
 
   const handleAction = async (action: "accept" | "reject", applicationId: string) => {
-    setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    setShowConfirmDialog(false)
-    setConfirmAction(null)
-    // Here you would update the application status
+    if (action === "accept") {
+      await acceptApplication(applicationId)
+    } else {
+      await rejectApplication(applicationId)
+    }
   }
 
-  const handleView = (application: Application) => {
-    setSelectedApplication(application)
-    setViewMode("detail")
-    setDetailPage(1)
+  const handleView = async (application: Application) => {
+    // Fetch detailed application data
+    const detailedApplication = await fetchApplicationDetails(application.application_id)
+    if (detailedApplication) {
+      setSelectedApplication(detailedApplication)
+      setViewMode("detail")
+      setDetailPage(1)
+    }
   }
 
   const handleBackToList = () => {
@@ -347,11 +398,11 @@ export default function ApplicationsManagement() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "Accepted":
+      case "Approved":
         return (
           <Badge className="bg-green-100 text-green-700 border-green-200">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Accepted
+            Approved
           </Badge>
         )
       case "Rejected":
@@ -371,19 +422,47 @@ export default function ApplicationsManagement() {
     }
   }
 
-  const filteredPendingApplications = pendingApplications.filter(
-    (app) =>
-      app.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.email.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-GB')
+  }
 
-  const filteredPastApplications = pastApplications.filter(
-    (app) =>
-      app.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.email.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  // Show error dialog if there's an error
+  if (error) {
+    return (
+      <AdminLayout
+        activeMenuItem="applications"
+        title="Hi, Admin 👋"
+        subtitle="Manage application submissions efficiently"
+        onNavigate={handleNavigation}
+      >
+        <div className="p-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error</h3>
+              <p className="text-red-600 mb-4 max-w-md mx-auto">{error}</p>
+              <Button 
+                onClick={() => {
+                  setError(null)
+                  if (activeTab === "pending") {
+                    fetchPendingApplications()
+                  } else {
+                    fetchPastApplications()
+                  }
+                }} 
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
 
   if (viewMode === "detail" && selectedApplication) {
     return (
@@ -408,12 +487,12 @@ export default function ApplicationsManagement() {
                 </Button>
                 <span className="text-gray-400">{'>'}</span>
                 <span className="font-medium text-gray-900">
-                  {selectedApplication.firstName} {selectedApplication.lastName}
+                  {selectedApplication.first_name} {selectedApplication.last_name}
                 </span>
               </div>
               
               <div className="flex items-center space-x-2">
-                <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">Pending</Badge>
+                {getStatusBadge(selectedApplication.status)}
                 <Badge className="bg-green-100 text-green-700 border-green-200">Active</Badge>
               </div>
             </div>
@@ -426,22 +505,22 @@ export default function ApplicationsManagement() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">First Name</label>
-                      <Input value={selectedApplication.firstName} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.first_name} readOnly className="bg-gray-50" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Last Name</label>
-                      <Input value={selectedApplication.lastName} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.last_name} readOnly className="bg-gray-50" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Date of Birth</label>
-                      <Input value={selectedApplication.dateOfBirth || ""} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.date_of_birth || ""} readOnly className="bg-gray-50" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Contact Number</label>
-                      <Input value={selectedApplication.contactNumber || ""} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.contact_number || ""} readOnly className="bg-gray-50" />
                     </div>
                   </div>
 
@@ -482,7 +561,7 @@ export default function ApplicationsManagement() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Created Date</label>
-                      <Input value={selectedApplication.createdDate || ""} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.created_date || ""} readOnly className="bg-gray-50" />
                     </div>
                   </div>
 
@@ -541,7 +620,7 @@ export default function ApplicationsManagement() {
                   <div className="space-y-4">
                     <label className="text-sm font-medium text-gray-700">Attached Files</label>
                     <div className="space-y-2">
-                      {selectedApplication.attachedFiles?.map((file, index) => (
+                      {selectedApplication.attached_files?.map((file, index) => (
                         <div key={index} className="flex items-center p-3 bg-gray-50 border border-gray-200 rounded-md">
                           <FileTextIcon className="w-4 h-4 text-gray-500 mr-2" />
                           <span className="text-gray-700">{file}</span>
@@ -563,8 +642,8 @@ export default function ApplicationsManagement() {
                         onClick={() => {
                           setConfirmAction({
                             type: "accept",
-                            applicationId: selectedApplication.id,
-                            applicantName: `${selectedApplication.firstName} ${selectedApplication.lastName}`,
+                            applicationId: selectedApplication.application_id.toString(),
+                            applicantName: `${selectedApplication.first_name} ${selectedApplication.last_name}`,
                           })
                           setShowConfirmDialog(true)
                         }}
@@ -577,8 +656,8 @@ export default function ApplicationsManagement() {
                         onClick={() => {
                           setConfirmAction({
                             type: "reject",
-                            applicationId: selectedApplication.id,
-                            applicantName: `${selectedApplication.firstName} ${selectedApplication.lastName}`,
+                            applicationId: selectedApplication.application_id.toString(),
+                            applicantName: `${selectedApplication.first_name} ${selectedApplication.last_name}`,
                           })
                           setShowConfirmDialog(true)
                         }}
@@ -626,6 +705,26 @@ export default function ApplicationsManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Success Dialog */}
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <span>Operation Successful</span>
+              </DialogTitle>
+              <DialogDescription>
+                {successMessage}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowSuccessDialog(false)}>
+                OK
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </AdminLayout>
     )
   }
@@ -647,38 +746,6 @@ export default function ApplicationsManagement() {
                 <p className="text-gray-600 mt-1">Review and manage user applications</p>
               </div>
             </div>
-
-            {/* Controls */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">Show</span>
-                  <Select value={entries} onValueChange={setEntries}>
-                    <SelectTrigger className="w-20 h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-sm text-gray-500">entries</span>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="relative w-80">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Search applications..."
-                    className="pl-10 focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Tabs */}
@@ -687,11 +754,11 @@ export default function ApplicationsManagement() {
               <TabsList className="grid w-full max-w-md grid-cols-2">
                 <TabsTrigger value="pending" className="flex items-center">
                   <Clock className="w-4 h-4 mr-2" />
-                  Pending Applicants ({filteredPendingApplications.length})
+                  Pending Applicants ({pendingApplications.length})
                 </TabsTrigger>
                 <TabsTrigger value="past" className="flex items-center">
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  Past Applicants ({filteredPastApplications.length})
+                  Past Applicants ({pastApplications.length})
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -712,58 +779,73 @@ export default function ApplicationsManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPendingApplications.map((application) => (
-                      <TableRow key={application.id} className="hover:bg-gray-50 transition-colors">
-                        <TableCell className="font-medium text-gray-900">{application.id}</TableCell>
-                        <TableCell className="text-gray-900">{application.firstName}</TableCell>
-                        <TableCell className="text-gray-900">{application.lastName}</TableCell>
-                        <TableCell className="text-gray-600">{application.email}</TableCell>
-                        <TableCell className="text-gray-600">{application.dateSubmitted}</TableCell>
-                        <TableCell className="text-gray-600">{application.filesSubmitted}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center space-x-2">
-                            <Button 
-                              size="sm" 
-                              className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-3"
-                              onClick={() => handleView(application)}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              View
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white h-8 px-3"
-                              onClick={() => {
-                                setConfirmAction({
-                                  type: "accept",
-                                  applicationId: application.id,
-                                  applicantName: `${application.firstName} ${application.lastName}`,
-                                })
-                                setShowConfirmDialog(true)
-                              }}
-                            >
-                              <Check className="w-3 h-3 mr-1" />
-                              Accept
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="bg-red-600 hover:bg-red-700 text-white h-8 px-3"
-                              onClick={() => {
-                                setConfirmAction({
-                                  type: "reject",
-                                  applicationId: application.id,
-                                  applicantName: `${application.firstName} ${application.lastName}`,
-                                })
-                                setShowConfirmDialog(true)
-                              }}
-                            >
-                              <X className="w-3 h-3 mr-1" />
-                              Reject
-                            </Button>
-                          </div>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+                          <span className="text-gray-500">Loading pending applications...</span>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : pendingApplications.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                          No pending applications found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      pendingApplications.map((application) => (
+                        <TableRow key={application.application_id} className="hover:bg-gray-50 transition-colors">
+                          <TableCell className="font-medium text-gray-900">#{application.application_id}</TableCell>
+                          <TableCell className="text-gray-900">{application.first_name}</TableCell>
+                          <TableCell className="text-gray-900">{application.last_name}</TableCell>
+                          <TableCell className="text-gray-600">{application.email}</TableCell>
+                          <TableCell className="text-gray-600">{formatDate(application.date_submitted)}</TableCell>
+                          <TableCell className="text-gray-600">{application.files_submitted}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-center space-x-2">
+                              <Button 
+                                size="sm" 
+                                className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-3"
+                                onClick={() => handleView(application)}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white h-8 px-3"
+                                onClick={() => {
+                                  setConfirmAction({
+                                    type: "accept",
+                                    applicationId: application.application_id.toString(),
+                                    applicantName: `${application.first_name} ${application.last_name}`,
+                                  })
+                                  setShowConfirmDialog(true)
+                                }}
+                              >
+                                <Check className="w-3 h-3 mr-1" />
+                                Accept
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-red-600 hover:bg-red-700 text-white h-8 px-3"
+                                onClick={() => {
+                                  setConfirmAction({
+                                    type: "reject",
+                                    applicationId: application.application_id.toString(),
+                                    applicantName: `${application.first_name} ${application.last_name}`,
+                                  })
+                                  setShowConfirmDialog(true)
+                                }}
+                              >
+                                <X className="w-3 h-3 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -787,49 +869,39 @@ export default function ApplicationsManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPastApplications.map((application) => (
-                      <TableRow key={application.id} className="hover:bg-gray-50 transition-colors">
-                        <TableCell className="font-medium text-gray-900">{application.id}</TableCell>
-                        <TableCell className="text-gray-900">{application.firstName}</TableCell>
-                        <TableCell className="text-gray-900">{application.lastName}</TableCell>
-                        <TableCell className="text-gray-600">{application.email}</TableCell>
-                        <TableCell className="text-gray-600">{application.dateSubmitted}</TableCell>
-                        <TableCell className="text-gray-600">{application.filesSubmitted}</TableCell>
-                        <TableCell>{getStatusBadge(application.status!)}</TableCell>
-                        <TableCell className="text-gray-600">{application.dateProcessed}</TableCell>
-                        <TableCell className="text-gray-600">{application.adminId}</TableCell>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-8">
+                          <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" />
+                          <span className="text-gray-500">Loading past applications...</span>
+                        </TableCell>
                       </TableRow>
-                    ))}
+                    ) : pastApplications.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                          No past applications found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      pastApplications.map((application) => (
+                        <TableRow key={application.application_id} className="hover:bg-gray-50 transition-colors">
+                          <TableCell className="font-medium text-gray-900">#{application.application_id}</TableCell>
+                          <TableCell className="text-gray-900">{application.first_name}</TableCell>
+                          <TableCell className="text-gray-900">{application.last_name}</TableCell>
+                          <TableCell className="text-gray-600">{application.email}</TableCell>
+                          <TableCell className="text-gray-600">{formatDate(application.date_submitted)}</TableCell>
+                          <TableCell className="text-gray-600">{application.files_submitted}</TableCell>
+                          <TableCell>{getStatusBadge(application.status)}</TableCell>
+                          <TableCell className="text-gray-600">{formatDate(application.date_processed || application.date_submitted)}</TableCell>
+                          <TableCell className="text-gray-600">{application.admin_id || 'N/A'}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
             </TabsContent>
           </Tabs>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-            <div className="text-sm text-gray-500">
-              Showing 1 to {entries} of{" "}
-              {activeTab === "pending" ? filteredPendingApplications.length : filteredPastApplications.length} entries
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-              <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 w-8 h-8">
-                1
-              </Button>
-              <Button variant="outline" size="sm">
-                2
-              </Button>
-              <Button variant="outline" size="sm">
-                3
-              </Button>
-              <Button variant="outline" size="sm">
-                Next
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -861,6 +933,26 @@ export default function ApplicationsManagement() {
             >
               {isLoading && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
               {confirmAction?.type === "accept" ? "Accept" : "Reject"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              <span>Operation Successful</span>
+            </DialogTitle>
+            <DialogDescription>
+              {successMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowSuccessDialog(false)}>
+              OK
             </Button>
           </DialogFooter>
         </DialogContent>

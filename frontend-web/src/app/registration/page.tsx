@@ -1,14 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, Eye, EyeOff, AlertCircle } from "lucide-react"
+import { ChevronLeft, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react"
 import Image from "next/image"
+
+// Interface for Interest data
+interface Interest {
+  interest_id: number
+  title: string
+  description: string
+  categories_id: number
+  category_title: string
+}
 
 export default function RegistrationPage() {
   const router = useRouter()
@@ -19,20 +28,10 @@ export default function RegistrationPage() {
   const [error, setError] = useState("")
   const [interests, setInterests] = useState<string[]>([])
   
-  const availableInterests = [
-    "Volcanic Rock",
-    "Fossils", 
-    "Mineral & Crystal",
-    "Gemstones",
-    "Sedimentary Rock",
-    "Igneous Rock",
-    "Metamorphic Rock",
-    "Paleontology",
-    "Geology",
-    "Mining",
-    "Rock Collecting",
-    "Crystal Healing"
-  ]
+  // State for dynamic interests from database
+  const [availableInterests, setAvailableInterests] = useState<Interest[]>([])
+  const [interestsLoading, setInterestsLoading] = useState(true)
+  const [interestsError, setInterestsError] = useState("")
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -46,6 +45,38 @@ export default function RegistrationPage() {
     gender: "Rather not say",
     plan: "Free Plan",
   })
+
+  // Fetch interests from database on component mount
+  useEffect(() => {
+    const fetchInterests = async () => {
+      try {
+        setInterestsLoading(true)
+        setInterestsError("")
+        
+        const response = await fetch('http://localhost:5000/api/interests/all', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        const data = await response.json()
+        
+        if (response.ok && data.success) {
+          setAvailableInterests(data.interests)
+        } else {
+          setInterestsError(data.error || 'Failed to load interests')
+        }
+      } catch (error) {
+        console.error('Error fetching interests:', error)
+        setInterestsError('Unable to connect to server')
+      } finally {
+        setInterestsLoading(false)
+      }
+    }
+
+    fetchInterests()
+  }, [])
 
   const toggleInterest = (interest: string) => {
     if (interests.includes(interest)) {
@@ -118,9 +149,10 @@ export default function RegistrationPage() {
 
       // Map plan to user_type_id
       const userTypeMapping: Record<string, number> = {
-        "Free Plan": 1,
-        "Premium Plan": 2,
-        "Expert Plan": 3
+        "Free Plan": 2,        // Free = ID 2
+        "Premium Plan": 3,     // Premium = ID 3  
+        "Expert Plan": 4       // Expert = ID 4
+        // Admin (ID 1) is not available for public registration
       }
 
       const requestData = {
@@ -132,8 +164,8 @@ export default function RegistrationPage() {
         contact_number: formData.contactNumber || null,
         gender: formData.gender === "Rather not say" ? null : formData.gender,
         region: formData.region,
-        user_type_id: userTypeMapping[formData.plan] || 1,
-        interests: interests // Store for future use
+        user_type_id: userTypeMapping[formData.plan] || 2,
+        interests: interests // Send selected interests
       }
 
       console.log('Sending registration request:', requestData)
@@ -380,19 +412,37 @@ export default function RegistrationPage() {
 
                 <div>
                   <Label className="text-sm text-gray-600">Interests (Optional)</Label>
+                  {interestsLoading ? (
+                    <div className="mt-2 flex items-center justify-center p-4">
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      <span className="text-sm text-gray-500">Loading interests...</span>
+                    </div>
+                  ) : interestsError ? (
+                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <span className="text-sm text-yellow-700">
+                        {interestsError}. Please try again later.
+                      </span>
+                    </div>
+                  ) : null}
+                  
                   <div className="mt-2 max-h-32 overflow-y-auto">
                     <div className="grid grid-cols-2 gap-2">
                       {availableInterests.map((interest) => (
-                        <div key={interest} className="flex items-center space-x-2">
+                        <div key={interest.interest_id} className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            id={`interest-${interest}`}
-                            checked={interests.includes(interest)}
-                            onChange={() => toggleInterest(interest)}
+                            id={`interest-${interest.interest_id}`}
+                            checked={interests.includes(interest.title)}
+                            onChange={() => toggleInterest(interest.title)}
                             className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                            disabled={interestsLoading}
                           />
-                          <Label htmlFor={`interest-${interest}`} className="text-sm cursor-pointer">
-                            {interest}
+                          <Label 
+                            htmlFor={`interest-${interest.interest_id}`} 
+                            className="text-sm cursor-pointer"
+                            title={interest.description || interest.title}
+                          >
+                            {interest.title}
                           </Label>
                         </div>
                       ))}
