@@ -31,7 +31,8 @@ class CreateUserController:
             contact_number = data.get('contact_number')
             gender = data.get('gender')
             region = data.get('region')
-            user_type_id = data.get('user_type_id', 1)  # Default to 'Free' user (ID: 1)
+            user_type_id = data.get('user_type_id', 2)  # Default to 'Free' user (ID: 2)
+            interests = data.get('interests', [])  # Extract interests array
             
             # For backward compatibility - convert user_profile name to user_type_id
             if 'user_profile' in data and 'user_type_id' not in data:
@@ -45,7 +46,7 @@ class CreateUserController:
                         'message': f'User profile "{user_profile_name}" not found'
                     }), 404
             
-            # Call the updated createUserAccount method
+            # Call the updated createUserAccount method with interests
             success, status_code, message, new_user = User.createUserAccount(
                 email=email,
                 password=password,
@@ -55,7 +56,8 @@ class CreateUserController:
                 contact_number=contact_number,
                 gender=gender,
                 region=region,
-                user_type_id=user_type_id
+                user_type_id=user_type_id,
+                interests=interests  # Pass interests to the method
             )
             
             if success and new_user:
@@ -75,4 +77,3 @@ class CreateUserController:
                 'success': False,
                 'message': f'Error creating user: {str(e)}'
             }), 500
-
