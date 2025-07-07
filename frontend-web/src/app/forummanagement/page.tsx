@@ -344,48 +344,66 @@ export default function ForumManagement() {
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Image */}
               <div className="lg:col-span-1">
-                <div className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
+                <div className="bg-gray-100 rounded-lg overflow-hidden">
                   {article?.photo ? (
-                    <Image
-                      src={`http://localhost:5000${article.photo}`}
-                      alt={article.title}
-                      width={300}
-                      height={300}
-                      className="object-cover rounded-lg"
-                    />
+                    <div className="relative w-full h-80">
+                      <Image
+                        src={`http://localhost:5000${article.photo}`}
+                        alt={article.title || 'Article image'}
+                        width={400}
+                        height={320}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    </div>
                   ) : (
-                    <div className="text-gray-400 text-center">
-                      <div className="w-16 h-16 mx-auto mb-2 bg-gray-300 rounded flex items-center justify-center">
-                        <Image
-                          src="/placeholder.svg?height=64&width=64"
-                          alt="Placeholder"
-                          width={64}
-                          height={64}
-                          className="opacity-50"
-                        />
+                    <div className="w-full h-80 flex items-center justify-center bg-gray-200">
+                      <div className="text-gray-400 text-center">
+                        <div className="w-16 h-16 mx-auto mb-2 bg-gray-300 rounded flex items-center justify-center">
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <p className="text-sm">No image available</p>
                       </div>
                     </div>
                   )}
                 </div>
-                <div className="mt-4 space-y-2">
+                
+                {/* Article metadata */}
+                <div className="mt-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Like:</span>
-                    <span className="font-medium">
-                      {article ? article.total_likes : discussion?.likeCount}
-                    </span>
+                    <span className="text-sm text-gray-500">Likes:</span>
+                    <div className="flex items-center">
+                      <ThumbsUp className="w-4 h-4 mr-1 text-blue-500" />
+                      <span className="font-medium">{article ? article.total_likes : 0}</span>
+                    </div>
                   </div>
+                  
+                  {article && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Type:</span>
+                        <Badge className={`text-xs ${getArticleTypeColor(article.is_free)}`}>
+                          {article.is_free ? 'Free' : 'Premium'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Category:</span>
+                        <span className="text-sm font-medium">{article.category_title || 'N/A'}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">Author:</span>
+                        <span className="text-sm font-medium">{article.author_name || 'Unknown'}</span>
+                      </div>
+                    </>
+                  )}
+                  
                   {discussion && (
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">Dislike:</span>
                       <span className="font-medium">{discussion.dislikeCount}</span>
-                    </div>
-                  )}
-                  {article && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">Type:</span>
-                      <Badge className={`text-xs ${getArticleTypeColor(article.is_free)}`}>
-                        {article.is_free ? 'Free' : 'Premium'}
-                      </Badge>
                     </div>
                   )}
                 </div>
