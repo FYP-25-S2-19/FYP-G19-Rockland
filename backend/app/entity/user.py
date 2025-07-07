@@ -33,7 +33,7 @@ class User(db.Model):
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Foreign key to UserType
-    user_type_id = db.Column(db.Integer, db.ForeignKey('user_type.user_type_id'), nullable=False, default=1)
+    user_type_id = db.Column(db.Integer, db.ForeignKey('user_type.user_type_id'), nullable=False, default=2)
 
     # Relationship with UserType model
     user_type = db.relationship('UserType', backref='users')
@@ -253,15 +253,16 @@ class User(db.Model):
     
     @classmethod
     def createUserAccount(cls, email: str, password: str = "Password123",
-                          first_name: str = None,
-                          last_name: str = None,
-                          date_of_birth: str = None,
-                          contact_number: str = None,
-                          gender: str = None,
-                          region: str = None,
-                          user_type_id: int = 1,  # Default to 'Free' user type
-                          status: str = 'Active',
-                          total_points: int = 0):
+                        first_name: str = None,
+                        last_name: str = None,
+                        date_of_birth: str = None,
+                        contact_number: str = None,
+                        gender: str = None,
+                        region: str = None,
+                        user_type_id: int = 2,  # Default to 'Free' user type
+                        status: str = 'Active',
+                        total_points: int = 0,
+                        interests: list = None):  # Added interests parameter
         """Create a new user account"""
         
         # Check if user already exists
@@ -306,8 +307,27 @@ class User(db.Model):
             # Hash the password using the instance method
             new_user.set_password(password)
 
-            # Save to database
+            # Save to database first to get user_id
             db.session.add(new_user)
+            db.session.flush()  # This assigns the user_id without committing
+            
+            # Handle interests if provided
+            if interests and isinstance(interests, list):
+                # Import Interest model
+                from app.entity.interest import Interest
+                
+                # Process each interest
+                for interest_title in interests:
+                    if interest_title and interest_title.strip():
+                        # Find the interest by title
+                        interest = Interest.query.filter_by(title=interest_title.strip()).first()
+                        if interest:
+                            # Add the interest to the user's interests
+                            new_user.interests.append(interest)
+                        else:
+                            print(f"Warning: Interest '{interest_title}' not found in database")
+            
+            # Commit all changes
             db.session.commit()
 
             return True, 201, "User created successfully", new_user
@@ -316,7 +336,7 @@ class User(db.Model):
             db.session.rollback()
             print(f"Error creating user: {e}")
             return False, 500, f"Error creating user: {str(e)}", None
-
+        
     @classmethod
     def upgradeUserType(cls, user_id: int, target_user_type: str) -> Tuple[bool, int, str, Optional['User']]:
         """
