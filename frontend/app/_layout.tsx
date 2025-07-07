@@ -1,7 +1,11 @@
 import { Stack } from "expo-router";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "react-native";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "../global.css";
+
+// Create a single QueryClient instance outside the component
+const queryClient = new QueryClient();
 
 function InnerLayout() {
   const insets = useSafeAreaInsets();
@@ -25,7 +29,9 @@ function InnerLayout() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <InnerLayout />
+      <QueryClientProvider client={queryClient}>
+        <InnerLayout />
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }

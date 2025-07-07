@@ -7,6 +7,7 @@ from flask import Flask
 from app.entity.usertype import UserType
 from app.entity.categories import Categories
 from app.entity.interest import Interest  # Must come before User
+from app.entity.faq import Faq 
 from app.entity.user import User          # This has the association table
 from app.entity.token import Token
 

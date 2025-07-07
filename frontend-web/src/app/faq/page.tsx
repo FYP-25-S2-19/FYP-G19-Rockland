@@ -3,78 +3,65 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ChevronDown, ChevronUp, ArrowLeft } from "lucide-react"
-import { useState } from "react"
+import { ChevronDown, ChevronUp, ArrowLeft, Loader2, AlertCircle } from "lucide-react"
+import { useState, useEffect } from "react"
+
+interface FAQ {
+  faq_id: number
+  question: string
+  answer: string
+  user_id: number
+}
+
+// API configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function FAQPage() {
   const [openItems, setOpenItems] = useState<number[]>([])
+  const [faqs, setFaqs] = useState<FAQ[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const toggleItem = (index: number) => {
     setOpenItems((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]))
   }
 
-  const faqData = [
-    {
-      question: "How do I scan a rock?",
-      answer:
-        "To scan a rock with Rockland, simply open the app and tap the 'Scan' button at the bottom of the screen. Point your camera at the rock you want to identify, making sure it's well-lit and clearly visible. The AI will automatically analyze the rock's features including color, texture, crystal structure, and mineral composition to provide you with detailed information about the rock type.",
-    },
-    {
-      question: "How do I save a rock scan?",
-      answer:
-        "After scanning a rock, you'll see a 'Save' button on the results screen. Tap it to add the rock to your personal collection. You can also add notes, location data, and photos. All saved rocks are stored in your profile under 'My Collection' where you can view them anytime, even offline.",
-    },
-    {
-      question: "How do I upgrade my account?",
-      answer:
-        "To upgrade to Premium, go to Settings > Subscription in the app, or visit our website and click 'Subscribe Now' on the pricing page. Premium gives you unlimited scans, advanced AI identification, detailed geological information, and access to exclusive educational content. You can pay monthly ($5/mo) or annually for a discount.",
-    },
-    {
-      question: "How do I earn points?",
-      answer:
-        "You earn points in Rockland by: completing daily quizzes (10 points), scanning new rock types (5 points), sharing discoveries with the community (3 points), and completing educational modules (15 points). Points unlock achievements, badges, and can be used to access premium content temporarily.",
-    },
-    {
-      question: "How many free scans do I get?",
-      answer:
-        "With the Basic (free) account, you get 5 rock scans per day. This limit resets every 24 hours at midnight. Premium subscribers get unlimited scans. If you run out of daily scans, you can either wait for the reset or upgrade to Premium for unlimited access.",
-    },
-    {
-      question: "What if no rock information is found?",
-      answer:
-        "If our AI can't identify your rock, try these steps: 1) Ensure good lighting and clear focus, 2) Clean the rock surface, 3) Try scanning from different angles, 4) Check if it's actually a rock (not concrete, brick, etc.). You can also submit the image to our community experts who will help identify it within 24 hours.",
-    },
-    {
-      question: "Can I use Rockland offline?",
-      answer:
-        "Yes! Rockland works offline for basic rock identification using our downloaded database. However, you'll need an internet connection for: advanced AI features, community interactions, syncing your collection, and accessing the latest rock database updates.",
-    },
-    {
-      question: "Is Rockland suitable for beginners?",
-      answer:
-        "Rockland is designed for all skill levels. We have beginner-friendly content including: basic geology tutorials, simple identification guides, glossary of terms, and step-by-step learning paths. The app adapts to your knowledge level and provides appropriate content.",
-    },
-    {
-      question: "How accurate is the rock identification?",
-      answer:
-        "Our AI has a 95% accuracy rate for common rocks and minerals. Accuracy depends on image quality, lighting, and rock condition. For rare or complex specimens, we recommend consulting with our community experts or using multiple identification methods.",
-    },
-    {
-      question: "Can I contribute to the Rockland database?",
-      answer:
-        "Yes! Premium users can submit verified rock samples to help improve our database. Your contributions are reviewed by geologists and, if approved, added to help other users. Contributors receive special badges and recognition in the community.",
-    },
-    {
-      question: "What educational content is available?",
-      answer:
-        "Rockland offers: interactive geology courses, rock formation videos, mineral property guides, field trip suggestions, virtual museum tours, and expert-led webinars. Premium users get access to advanced courses and exclusive content from professional geologists.",
-    },
-    {
-      question: "How do I contact support?",
-      answer:
-        "You can reach our support team through: the in-app help center, email at support@rocklandapp.com, or our website contact form. Premium users get priority support with response times under 4 hours. We also have an active community forum for peer support.",
-    },
-  ]
+  // Fetch FAQs from the public endpoint (no authentication required)
+  const fetchFAQs = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch(`${API_BASE_URL}/api/faqs/public`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setFaqs(data.faqs)
+      } else {
+        setError(data.error || 'Failed to fetch FAQs')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching FAQs')
+      console.error('Error fetching FAQs:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load FAQs on component mount
+  useEffect(() => {
+    fetchFAQs()
+  }, [])
 
   return (
     <div className="min-h-screen bg-white">
@@ -123,31 +110,61 @@ export default function FAQPage() {
       {/* FAQ Content */}
       <section className="py-16">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="space-y-4">
-            {faqData.map((item, index) => (
-              <Card key={index} className="overflow-hidden">
-                <CardContent className="p-0">
-                  <button
-                    onClick={() => toggleItem(index)}
-                    className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="font-semibold text-gray-800 pr-4">{item.question}</span>
-                    {openItems.includes(index) ? (
-                      <ChevronUp className="w-5 h-5 text-green-600 flex-shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    )}
-                  </button>
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+              <span className="ml-2 text-gray-600">Loading FAQs...</span>
+            </div>
+          )}
 
-                  {openItems.includes(index) && (
-                    <div className="px-6 pb-4 border-t border-gray-100">
-                      <p className="text-gray-600 leading-relaxed pt-4">{item.answer}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {/* Error State */}
+          {error && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <p className="text-red-600 mb-4">{error}</p>
+                <Button onClick={fetchFAQs} className="bg-green-600 hover:bg-green-700">
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* FAQ List */}
+          {!loading && !error && (
+            <div className="space-y-4">
+              {faqs.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">No FAQs available at the moment.</p>
+                </div>
+              ) : (
+                faqs.map((item, index) => (
+                  <Card key={item.faq_id} className="overflow-hidden">
+                    <CardContent className="p-0">
+                      <button
+                        onClick={() => toggleItem(index)}
+                        className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="font-semibold text-gray-800 pr-4">{item.question}</span>
+                        {openItems.includes(index) ? (
+                          <ChevronUp className="w-5 h-5 text-green-600 flex-shrink-0" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                        )}
+                      </button>
+
+                      {openItems.includes(index) && (
+                        <div className="px-6 pb-4 border-t border-gray-100">
+                          <p className="text-gray-600 leading-relaxed pt-4">{item.answer}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </section>
 
