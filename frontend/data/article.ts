@@ -46,4 +46,32 @@ export const sampleArticles = [
     liked: false,
     date: "2025-07-01T08:20:00Z", // <-- Add proper date
   },
+  {
+    id: 4,
+    authorName: "Test",
+    authorImage: profilePicture,
+    isPremium: false,
+    thumbnail: article1,
+    title: "Just Tsting",
+    category: "Minerals",
+    preview:
+      "Fossil hunting offers a fascinating window into Earth's ancient history...",
+    likes: 0,
+    liked: false,
+    date: "2025-07-01T08:20:00Z", // <-- Add proper date
+  },
+  {
+    id: 5,
+    authorName: "Test1",
+    authorImage: profilePicture,
+    isPremium: false,
+    thumbnail: article2,
+    title: "Fossil Hunting Guide",
+    category: "Test",
+    preview:
+      "Fossil hunting offers a fascinating window into Earth's ancient history...",
+    likes: 0,
+    liked: false,
+    date: "2025-07-01T08:20:00Z", // <-- Add proper date
+  },
 ];

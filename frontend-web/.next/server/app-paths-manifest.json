@@ -1,6 +1,10 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/login/page": "app/login/page.js",
+  "/landingpagemanagement/page": "app/landingpagemanagement/page.js",
   "/page": "app/page.js",
-  "/registration/page": "app/registration/page.js"
+  "/registration/page": "app/registration/page.js",
+  "/login/page": "app/login/page.js",
+  "/features/page": "app/features/page.js",
+  "/pricing/page": "app/pricing/page.js",
+  "/faq/page": "app/faq/page.js"
 }

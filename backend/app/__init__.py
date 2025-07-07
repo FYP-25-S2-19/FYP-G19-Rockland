@@ -31,10 +31,6 @@ def create_app():
     from .controller.user.suspend_user_controller import suspend_user_blueprint
     app.register_blueprint(suspend_user_blueprint)
 
-    from .controller.user.get_current_user import get_current_user_blueprint
-    app.register_blueprint(get_current_user_blueprint)
-
-
     ##################################################### USER TYPE CONTROLLERS##################################################################
     from .controller.usertype.create_usertype_controller import create_usertype_blueprint
     app.register_blueprint(create_usertype_blueprint)
@@ -68,5 +64,48 @@ def create_app():
     from .controller.interest.delete_interest_controller import delete_interest_blueprint
     app.register_blueprint(delete_interest_blueprint)
     
+    ######## FAQ
+    from .controller.faq.view_faq_controller import view_faq_blueprint
+    app.register_blueprint(view_faq_blueprint)
+
+    from .controller.faq.create_faq_controller import create_faq_blueprint
+    app.register_blueprint(create_faq_blueprint)
+
+    from .controller.faq.delete_faq_controller import delete_faq_blueprint
+    app.register_blueprint(delete_faq_blueprint)
+
+    from .controller.faq.update_faq_controller import update_faq_blueprint
+    app.register_blueprint(update_faq_blueprint)
+
+    ## VIDEO
+    from .controller.video.view_video_controller import view_video_blueprint
+    app.register_blueprint(view_video_blueprint)
+
+    from .controller.video.post_video_controller import post_video_blueprint
+    app.register_blueprint(post_video_blueprint)
+
+    from .controller.video.delete_video_controller import delete_video_blueprint
+    app.register_blueprint(delete_video_blueprint)
+
+    ### AppLink
+    from .controller.applink.view_applink_controller import view_applink_blueprint
+    app.register_blueprint(view_applink_blueprint)
+
+    from .controller.applink.post_applink_controller import post_applink_blueprint
+    app.register_blueprint(post_applink_blueprint)
+
+    from .controller.applink.delete_applink_controller import delete_applink_blueprint
+    app.register_blueprint(delete_applink_blueprint)
+
+    ### Testimonials
+
+    from .controller.testimonials.create_testimonials_controller import create_testimonials_blueprint
+    app.register_blueprint(create_testimonials_blueprint)
+
+    from .controller.testimonials.delete_testimonials_controller import delete_testimonials_blueprint
+    app.register_blueprint(delete_testimonials_blueprint)
+
+    from .controller.testimonials.view_testimonials_controller import view_testimonials_blueprint
+    app.register_blueprint(view_testimonials_blueprint)
 
     return app

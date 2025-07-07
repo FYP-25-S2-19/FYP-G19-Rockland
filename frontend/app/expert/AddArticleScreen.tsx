@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import * as ImagePicker from 'expo-image-picker';
 import {
   View,
   Text,
@@ -10,13 +9,14 @@ import {
   ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 
-const rockTypes = ['Igneous', 'Sedimentary', 'Metamorphic', 'Other'];
+const articleTypes = ['Igneous', 'Sedimentary', 'Metamorphic', 'Other'];
 
-export default function AddRockScreen() {
+export default function AddArtcleScreen() {
   const navigation = useNavigation();
 
-  const [rockType, setRockType] = useState('Igneous');
+  const [articleType, setarticleType] = useState('Article Category');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [rarity, setRarity] = useState({
     common: false,
@@ -27,6 +27,7 @@ export default function AddRockScreen() {
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState<{ uri: string; width: number; height: number }[]>([]);
 
+  // Pick image from gallery
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -40,7 +41,35 @@ export default function AddRockScreen() {
       quality: 1,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      const uri = asset.uri;
+
+      Image.getSize(
+        uri,
+        (width, height) => {
+          setPhotos((prev) => [...prev, { uri, width, height }]);
+        },
+        (error) => {
+          console.error('Failed to get image size', error);
+        }
+      );
+    }
+  };
+
+  // Take photo with camera
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Sorry, we need camera permissions to make this work!');
+      return;
+    }
+
+    let result = await ImagePicker.launchCameraAsync({
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
       const uri = asset.uri;
 
@@ -57,11 +86,11 @@ export default function AddRockScreen() {
   };
 
   const toggleDropdown = () => setDropdownOpen((prev) => !prev);
-  const selectRockType = (type) => {
-    setRockType(type);
+  const selectArticleType = (type: string) => {
+    setarticleType(type);
     setDropdownOpen(false);
   };
-  const toggleRarity = (key) => {
+  const toggleRarity = (key: string) => {
     setRarity((prev) => ({
       ...prev,
       [key]: !prev[key],
@@ -80,16 +109,16 @@ export default function AddRockScreen() {
       </View>
 
       <View style={styles.iconRow}>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity style={styles.iconButton} onPress={takePhoto}>
           <Image
-            source={require('../assets/images/camera.png')}
+            source={require('../../assets/images/camera.png')}
             style={styles.icon}
             resizeMode="contain"
           />
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
           <Image
-            source={require('../assets/images/picture.png')}
+            source={require('../../assets/images/picture.png')}
             style={styles.icon}
             resizeMode="contain"
           />
@@ -103,22 +132,22 @@ export default function AddRockScreen() {
           onPress={toggleDropdown}
           activeOpacity={0.7}
         >
-          <Text style={styles.dropdownText}>{rockType}</Text>
+          <Text style={styles.dropdownText}>{articleType}</Text>
           <Text style={styles.dropdownArrow}>{dropdownOpen ? '▲' : '▼'}</Text>
         </TouchableOpacity>
 
         {dropdownOpen && (
           <View style={styles.dropdownList}>
-            {rockTypes.map((type) => (
+            {articleTypes.map((type) => (
               <TouchableOpacity
                 key={type}
                 style={styles.dropdownItem}
-                onPress={() => selectRockType(type)}
+                onPress={() => selectArticleType(type)}
               >
                 <Text
                   style={[
                     styles.dropdownItemText,
-                    type === rockType && { fontWeight: 'bold' },
+                    type === articleType && { fontWeight: 'bold' },
                   ]}
                 >
                   {type}
@@ -131,7 +160,7 @@ export default function AddRockScreen() {
 
       {/* Rarity Checkboxes */}
       <View style={styles.checkboxRow}>
-        {['common', 'rare', 'legendary'].map((key) => (
+        {['beginner', 'intermediate', 'advanced'].map((key) => (
           <TouchableOpacity
             key={key}
             style={styles.checkboxContainer}
@@ -163,14 +192,14 @@ export default function AddRockScreen() {
       {/* Rock Name Input */}
       <TextInput
         style={styles.rockNameInput}
-        placeholder="Rock Name..."
+        placeholder="Article Title..."
         placeholderTextColor="#A9A9A9"
         value={rockName}
         onChangeText={setRockName}
         underlineColorAndroid="transparent"
       />
 
-      {/* Photos Container */}
+      {/* Photos */}
       <View
         style={[
           styles.photosContainer,
@@ -200,6 +229,7 @@ export default function AddRockScreen() {
         )}
       </View>
 
+      {/* Description */}
       <TextInput
         style={styles.descriptionInput}
         placeholder="Description..."
@@ -216,7 +246,7 @@ export default function AddRockScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
+    paddingTop: 30,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
   },
@@ -350,6 +380,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
   },
+  photosContainerNoBorder: {
+    borderWidth: 0,
+  },
   descriptionInput: {
     marginTop: 20,
     fontSize: 16,
@@ -360,8 +393,4 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     marginLeft: 15,
   },
-
-  photosContainerNoBorder: {
-  borderWidth: 0,
-},
 });
