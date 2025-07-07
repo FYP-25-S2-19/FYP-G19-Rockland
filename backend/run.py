@@ -16,6 +16,8 @@ from app.entity.token import Token
 from app.entity.application import Application
 from app.entity.application_answer import ApplicationAnswer
 from app.entity.application_file import ApplicationFile
+from app.entity.article import Article
+from app.entity.article_like import ArticleLike
 
 app = create_app()
 
