@@ -1,6 +1,6 @@
 "use client";
-import { API_URL } from "@env";
-import React, { useEffect, useState } from "react";
+
+import React from "react";
 import { useRouter } from "expo-router";
 import {
   View,
@@ -9,90 +9,95 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ProfilePicture from "../assets/images/profilepicture.png";
 import CrownIcon from "../assets/images/crown.svg";
 import SettingIcon from "../assets/images/Settings.svg";
 import ArrowRightIcon from "../assets/images/arrow_right.svg";
 import AccountActiveIcon from "../assets/icons/account_active.svg";
 import BackpackIcon from "../assets/images/backpack.svg";
-import AddIcon from "../assets/images/addicon.svg";
 import TradeIcon from "../assets/images/tradeicon.svg";
 import MedalIcon from "../assets/images/medalicon.svg";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
+
+type MenuItemProps = {
+  icon: React.ComponentType<{ width: number; height: number; fill?: string }>;
+  label: string;
+  onPress: () => void;
+  last?: boolean;
+};
+
+const shadowStyle = {
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  elevation: 4,
+};
 
 export default function AccountScreen() {
   const router = useRouter();
-  const [userName, setUserName] = useState("");
-  const [userRole, setUserRole] = useState("free");
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const token = await AsyncStorage.getItem("accessToken");
-        if (!token) throw new Error("No token found");
+  // Fetch user profile from API using accessToken stored in AsyncStorage
+  const fetchUserProfile = async () => {
+    const token = await AsyncStorage.getItem("accessToken");
+    if (!token) throw new Error("No access token found");
 
-        const response = await fetch(`${API_URL}/api/users/me`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+    const response = await fetch(`${API_URL}/api/users/me`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-        const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`Error fetching profile: ${response.status}`);
+    }
 
-        if (data.success) {
-          setUserName(`${data.user.first_name} ${data.user.last_name}`);
-          setUserRole(data.user.user_type?.name?.toLowerCase() || "free");
-          await AsyncStorage.setItem("userRole", data.user.user_type?.name?.toLowerCase() || "free");
-        } else {
-          console.log("❌ Failed to load user", data.error);
-        }
-      } catch (err) {
-        console.error("🔐 Login error:", err);
-      }
+    const contentType = response.headers.get("content-type");
+    const raw = await response.text();
+
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error("Server returned non-JSON response");
+    }
+
+    const data = JSON.parse(raw);
+    if (!data.success) throw new Error(data.error || "Failed to fetch user profile");
+
+    // Save role to AsyncStorage for global use
+    const role = data.user.user_type_name?.toLowerCase() || "free";
+    await AsyncStorage.setItem("userRole", role);
+
+    return {
+      fullName: `${data.user.first_name} ${data.user.last_name}`,
+      role,
+      user: data.user,
     };
+  };
 
-    fetchUserProfile();
-  }, []);
+  // Use React Query for user profile with cache and refetch
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["userProfile"],
+    queryFn: fetchUserProfile,
+    staleTime: 60000,
+    retry: 1,
+  });
 
+  // Navigation handlers
   const handleSettings = () => router.push("/settings");
   const handleProfile = () => router.push("/profile");
   const handleSubscribe = () => console.log("Subscribe Now pressed");
   const handleMyCollection = () => router.push("/mycollection");
   const handleBadgesAndAchievements = () => router.push("/badges");
   const handleTradeList = () => router.push("/tradelist");
-  const handleAddRock = () => router.push("/AddRockScreen");
-  const handleExpertQuiz = () => router.push("/(expert-tabs)/quizhome");
   const handleSettingsNavigation = () => router.push("/settings");
 
-  const shadowStyle = {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  };
-
-  type MenuItemProps = {
-    icon: React.ComponentType<{ width: number; height: number; fill?: string }>;
-    label: string;
-    onPress: () => void;
-    last?: boolean;
-  };
-
-  const MenuItem = ({
-    icon: Icon,
-    label,
-    onPress,
-    last = false,
-  }: MenuItemProps) => (
+  const MenuItem = ({ icon: Icon, label, onPress, last = false }: MenuItemProps) => (
     <TouchableOpacity
-      className={`flex-row justify-between items-center py-5 ${
-        !last ? "border-b border-gray-100" : ""
-      }`}
+      className={`flex-row justify-between items-center py-5 ${!last ? "border-b border-gray-100" : ""}`}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -104,22 +109,43 @@ export default function AccountScreen() {
     </TouchableOpacity>
   );
 
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-gray-50">
+        <ActivityIndicator size="large" color="#459B6C" />
+        <Text className="text-lg text-gray-500 mt-2">Loading account...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-gray-50 px-6">
+        <Text className="text-lg text-red-600 text-center mb-4">Failed to load account data.</Text>
+        <TouchableOpacity className="bg-green-600 py-3 px-6 rounded-xl" onPress={() => refetch()}>
+          <Text className="text-white font-semibold">Try Again</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  const { fullName, role: userRole } = data;
+  const gradientColors =
+    userRole === "premium"
+      ? (["#EF9E1C", "#FDE68A"] as const)
+      : (["#459B6C", "#AFDBB8"] as const);
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <View className="flex-1">
         <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}>
-          {/* HEADER SECTION */}
           <LinearGradient
-            colors={
-              userRole === 'premium'
-                ? ['#EF9E1C', '#FDE68A']
-                : ['#459B6C', '#AFDBB8']
-            }
+            colors={gradientColors}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={{
               height: 200,
-              justifyContent: 'flex-start',
+              justifyContent: "flex-start",
               paddingTop: 20,
               paddingHorizontal: 20,
               borderBottomLeftRadius: 30,
@@ -131,10 +157,10 @@ export default function AccountScreen() {
             <TouchableOpacity
               onPress={handleSettings}
               style={{
-                position: 'absolute',
+                position: "absolute",
                 top: 20,
                 right: 20,
-                backgroundColor: 'rgba(255,255,255,0.3)',
+                backgroundColor: "rgba(255,255,255,0.3)",
                 borderRadius: 999,
                 padding: 6,
               }}
@@ -143,9 +169,10 @@ export default function AccountScreen() {
             </TouchableOpacity>
           </LinearGradient>
 
-          {/* CONTENT SECTION */}
-          <View className="bg-gray-50 rounded-t-3xl -mt-20 px-5 pt-10" style={{ flex: 1 }}>
-            {/* PROFILE IMAGE */}
+          <View
+            className="bg-gray-50 rounded-t-3xl -mt-20 px-5 pt-10"
+            style={{ flex: 1 }}
+          >
             <View style={{ alignItems: "center", marginTop: -100 }}>
               <View
                 style={{
@@ -171,14 +198,16 @@ export default function AccountScreen() {
               </View>
             </View>
 
-            {/* USER NAME + ROLE */}
             <View className="items-center mt-4 mb-4">
-              <Text className="text-2xl font-bold text-gray-900">
-                {userName || "User"}
-              </Text>
+              <Text className="text-2xl font-bold text-gray-900">{fullName || "User"}</Text>
               <View className="flex-row items-center mt-2">
                 {userRole === "premium" && (
-                  <CrownIcon width={18} height={18} fill="#EF9E1C" style={{ marginRight: 4 }} />
+                  <CrownIcon
+                    width={18}
+                    height={18}
+                    fill="#EF9E1C"
+                    style={{ marginRight: 4 }}
+                  />
                 )}
                 <Text
                   className={`text-base ${
@@ -187,18 +216,21 @@ export default function AccountScreen() {
                       : "text-gray-500"
                   }`}
                 >
-                  {userRole === "premium" ? "Premium User" : "Free User"}
+                  {userRole === "premium"
+                    ? "Premium User"
+                    : userRole === "expert"
+                    ? "Expert User"
+                    : "Free User"}
                 </Text>
               </View>
             </View>
 
-            {/* Top Buttons */}
             <View className="flex-row mb-10">
               <TouchableOpacity
                 className="flex-1 bg-green-600 py-4 rounded-xl items-center justify-center mr-1.5 relative"
                 onPress={handleProfile}
                 activeOpacity={0.8}
-                style={[shadowStyle]}
+                style={shadowStyle}
               >
                 <View className="absolute left-4">
                   <AccountActiveIcon width={20} height={20} />
@@ -211,7 +243,7 @@ export default function AccountScreen() {
                   className="flex-1 bg-[#EF9E1C] py-4 rounded-xl items-center justify-center ml-1.5 relative"
                   onPress={handleSubscribe}
                   activeOpacity={0.8}
-                  style={[shadowStyle]}
+                  style={shadowStyle}
                 >
                   <View className="absolute left-4">
                     <CrownIcon width={20} height={20} fill="white" />
@@ -223,32 +255,56 @@ export default function AccountScreen() {
               )}
             </View>
 
-            {/* Menu List */}
-            <View>
-              <View
-                style={{
-                  backgroundColor: "#fff",
-                  borderRadius: 16,
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.06,
-                  shadowRadius: 10,
-                  elevation: 2,
-                }}
-              >
-                <MenuItem icon={BackpackIcon} label="My Collection" onPress={handleMyCollection} />
-                {userRole === "premium" && (
-                  <>
-                    <MenuItem icon={AddIcon} label="Add New Rock Entry" onPress={handleAddRock} />
-                    <MenuItem icon={TradeIcon} label="Trade Rock Collection" onPress={handleTradeList} />
-                    <MenuItem icon={MedalIcon} label="Badges and Achievements" onPress={handleBadgesAndAchievements} />
-                    <MenuItem icon={AddIcon} label="Expert Quiz Home Page" onPress={handleExpertQuiz} />
-                  </>
-                )}
-                <MenuItem icon={SettingIcon} label="Settings" onPress={handleSettingsNavigation} last />
-              </View>
+            <View
+              style={{
+                backgroundColor: "#fff",
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.06,
+                shadowRadius: 10,
+                elevation: 2,
+              }}
+            >
+              {userRole === "free" && (
+                <MenuItem
+                  icon={BackpackIcon}
+                  label="My Collection"
+                  onPress={handleMyCollection}
+                />
+              )}
+              {userRole === "premium" && (
+                <>
+                  <MenuItem
+                    icon={BackpackIcon}
+                    label="My Collection"
+                    onPress={handleMyCollection}
+                  />
+                  <MenuItem
+                    icon={TradeIcon}
+                    label="Trade Rock Collection"
+                    onPress={handleTradeList}
+                  />
+                  <MenuItem
+                    icon={MedalIcon}
+                    label="Badges and Achievements"
+                    onPress={handleBadgesAndAchievements}
+                  />
+                </>
+              )}
+              {userRole === "expert" && (
+                <Text className="text-center text-gray-500 py-4">
+                  No menu for expert user yet.
+                </Text>
+              )}
+              <MenuItem
+                icon={SettingIcon}
+                label="Settings"
+                onPress={handleSettingsNavigation}
+                last
+              />
             </View>
           </View>
         </ScrollView>
