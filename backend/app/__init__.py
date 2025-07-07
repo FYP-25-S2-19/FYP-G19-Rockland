@@ -8,7 +8,7 @@ def create_app():
 
     db.init_app(app)
     CORS(app)
-    
+
     ######## USER CONTROLLER
     from .controller.authentication.login import login_blueprint
     app.register_blueprint(login_blueprint)
