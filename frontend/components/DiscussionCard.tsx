@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 import { useRouter } from "expo-router";
 
 // Comment and Discussion types reused across app
@@ -21,14 +21,18 @@ export interface Discussion {
 
 interface DiscussionCardProps {
   discussion: Discussion;
+  onPress?: () => void;
 }
 
-export default function DiscussionCard({ discussion }: DiscussionCardProps) {
+export default function DiscussionCard({ discussion, onPress }: DiscussionCardProps) {
   const router = useRouter();
 
   const handlePress = () => {
-    router.push(`/discussion/${discussion.id}`);
-    
+    if (onPress) {
+      onPress();
+    } else {
+      router.push(`/discussion/${discussion.id}`);
+    }
   };
 
   return (
@@ -42,7 +46,7 @@ export default function DiscussionCard({ discussion }: DiscussionCardProps) {
         <View className="flex-row items-center">
           <View className="w-8 h-8 bg-gray-300 rounded-full items-center justify-center mr-3">
             <Text className="text-gray-600 font-semibold text-sm">
-              {discussion.user[0]}
+              {discussion.user[0]?.toUpperCase()}
             </Text>
           </View>
           <View>
@@ -64,13 +68,21 @@ export default function DiscussionCard({ discussion }: DiscussionCardProps) {
         {discussion.text}
       </Text>
 
-      {/* Footer */}
-      <View className="flex-row items-center justify-end">
-        <Text className="text-gray-500 text-lg mr-1">💬</Text>
-        <Text className="text-gray-500 text-sm font-medium">
-          {discussion.comments.length}{" "}
-          {discussion.comments.length === 1 ? "comment" : "comments"}
+      {/* Footer: Reply icon + comment count */}
+      <View className="flex-row items-center justify-end space-x-2">
+        <Text className="text-gray-500 text-sm font-medium mr-1">
+          {discussion.comments.length} {discussion.comments.length === 1 ? "reply" : "replies"}
         </Text>
+        <Image
+          source={require("../assets/images/reply.png")}
+          style={{
+            width: 20,
+            height: 20,
+            tintColor: "#000",
+          }}
+          resizeMode="contain"
+        />
+        
       </View>
     </TouchableOpacity>
   );
