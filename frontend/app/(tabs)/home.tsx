@@ -196,7 +196,7 @@ export default function HomeScreen() {
         {/* Top Articles */}
         <View className="px-5 mb-20">
           <Text className="text-xl font-bold text-gray-900 mb-4">Top Articles</Text>
-          {sampleArticles.map((article) => (
+          {sampleArticles.slice(0, 3).map((article) => (
             <TouchableOpacity
               key={article.id}
               className="flex-row mb-4 bg-white rounded-2xl border border-gray-200"
