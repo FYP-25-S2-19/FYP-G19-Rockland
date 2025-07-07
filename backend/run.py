@@ -4,12 +4,21 @@ from flask import Flask
 
 # CRITICAL: Import models in correct order
 # Import these BEFORE calling create_all()
-from app.entity.usertype import UserType
 from app.entity.categories import Categories
-from app.entity.interest import Interest  # Must come before User
-from app.entity.faq import Faq 
-from app.entity.user import User          # This has the association table
+from app.entity.interest import Interest
+from app.entity.faq import Faq
+from app.entity.user import User
+from app.entity.usertype import UserType
+from app.entity.rock import Rock
+from app.entity.video import Video
+from app.entity.applink import AppLink
+from app.entity.testimonials import Testimonials
 from app.entity.token import Token
+from app.entity.application import Application
+from app.entity.application_answer import ApplicationAnswer
+from app.entity.application_file import ApplicationFile
+from app.entity.article import Article
+from app.entity.article_like import ArticleLike
 
 app = create_app()
 

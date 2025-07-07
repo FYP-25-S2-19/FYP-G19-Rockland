@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from app.controller.authentication.jwt_required import jwt_required
+from app.controller.authentication.permission_required import permission_required
 
 # 📄 Route: GET /api/users/me
 # 🔐 Description: Returns the profile of the currently authenticated user.
@@ -8,8 +8,8 @@ from app.controller.authentication.jwt_required import jwt_required
 get_current_user_blueprint = Blueprint('get_current_user', __name__)
 
 @get_current_user_blueprint.route('/api/users/me', methods=['GET'])
-@jwt_required
-def get_current_user(current_user=None):
+@permission_required("has_freeuser_permission") 
+def get_current_user(current_user):
     """
     Get current logged-in user's profile based on JWT token.
 

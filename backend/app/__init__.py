@@ -8,7 +8,7 @@ def create_app():
 
     db.init_app(app)
     CORS(app)
-    
+
     ######## USER CONTROLLER
     from .controller.authentication.login import login_blueprint
     app.register_blueprint(login_blueprint)
@@ -107,5 +107,33 @@ def create_app():
 
     from .controller.testimonials.view_testimonials_controller import view_testimonials_blueprint
     app.register_blueprint(view_testimonials_blueprint)
+
+    #### Application
+
+    from .controller.application.create_application_controller import create_application_blueprint
+    app.register_blueprint(create_application_blueprint)
+
+    from .controller.application.view_application_controller import view_application_blueprint
+    app.register_blueprint(view_application_blueprint)
+
+    from .controller.application.accept_decline_application_controller import accept_decline_application_blueprint
+    app.register_blueprint(accept_decline_application_blueprint)
+
+    ### Articles
+
+    from .controller.articles.delete_article_controller import delete_article_blueprint
+    app.register_blueprint(delete_article_blueprint)
+
+    from .controller.articles.like_article_controller import like_article_blueprint
+    app.register_blueprint(like_article_blueprint)
+
+    from .controller.articles.post_article_controller import post_article_blueprint
+    app.register_blueprint(post_article_blueprint)
+
+    from .controller.articles.search_article_controller import search_article_blueprint
+    app.register_blueprint(search_article_blueprint)
+
+    from .controller.articles.view_article_controller import view_article_blueprint
+    app.register_blueprint(view_article_blueprint)
 
     return app
