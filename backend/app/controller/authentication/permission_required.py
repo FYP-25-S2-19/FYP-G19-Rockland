@@ -147,26 +147,30 @@ def permission_required(permission_name):
                 print(f"✅ User type: {user_type.name}")
                 print(f"✅ User type dict: {user_type.to_dict()}")
                 
-                # Check the specific permission
-                print(f"🔍 Checking permission '{permission_name}'...")
+                # Check the specific permission(s)
+                print(f"🔍 Checking permission(s): {permission_name}")
                 try:
-                    permission_value = getattr(user_type, permission_name, None)
-                    print(f"✅ Permission '{permission_name}' value: {permission_value}")
-                    print(f"✅ Has attribute: {hasattr(user_type, permission_name)}")
+                    if isinstance(permission_name, list):
+                        permission_value = any(
+                            getattr(user_type, perm, False) for perm in permission_name
+                        )
+                    else:
+                        permission_value = getattr(user_type, permission_name, False)
+                    
+                    print(f"✅ Permission result: {permission_value}")
                 except Exception as e:
-                    print(f"❌ Error checking permission: {e}")
+                    print(f"❌ Error checking permission(s): {e}")
                     return jsonify({
                         'success': False,
                         'error': f'Permission check error: {str(e)}'
                     }), 500
-                
-                if not hasattr(user_type, permission_name) or not getattr(user_type, permission_name):
-                    print(f"❌ User lacks required permission: {permission_name}")
+
+                if not permission_value:
+                    print("❌ User lacks required permission(s)")
                     return jsonify({
                         'success': False,
                         'error': 'Insufficient permissions'
                     }), 403
-                
                 print("✅ Authentication successful!")
                 
                 # Add user info to kwargs for the route to use

@@ -63,6 +63,61 @@ def create_app():
 
     from .controller.interest.delete_interest_controller import delete_interest_blueprint
     app.register_blueprint(delete_interest_blueprint)
+
+    ###############  ROCK 
+    from .controller.rock.create_rock_controller import create_rock_blueprint
+    app.register_blueprint(create_rock_blueprint)
+
+    from .controller.rock.delete_rock_controller import delete_rock_blueprint
+    app.register_blueprint(delete_rock_blueprint)
+
+    from .controller.rock.get_all_rock_controller import get_all_rock_blueprint
+    app.register_blueprint(get_all_rock_blueprint)
+
+    from .controller.rock.get_rock_by_id_controller import get_rock_by_id_blueprint
+    app.register_blueprint(get_rock_by_id_blueprint)
+
+    from .controller.rock.get_rocks_by_user_controller import get_rocks_by_user_blueprint
+    app.register_blueprint(get_rocks_by_user_blueprint)
+
+    from .controller.rock.get_top_commented_rocks_controller import get_top_commented_rocks_blueprint
+    app.register_blueprint(get_top_commented_rocks_blueprint)
+
+    from .controller.rock.search_rock_controller import search_rock_blueprint
+    app.register_blueprint(search_rock_blueprint)
+
+    from .controller.rock.update_rock_controller import update_rock_blueprint
+    app.register_blueprint(update_rock_blueprint)
+
+    from .controller.rock.view_rock_controller import view_rock_blueprint
+    app.register_blueprint(view_rock_blueprint)
+    
+    ###############  ROCK SCAN
+    from .controller.rock_scan.save_scan_result_controller import save_scan_result_blueprint
+    app.register_blueprint(save_scan_result_blueprint)
+
+    ############# ROCK COLLECTION
+    from .controller.rock_collection.add_to_collection_controller import add_to_collection_bp
+    app.register_blueprint(add_to_collection_bp)
+
+    from .controller.rock_collection.delete_from_collection_controller import delete_from_collection_bp
+    app.register_blueprint(delete_from_collection_bp)
+
+    from .controller.rock_collection.get_user_collection_controller import get_user_collection_blueprint
+    app.register_blueprint(get_user_collection_blueprint)
+
+    from app.controller.rock_collection.filter_user_collection_controller import filter_user_collection_blueprint
+    app.register_blueprint(filter_user_collection_blueprint)
+
+
+    ################ COMMENT
+    from .controller.comment.rock.create_comment_controller import create_rock_comment_blueprint
+    app.register_blueprint(create_rock_comment_blueprint)
+
+    from .controller.comment.rock.toggle_like_comment_controller import toggle_like_comment_blueprint
+    app.register_blueprint(toggle_like_comment_blueprint)
+    
+
     
     ######## FAQ
     from .controller.faq.view_faq_controller import view_faq_blueprint
@@ -135,5 +190,27 @@ def create_app():
 
     from .controller.articles.view_article_controller import view_article_blueprint
     app.register_blueprint(view_article_blueprint)
+
+    
+    ### Articles
+
+    from .controller.trade_offer.accept_trade_offer_controller import accept_trade_offer_bp
+    app.register_blueprint(accept_trade_offer_bp)
+
+    from .controller.trade_offer.create_trade_offer_controller import create_trade_offer_bp
+    app.register_blueprint(create_trade_offer_bp)
+
+    from .controller.trade_offer.delete_trade_offer_controller import delete_trade_offer_bp
+    app.register_blueprint(delete_trade_offer_bp)
+
+    from .controller.trade_offer.reject_trade_offer_controller import reject_trade_offer_bp
+    app.register_blueprint(reject_trade_offer_bp)
+
+    from .controller.trade_offer.search_trade_offer_controller import search_trade_offer_bp
+    app.register_blueprint(search_trade_offer_bp)
+
+    from .controller.trade_offer.search_my_trade_offer_controller import search_my_trade_offer_bp
+    app.register_blueprint(search_my_trade_offer_bp)
+
 
     return app
