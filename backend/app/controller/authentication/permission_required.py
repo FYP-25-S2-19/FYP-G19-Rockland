@@ -7,10 +7,12 @@ from app.models import db
 from app.entity.token import Token
 from app.entity.user import User
 
+
 def permission_required(permission_name):
     """
     Decorator to check if user has required permission and is active
     """
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -165,13 +167,13 @@ def permission_required(permission_name):
                         'error': f'Permission check error: {str(e)}'
                     }), 500
 
-                if not permission_value:
+                # ✅ Only check permission if permission_name is provided
+                if permission_name and not permission_value:
                     print("❌ User lacks required permission(s)")
                     return jsonify({
                         'success': False,
                         'error': 'Insufficient permissions'
                     }), 403
-                print("✅ Authentication successful!")
                 
                 # Add user info to kwargs for the route to use
                 kwargs['current_user'] = user

@@ -67,7 +67,10 @@ class User(db.Model):
             'total_points': self.total_points,
             'user_type_id': self.user_type_id,
             'user_type_name': self.user_type.name if self.user_type else None,
-            'created_date': self.created_date.isoformat() if self.created_date else None
+            'created_date': self.created_date.isoformat() if self.created_date else None,
+            
+            # ✅ Add this line to return interest titles
+            'interests': [interest.title for interest in self.interests] if self.interests else []
         }
 
     @classmethod
@@ -397,69 +400,73 @@ class User(db.Model):
         
 
     @classmethod
-    def updateUserAccount(cls, email: str, password: str = None,
+    def updateUserAccount(cls, email: str,
+                        password: str = None,
                         first_name: str = None,
                         last_name: str = None,
                         date_of_birth: str = None,
                         contact_number: str = None,
                         gender: str = None,
                         region: str = None,
-                        status: str = None) -> Tuple[bool, int, str, Optional['User']]:
+                        status: str = None,  # Only applied if user is admin
+                        interests: list = None,
+                        is_admin: bool = False  # <-- Admin control flag
+                        ) -> Tuple[bool, int, str, Optional['User']]:
         """Update user account details"""
         try:
-            # Get the user by email
             user = cls.queryUserAccount(email)
             if not user:
                 return False, 404, "User not found", None
-            
-            # Validate email format if being updated
+
+            # Validate email format
             if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
                 return False, 400, "Invalid email format", None
-            
-            # Update fields only if provided
+
+            # Update user fields
             if first_name is not None:
                 user.first_name = first_name.strip()
-            
             if last_name is not None:
                 user.last_name = last_name.strip()
-            
             if date_of_birth is not None:
                 try:
-                    # Convert date_of_birth string to date object
-                    dob_date = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
-                    user.date_of_birth = dob_date
+                    user.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
                 except ValueError:
                     return False, 400, "Invalid date format. Use YYYY-MM-DD", None
-            
             if contact_number is not None:
                 user.contact_number = contact_number
-            
             if gender is not None:
                 user.gender = gender
-            
             if region is not None:
                 user.region = region
-            
-            if status is not None:
-                # Validate status values
+            if password is not None and password.strip():
+                user.set_password(password)
+
+            # ✅ Only admin can update the status field
+            if status is not None and is_admin:
                 valid_statuses = ['Active', 'Inactive', 'Suspended']
                 if status not in valid_statuses:
                     return False, 400, f"Invalid status. Must be one of: {', '.join(valid_statuses)}", None
                 user.status = status
-            
-            if password is not None and password.strip():
-                # Update password using the hashing method
-                user.set_password(password)
-            
-            # Commit the changes
+
+            # 🔄 Update interests
+            if interests is not None:
+                from app.entity.interest import Interest
+                user.interests.clear()
+                for interest_title in interests:
+                    interest = Interest.query.filter_by(title=interest_title.strip()).first()
+                    if interest:
+                        user.interests.append(interest)
+                    else:
+                        print(f"⚠️ Interest '{interest_title}' not found, skipping.")
+
             db.session.commit()
-            
             return True, 200, "User account updated successfully", user
-            
+
         except Exception as e:
             db.session.rollback()
             print(f"Error updating user account: {e}")
             return False, 500, f"An error occurred while updating user: {str(e)}", None
+
         
     @classmethod
     def suspendUserAccount(cls, user_id: int) -> Tuple[bool, int, str, Optional['User']]:
