@@ -9,6 +9,7 @@ import {
   Image,
   ScrollView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -19,37 +20,23 @@ import VisibilityOffIcon from "../assets/images/visibility_off.svg";
 import ChevronDownIcon from "../assets/images/chevron-down.svg";
 import EditIcon from "../assets/images/edit-line.svg";
 import { LinearGradient } from 'expo-linear-gradient';
+import axios from "axios";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [userRole, setUserRole] = useState("free");
+  const [loading, setLoading] = useState(true);
+  const [availableInterests, setAvailableInterests] = useState<string[]>([]);
 
-  useEffect(() => {
-    const loadRole = async () => {
-      const role = await AsyncStorage.getItem("userRole");
-      setUserRole(role || "free");
-    };
-    loadRole();
-  }, []);
-
-  const initial = {
-    firstName: "Lois",
-    lastName: "Becket",
-    email: "Loisbecket@gmail.com",
-    password: "password123",
-    dateOfBirth: "18/03/1990",
-    interests: ["Volcanic Rock", "Fossils", "Mineral & Crystal"],
-    selectedGender: "Female",
-  };
-
-  const [initialData, setInitialData] = useState(initial);
-  const [firstName, setFirstName] = useState(initial.firstName);
-  const [lastName, setLastName] = useState(initial.lastName);
-  const [email, setEmail] = useState(initial.email);
-  const [password, setPassword] = useState(initial.password);
-  const [dateOfBirth, setDateOfBirth] = useState(initial.dateOfBirth);
-  const [selectedGender, setSelectedGender] = useState(initial.selectedGender);
-  const [interests, setInterests] = useState(initial.interests);
+  const [initialData, setInitialData] = useState<any>({});
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [selectedGender, setSelectedGender] = useState("");
+  const [interests, setInterests] = useState<string[]>([]);
+  const [region, setRegion] = useState("");
 
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -57,43 +44,93 @@ export default function ProfileScreen() {
   const [showDropdown, setShowDropdown] = useState(false);
 
   const genderOptions = ["Female", "Male", "Rather not say"];
-  const availableInterests = [
-    "Volcanic Rock",
-    "Fossils",
-    "Mineral & Crystal",
-    "Sedimentary Rock",
-    "Igneous Rock",
-    "Metamorphic Rock",
-    "Gemstones",
-    "Meteorites",
-  ];
+
+  useEffect(() => {
+    const loadInitial = async () => {
+      const role = await AsyncStorage.getItem("userRole");
+      setUserRole(role || "free");
+
+      try {
+        const token = await AsyncStorage.getItem("accessToken");
+        const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+        const api = axios.create({
+          baseURL: API_URL,
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const userRes = await api.get("/api/users/me");
+        const user = userRes.data.user;
+
+        setInitialData(user);
+        setFirstName(user.first_name || "");
+        setLastName(user.last_name || "");
+        setEmail(user.email || "");
+        setPassword("");
+        setDateOfBirth(user.date_of_birth || "");
+        setSelectedGender(user.gender || "");
+        setRegion(user.region || "");
+        setInterests(user.interests || []);
+
+        const interestsRes = await api.get("/api/interests/all");
+        setAvailableInterests(
+          Array.isArray(interestsRes.data.interests)
+            ? interestsRes.data.interests.map((i: any) => i.title)
+            : []
+        );
+      } catch (e) {
+        console.log("❌ Failed to load user or interests:", e);
+      }
+
+      setLoading(false);
+    };
+
+    loadInitial();
+  }, []);
 
   const handleBack = () => router.push("/account");
 
   const handleEdit = () => setIsEditing(true);
 
   const handleCancel = () => {
-    setFirstName(initialData.firstName);
-    setLastName(initialData.lastName);
+    setFirstName(initialData.first_name);
+    setLastName(initialData.last_name);
     setEmail(initialData.email);
-    setPassword(initialData.password);
-    setDateOfBirth(initialData.dateOfBirth);
-    setSelectedGender(initialData.selectedGender);
+    setPassword("");
+    setDateOfBirth(initialData.date_of_birth);
+    setSelectedGender(initialData.gender);
     setInterests(initialData.interests);
+    setRegion(initialData.region);
     setIsEditing(false);
   };
 
-  const handleSave = () => {
-    setInitialData({
-      firstName,
-      lastName,
-      email,
-      password,
-      dateOfBirth,
-      interests,
-      selectedGender,
-    });
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+      const api = axios.create({
+        baseURL: API_URL,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const res = await api.post("/api/users/update_user", {
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+        date_of_birth: dateOfBirth,
+        contact_number: "",
+        gender: selectedGender,
+        region,
+        interests,
+      });
+
+      setInitialData(res.data.user);
+      setIsEditing(false);
+    } catch (e) {
+      console.log("❌ Failed to update user:", e);
+    }
   };
 
   const onDateChange = (event: any, selectedDate?: Date) => {
@@ -101,7 +138,7 @@ export default function ProfileScreen() {
       const day = selectedDate.getDate().toString().padStart(2, "0");
       const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
       const year = selectedDate.getFullYear();
-      setDateOfBirth(`${day}/${month}/${year}`);
+      setDateOfBirth(`${year}-${month}-${day}`);
     }
     setShowDatePicker(false);
   };
@@ -109,10 +146,8 @@ export default function ProfileScreen() {
   const handleToggleInterest = (item: string) => {
     if (interests.includes(item)) {
       setInterests(interests.filter((i) => i !== item));
-    } else {
-      if (interests.length < 3) {
-        setInterests([...interests, item]);
-      }
+    } else if (interests.length < 3) {
+      setInterests([...interests, item]);
     }
   };
 
@@ -127,6 +162,14 @@ export default function ProfileScreen() {
     padding: 20,
     marginBottom: 24,
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#4ADE80" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <LinearGradient
@@ -332,6 +375,21 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
+
+          {/* Region */}
+          <View className="mb-5">
+            <Text className="text-base font-medium text-gray-700 mb-2">Region</Text>
+            <TextInput
+              className={`border rounded-lg px-4 text-base ${isEditing ? "bg-white border-gray-400" : "bg-gray-100 border-gray-200"}`}
+              value={region}
+              placeholder="Enter your region"
+              placeholderTextColor="#9ca3af"
+              onChangeText={setRegion}
+              editable={isEditing}
+              style={{ height: 48, textAlignVertical: 'center', paddingVertical: Platform.OS === 'ios' ? 12 : 0, lineHeight: 18 }}
+            />
+          </View>
+
 
           {/* Gender */}
           <View className="mb-5">

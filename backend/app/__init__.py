@@ -7,7 +7,8 @@ def create_app():
     app.config.from_object('config.Config')
 
     db.init_app(app)
-    CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
+    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+    
 
     ######## USER CONTROLLER
     from .controller.authentication.login import login_blueprint

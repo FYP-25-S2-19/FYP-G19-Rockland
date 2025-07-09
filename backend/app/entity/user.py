@@ -400,21 +400,27 @@ class User(db.Model):
         
 
     @classmethod
-    def updateUserAccount(cls, email: str,
-                        password: str = None,
-                        first_name: str = None,
-                        last_name: str = None,
-                        date_of_birth: str = None,
-                        contact_number: str = None,
-                        gender: str = None,
-                        region: str = None,
-                        status: str = None,  # Only applied if user is admin
-                        interests: list = None,
-                        is_admin: bool = False  # <-- Admin control flag
-                        ) -> Tuple[bool, int, str, Optional['User']]:
+    def updateUserAccount(cls, current_user, data: dict) -> Tuple[bool, int, str, Optional['User']]:
         """Update user account details"""
         try:
-            user = cls.queryUserAccount(email)
+            from app.entity.interest import Interest
+            from datetime import datetime
+            import re
+
+            # Load update fields from data
+            email = data.get("email")
+            password = data.get("password")
+            first_name = data.get("first_name")
+            last_name = data.get("last_name")
+            date_of_birth = data.get("date_of_birth")
+            contact_number = data.get("contact_number")
+            gender = data.get("gender")
+            region = data.get("region")
+            status = data.get("status")
+            interests = data.get("interests")
+
+            # Get the current user object
+            user = cls.query.get(current_user.user_id)
             if not user:
                 return False, 404, "User not found", None
 
@@ -422,7 +428,9 @@ class User(db.Model):
             if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
                 return False, 400, "Invalid email format", None
 
-            # Update user fields
+            # Update fields
+            if email is not None:
+                user.email = email.strip()
             if first_name is not None:
                 user.first_name = first_name.strip()
             if last_name is not None:
@@ -441,17 +449,17 @@ class User(db.Model):
             if password is not None and password.strip():
                 user.set_password(password)
 
-            # ✅ Only admin can update the status field
-            if status is not None and is_admin:
+            # ✅ Admin-only: Update status field
+            if status is not None and getattr(current_user, "status", None) == "Admin":
                 valid_statuses = ['Active', 'Inactive', 'Suspended']
                 if status not in valid_statuses:
                     return False, 400, f"Invalid status. Must be one of: {', '.join(valid_statuses)}", None
                 user.status = status
 
-            # 🔄 Update interests
+           # 🔄 Update interests
             if interests is not None:
                 from app.entity.interest import Interest
-                user.interests.clear()
+                user.interests = []  # ✅ Correctly clear the existing relationships
                 for interest_title in interests:
                     interest = Interest.query.filter_by(title=interest_title.strip()).first()
                     if interest:
