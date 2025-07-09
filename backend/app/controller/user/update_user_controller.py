@@ -13,16 +13,7 @@ class UpdateUserController:
 
         success, status_code, message, updated_user = User.updateUserAccount(
             current_user=current_user,
-            email=updated_details.get('email'),
-            password=updated_details.get('password'),
-            first_name=updated_details.get('first_name'),
-            last_name=updated_details.get('last_name'),
-            date_of_birth=updated_details.get('date_of_birth'),
-            contact_number=updated_details.get('contact_number'),
-            gender=updated_details.get('gender'),
-            region=updated_details.get('region'),
-            status=updated_details.get('status'),  # Will only be applied if admin
-            interests=updated_details.get('interests')  # List of titles
+            data=updated_details
         )
 
         if not success:
