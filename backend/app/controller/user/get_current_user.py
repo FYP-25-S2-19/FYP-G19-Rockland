@@ -5,9 +5,12 @@ from app.controller.authentication.permission_required import permission_require
 # 🔐 Description: Returns the profile of the currently authenticated user.
 # ⚠️ Requires a valid JWT token in the Authorization header.
 
+
 get_current_user_blueprint = Blueprint('get_current_user', __name__)
 
+
 @get_current_user_blueprint.route('/api/users/me', methods=['GET']) 
+@permission_required([])
 def get_current_user(current_user):
     """
     Get current logged-in user's profile based on JWT token.
