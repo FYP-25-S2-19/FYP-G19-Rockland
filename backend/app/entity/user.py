@@ -26,7 +26,7 @@ class User(db.Model):
     last_name = db.Column(db.String(100), nullable=False)
     date_of_birth = db.Column(db.Date, nullable=False)
     contact_number = db.Column(db.String(20))
-    gender = db.Column(db.String(10))
+    gender = db.Column(db.String(50))
     region = db.Column(db.String(100))
     status = db.Column(db.String(20), nullable=False, default='Active')
     total_points = db.Column(db.Integer, default=0)
