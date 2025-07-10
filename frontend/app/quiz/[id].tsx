@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,21 +6,55 @@ import {
   SafeAreaView,
   Modal,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import BackIcon from '../../assets/images/back.svg';
-import { quizData } from '../../data/quizData';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function QuizDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const quiz = quizData.find((q) => q.id === id);
 
+  const [quiz, setQuiz] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [currentQIndex, setCurrentQIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [answered, setAnswered] = useState<boolean[]>([]);
+  const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<{ question_id: number; selected_answer_id: number }[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [showError, setShowError] = useState(false);
+
+  useEffect(() => {
+    const fetchQuiz = async () => {
+      try {
+        const token = await AsyncStorage.getItem('accessToken');
+        const res = await fetch(`${API_URL}/api/quizzes/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        setQuiz(data.quiz);
+      } catch (err) {
+        console.error('Error fetching quiz:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuiz();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center bg-white">
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    );
+  }
 
   if (!quiz) {
     return (
@@ -32,44 +66,52 @@ export default function QuizDetailScreen() {
 
   const currentQuestion = quiz.questions[currentQIndex];
 
-  const handleNext = () => {
-    if (!selectedOption) {
+  const handleNext = async () => {
+    if (!selectedOptionId) {
       setShowError(true);
       return;
     }
 
     setShowError(false);
-    const isCorrect = selectedOption === currentQuestion.correctAnswer;
-    const newAnswers = [...answered, isCorrect];
-    setAnswered(newAnswers);
-    setSelectedOption(null);
+
+    const newAnswers = [
+      ...answers,
+      {
+        question_id: currentQuestion.question_id,
+        selected_answer_id: selectedOptionId,
+      },
+    ];
+
+    setAnswers(newAnswers);
+    setSelectedOptionId(null);
 
     if (currentQIndex < quiz.questions.length - 1) {
       setCurrentQIndex((prev) => prev + 1);
     } else {
-      const correctCount = newAnswers.filter(Boolean).length;
+      await AsyncStorage.setItem('quizAnswers', JSON.stringify(newAnswers));
+
       router.replace({
         pathname: '/quizcomplete',
         params: {
-          score: correctCount.toString(),
+          score: '0', // Real score will be calculated server-side
           total: quiz.questions.length.toString(),
           title: quiz.title,
+          quizId: quiz.quiz_id.toString(),
         },
       });
     }
   };
 
-  const handleQuitQuiz = () => {
-    const remaining = quiz.questions.length - answered.length;
-    const autoMarkedWrong = Array(remaining).fill(false);
-    const correctCount = [...answered, ...autoMarkedWrong].filter((a) => a).length;
+  const handleQuitQuiz = async () => {
+    await AsyncStorage.setItem('quizAnswers', JSON.stringify(answers));
 
     router.replace({
       pathname: '/quizcomplete',
       params: {
-        score: correctCount.toString(),
+        score: '0',
         total: quiz.questions.length.toString(),
         title: quiz.title,
+        quizId: quiz.quiz_id.toString(),
       },
     });
   };
@@ -92,21 +134,21 @@ export default function QuizDetailScreen() {
       {/* Question Card */}
       <View className="bg-[#96DE9F] mx-4 p-4 rounded-xl shadow-lg">
         <Text className="text-center text-base font-bold mb-6 text-black">
-          {currentQuestion.question}
+          {currentQuestion.question_text}
         </Text>
 
-        {currentQuestion.options.map((option, index) => {
-          const isSelected = selectedOption === option;
+        {currentQuestion.options.map((option: any) => {
+          const isSelected = selectedOptionId === option.option_id;
 
           return (
             <TouchableOpacity
-              key={index}
-              onPress={() => setSelectedOption(option)}
+              key={option.option_id}
+              onPress={() => setSelectedOptionId(option.option_id)}
               className={`flex-row justify-between items-center px-4 py-3 rounded-lg mb-3 ${
                 isSelected ? 'bg-gray-700' : 'bg-gray-500'
               }`}
             >
-              <Text className="text-white font-semibold">{option}</Text>
+              <Text className="text-white font-semibold">{option.option_text}</Text>
               <View
                 className={`w-4 h-4 rounded-full border-2 ${
                   isSelected ? 'bg-green-500' : 'border-white'
