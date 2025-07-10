@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import BackIcon from "../assets/images/back.svg";
 import CalendarIcon from "../assets/images/calendar.svg";
 import VisibilityIcon from "../assets/images/visibility.svg";
@@ -21,6 +21,7 @@ import ChevronDownIcon from "../assets/images/chevron-down.svg";
 import EditIcon from "../assets/images/edit-line.svg";
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from "axios";
+import Toast from 'react-native-toast-message';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -36,14 +37,31 @@ export default function ProfileScreen() {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [selectedGender, setSelectedGender] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
+  const [contactNumber, setContactNumber] = useState("");
   const [region, setRegion] = useState("");
 
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [countryCode, setCountryCode] = useState("+62");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
-  const genderOptions = ["Female", "Male", "Rather not say"];
+  const countryCodes = [
+    { code: "+62", label: "🇮🇩 Indonesia" },
+    { code: "+65", label: "🇸🇬 Singapore" },
+    { code: "+60", label: "🇲🇾 Malaysia" },
+    { code: "+63", label: "🇵🇭 Philippines" },
+    { code: "+66", label: "🇹🇭 Thailand" },
+    { code: "+84", label: "🇻🇳 Vietnam" },
+    { code: "+95", label: "🇲🇲 Myanmar" },
+    { code: "+855", label: "🇰🇭 Cambodia" },
+    { code: "+856", label: "🇱🇦 Laos" },
+    { code: "+673", label: "🇧🇳 Brunei" },
+    { code: "+61", label: "🇦🇺 Australia" }
+  ];
+
+  const genderOptions = ["Female", "Male", "None"];
 
   useEffect(() => {
     const loadInitial = async () => {
@@ -69,6 +87,17 @@ export default function ProfileScreen() {
         setPassword("");
         setDateOfBirth(user.date_of_birth || "");
         setSelectedGender(user.gender || "");
+        if (user.contact_number?.startsWith("+")) {
+          const matchedCode = countryCodes.find(({ code }) =>
+            user.contact_number.startsWith(code)
+          );
+          if (matchedCode) {
+            setCountryCode(matchedCode.code);
+            setPhoneNumber(user.contact_number.replace(matchedCode.code, ""));
+          } else {
+            setPhoneNumber(user.contact_number); // fallback if code not matched
+          }
+        }
         setRegion(user.region || "");
         setInterests(user.interests || []);
 
@@ -101,6 +130,17 @@ export default function ProfileScreen() {
     setSelectedGender(initialData.gender);
     setInterests(initialData.interests);
     setRegion(initialData.region);
+    if (initialData.contact_number?.startsWith("+")) {
+      const matchedCode = countryCodes.find(({ code }) =>
+        initialData.contact_number.startsWith(code)
+      );
+      if (matchedCode) {
+        setCountryCode(matchedCode.code);
+        setPhoneNumber(initialData.contact_number.replace(matchedCode.code, ""));
+      } else {
+        setPhoneNumber(initialData.contact_number);
+      }
+    }
     setIsEditing(false);
   };
 
@@ -120,7 +160,7 @@ export default function ProfileScreen() {
         first_name: firstName,
         last_name: lastName,
         date_of_birth: dateOfBirth,
-        contact_number: "",
+        contact_number: countryCode + phoneNumber,
         gender: selectedGender,
         region,
         interests,
@@ -128,19 +168,28 @@ export default function ProfileScreen() {
 
       setInitialData(res.data.user);
       setIsEditing(false);
+      
+      Toast.show({
+        type: 'success',
+        text1: 'Profile updated!',
+      });
+      
     } catch (e) {
       console.log("❌ Failed to update user:", e);
+      Toast.show({
+        type: 'error',
+        text1: 'Update failed',
+        text2: 'Please try again later.',
+      });
     }
+    
   };
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    if (selectedDate) {
-      const day = selectedDate.getDate().toString().padStart(2, "0");
-      const month = (selectedDate.getMonth() + 1).toString().padStart(2, "0");
-      const year = selectedDate.getFullYear();
-      setDateOfBirth(`${year}-${month}-${day}`);
-    }
-    setShowDatePicker(false);
+  const formatDate = (date: Date): string => {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${year}-${month}-${day}`;
   };
 
   const handleToggleInterest = (item: string) => {
@@ -272,6 +321,48 @@ export default function ProfileScreen() {
               </View>
             );
           })}
+          <View className="mb-5">
+            <Text className="text-base font-medium text-gray-700 mb-2">Contact Number (Optional)</Text>
+            <View className="flex-row items-center border rounded-lg px-3 py-2 bg-white border-gray-400">
+              {/* Country code dropdown */}
+              <TouchableOpacity
+                disabled={!isEditing}
+                onPress={() => setShowDropdown((prev) => !prev)}
+              >
+                <Text className="text-base text-gray-800 mr-2">{countryCode}</Text>
+              </TouchableOpacity>
+
+              {/* Dropdown menu */}
+              {showDropdown && (
+                <View className="absolute z-50 top-[60px] bg-white border border-gray-300 rounded-lg w-[150px]">
+                  <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
+                    {countryCodes.map(({ code, label }) => (
+                      <TouchableOpacity
+                        key={code}
+                        onPress={() => {
+                          setCountryCode(code);
+                          setShowDropdown(false);
+                        }}
+                        className="px-4 py-2"
+                      >
+                        <Text className="text-base text-gray-800">{label} {code}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* Phone number input */}
+              <TextInput
+                className="flex-1 text-base text-gray-800"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                placeholder="8123456789"
+                keyboardType="phone-pad"
+                editable={isEditing}
+              />
+            </View>
+          </View>
 
           <View className="mb-1">
             <Text className="text-base font-medium text-gray-700 mb-2">Password</Text>
@@ -317,18 +408,22 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
             {showDatePicker && (
-              <DateTimePicker
-                value={new Date(dateOfBirth.split("/").reverse().join("-"))}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={onDateChange}
-              />
+              <DateTimePickerModal
+              isVisible={showDatePicker}
+              mode="date"
+              date={new Date(dateOfBirth || Date.now())}
+              onConfirm={(date) => {
+                setDateOfBirth(formatDate(date));
+                setShowDatePicker(false);
+              }}
+              onCancel={() => setShowDatePicker(false)}
+            />
             )}
           </View>
 
           {/* Interest */}
           <View className="mb-5">
-            <Text className="text-base font-medium text-gray-700 mb-2">Interest</Text>
+            <Text className="text-base font-medium text-gray-700 mb-2">Interest (Optional)</Text>
             <TouchableOpacity
               activeOpacity={0.8}
               className="border border-gray-300 rounded-lg px-4 py-3 bg-gray-50"
@@ -378,7 +473,7 @@ export default function ProfileScreen() {
 
           {/* Region */}
           <View className="mb-5">
-            <Text className="text-base font-medium text-gray-700 mb-2">Region</Text>
+            <Text className="text-base font-medium text-gray-700 mb-2">Region (Optional)</Text>
             <TextInput
               className={`border rounded-lg px-4 text-base ${isEditing ? "bg-white border-gray-400" : "bg-gray-100 border-gray-200"}`}
               value={region}
