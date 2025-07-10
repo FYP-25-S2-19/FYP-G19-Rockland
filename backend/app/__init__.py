@@ -96,6 +96,20 @@ def create_app():
     from .controller.rock.view_rock_controller import view_rock_blueprint
     app.register_blueprint(view_rock_blueprint)
     
+    ###############  DISCUSSION
+    from .controller.discussion.create_discussion_controller import create_discussion_blueprint
+    app.register_blueprint(create_discussion_blueprint)
+    
+    from .controller.discussion.view_discussion_controller import view_discussion_blueprint
+    app.register_blueprint(view_discussion_blueprint)
+    
+    from .controller.discussion.comment_discussion_controller import comment_discussion_blueprint
+    app.register_blueprint(comment_discussion_blueprint)
+    
+    ###############  MACHINE LEARNING
+    from .controller.rockrecognition.recognize_rock import rock_blueprint as rock_recognition_blueprint
+    app.register_blueprint(rock_recognition_blueprint)
+    
     ###############  ROCK SCAN
     from .controller.rock_scan.save_scan_result_controller import save_scan_result_blueprint
     app.register_blueprint(save_scan_result_blueprint)
