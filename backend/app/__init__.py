@@ -106,6 +106,16 @@ def create_app():
     from .controller.discussion.comment_discussion_controller import comment_discussion_blueprint
     app.register_blueprint(comment_discussion_blueprint)
     
+    ###############  QUIZ
+    from app.controller.quiz.create_quizattempt_controller import create_quizattempt_blueprint
+    app.register_blueprint(create_quizattempt_blueprint)
+    
+    from app.controller.quiz.view_quiz_controller import view_quiz_blueprint
+    app.register_blueprint(view_quiz_blueprint)
+    
+    from app.controller.quiz.view_quizhistory_controller import view_quizhistory_blueprint
+    app.register_blueprint(view_quizhistory_blueprint)
+
     ###############  MACHINE LEARNING
     from .controller.rockrecognition.recognize_rock import rock_blueprint as rock_recognition_blueprint
     app.register_blueprint(rock_recognition_blueprint)

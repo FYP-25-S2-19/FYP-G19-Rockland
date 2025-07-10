@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,49 +7,53 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 import BackIcon from '../assets/images/back1.svg';
 import CalendarIcon from '../assets/images/calendar.svg';
 
-const dummyHistory = [
-  {
-    title: 'Rock Basic Quiz',
-    score: 8,
-    total: 10,
-    points: 8,
-    date: '2025-06-05',
-  },
-  {
-    title: 'Rock Basic Quiz',
-    score: 9,
-    total: 10,
-    points: 9,
-    date: '2025-05-07',
-  },
-];
+type HistoryItem = {
+  title: string;
+  score: number;
+  total: number;
+  points: number;
+  date: string;
+};
 
-type SortType =
-  | 'earliest'
-  | 'latest'
-  | 'highestScore'
-  | 'lowestScore'
-  | 'highestPoint'
-  | 'lowestPoint';
-
-const sortLabels: Record<SortType, string> = {
+const sortLabels = {
   earliest: 'Earliest First',
   latest: 'Latest First',
   highestScore: 'Highest Score',
   lowestScore: 'Lowest Score',
   highestPoint: 'Highest Point',
   lowestPoint: 'Lowest Point',
-};
+} as const;
+
+type SortType = keyof typeof sortLabels;
 
 export default function QuizHistoryScreen() {
   const router = useRouter();
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [sortBy, setSortBy] = useState<SortType>('earliest');
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const sortedHistory = [...dummyHistory].sort((a, b) => {
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const token = await AsyncStorage.getItem('accessToken');
+        const res = await fetch(`${API_URL}/api/quizhistory`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setHistory(data.attempts || []);
+      } catch (err) {
+        console.error('Failed to fetch history', err);
+      }
+    };
+    fetchHistory();
+  }, []);
+
+  const sortedHistory = [...history].sort((a, b) => {
     switch (sortBy) {
       case 'latest':
         return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -68,11 +72,11 @@ export default function QuizHistoryScreen() {
     }
   });
 
-  const totalQuiz = dummyHistory.length;
-  const totalScore = dummyHistory.reduce((sum, q) => sum + q.score / q.total, 0);
+  const totalQuiz = history.length;
+  const totalScore = history.reduce((sum, q) => sum + q.score / q.total, 0);
   const avgScore = totalQuiz > 0 ? Math.round((totalScore / totalQuiz) * 100) : 0;
-  const highestScore = Math.max(...dummyHistory.map((q) => Math.round((q.score / q.total) * 100)));
-  const totalPoints = dummyHistory.reduce((sum, q) => sum + q.points, 0);
+  const highestScore = Math.max(...history.map((q) => Math.round((q.score / q.total) * 100)));
+  const totalPoints = history.reduce((sum, q) => sum + q.points, 0);
 
   return (
     <SafeAreaView className="flex-1 bg-[#FDF3E3]">
@@ -84,50 +88,31 @@ export default function QuizHistoryScreen() {
         shadowOpacity: 0.15,
         shadowRadius: 6,
         elevation: 6,
-        }} className="pb-2">
+      }} className="pb-2">
         <View className="flex-row items-center justify-center px-4 pt-4 relative mb-4">
           <TouchableOpacity onPress={() => router.back()} className="absolute left-4 mt-2">
-            <BackIcon width={24} height={24}/>
+            <BackIcon width={24} height={24} />
           </TouchableOpacity>
           <Text className="text-xl font-bold text-[#F8EFDD]">Quiz History</Text>
         </View>
 
-        {/* Stats Header */}
-       <View style={{ backgroundColor: '#459B6C'}} className="px-4 py-5 rounded-b-2xl mb-1">
-        {/* First Row: Labels */}
-        <View className="flex-row justify-between mb-1">
-            <View className="flex-1 items-center">
-            <Text className="text-[#F8EFDD] text-lg font-semibold text-center leading-tight">Total Quiz</Text>
-            </View>
-            <View className="flex-1 items-center">
-            <Text className="text-[#F8EFDD] text-lg font-semibold text-center leading-tight">Average Score</Text>
-            </View>
-            <View className="flex-1 items-center">
-            <Text className="text-[#F8EFDD] text-lg font-semibold text-center leading-tight">Highest Score</Text>
-            </View>
-            <View className="flex-1 items-center">
-            <Text className="text-[#F8EFDD] text-lg font-semibold text-center leading-tight">Total Point</Text>
-            </View>
-        </View>
-
-        {/* Second Row: Values */}
-        <View className="flex-row justify-between mt-1">
-            <View className="flex-1 items-center">
-            <Text className="text-[#F8EFDD] text-4xl font-bold text-center">{totalQuiz}</Text>
-            </View>
-            <View className="flex-1 items-center">
-            <Text className="text-[#F8EFDD] text-4xl font-bold text-center">{avgScore}%</Text>
-            </View>
-            <View className="flex-1 items-center">
-            <Text className="text-[#F8EFDD] text-4xl font-bold text-center">{highestScore}%</Text>
-            </View>
-            <View className="flex-1 items-center">
-            <Text className="text-[#F8EFDD] text-4xl font-bold text-center">{totalPoints}</Text>
-            </View>
-        </View>
+        <View className="px-4 py-5 rounded-b-2xl mb-1 bg-[#459B6C]">
+          <View className="flex-row justify-between mb-1">
+            {['Total Quiz', 'Average Score', 'Highest Score', 'Total Point'].map((label, i) => (
+              <View key={i} className="flex-1 items-center">
+                <Text className="text-[#F8EFDD] text-lg font-semibold text-center">{label}</Text>
+              </View>
+            ))}
+          </View>
+          <View className="flex-row justify-between mt-1">
+            {[totalQuiz, `${avgScore}%`, `${highestScore}%`, totalPoints].map((val, i) => (
+              <View key={i} className="flex-1 items-center">
+                <Text className="text-[#F8EFDD] text-4xl font-bold text-center">{val}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
-      
 
       {/* Sort By */}
       <View className="px-4 my-4">
@@ -136,12 +121,12 @@ export default function QuizHistoryScreen() {
           onPress={() => setShowDropdown(!showDropdown)}
           className="flex-row justify-between items-center bg-white px-4 py-3 rounded-lg"
           style={{
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
-            }}
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
         >
           <Text className="text-base text-gray-900">{sortLabels[sortBy]}</Text>
           <Text className="text-sm text-gray-500">▼</Text>
