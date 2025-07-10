@@ -15,8 +15,8 @@ export interface Discussion {
   user: string;
   timestamp: string;
   text: string;
-  comments: Comment[];
-  isNew: boolean;
+  comment_count: number;
+  isNew?: boolean; // optional
 }
 
 interface DiscussionCardProps {
@@ -24,7 +24,10 @@ interface DiscussionCardProps {
   onPress?: () => void;
 }
 
-export default function DiscussionCard({ discussion, onPress }: DiscussionCardProps) {
+export default function DiscussionCard({
+  discussion,
+  onPress,
+}: DiscussionCardProps) {
   const router = useRouter();
 
   const handlePress = () => {
@@ -53,7 +56,9 @@ export default function DiscussionCard({ discussion, onPress }: DiscussionCardPr
             <Text className="text-gray-900 font-bold text-base">
               {discussion.user}
             </Text>
-            <Text className="text-gray-400 text-sm">{discussion.timestamp}</Text>
+            <Text className="text-gray-400 text-sm">
+              {discussion.timestamp}
+            </Text>
           </View>
         </View>
         {discussion.isNew && (
@@ -64,14 +69,18 @@ export default function DiscussionCard({ discussion, onPress }: DiscussionCardPr
       </View>
 
       {/* Main Text */}
-      <Text className="text-gray-700 text-base leading-6 mb-3" numberOfLines={3}>
+      <Text
+        className="text-gray-700 text-base leading-6 mb-3"
+        numberOfLines={3}
+      >
         {discussion.text}
       </Text>
 
       {/* Footer: Reply icon + comment count */}
       <View className="flex-row items-center justify-end space-x-2">
         <Text className="text-gray-500 text-sm font-medium mr-1">
-          {discussion.comments.length} {discussion.comments.length === 1 ? "reply" : "replies"}
+          {discussion.comment_count}{" "}
+          {discussion.comment_count === 1 ? "reply" : "replies"}
         </Text>
         <Image
           source={require("../assets/images/reply.png")}
@@ -82,7 +91,6 @@ export default function DiscussionCard({ discussion, onPress }: DiscussionCardPr
           }}
           resizeMode="contain"
         />
-        
       </View>
     </TouchableOpacity>
   );
