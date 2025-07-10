@@ -3,6 +3,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 import { View } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "../global.css";
+import Toast from 'react-native-toast-message';
 
 // Create a single QueryClient instance outside the component
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <InnerLayout />
+        <Toast />
       </QueryClientProvider>
     </SafeAreaProvider>
   );
