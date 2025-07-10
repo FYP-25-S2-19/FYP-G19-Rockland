@@ -31,7 +31,7 @@ class Video(db.Model):
     # Configuration
     ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm'}
     MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB limit
-    BUCKET_NAME = 'rockland-videos'  # Cloud storage bucket name
+    BUCKET_NAME = 'rocklandapp'  # Single bucket for everything
     
     def __repr__(self):
         return f'<Video {self.video_id}: {self.name}>'

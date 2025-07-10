@@ -1,5 +1,8 @@
 # Libraries
 from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
+from google.cloud import storage
 
 # Local dependencies
 from app.models import db
@@ -10,7 +13,8 @@ class Article(db.Model):
     article_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String(255), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    photo = db.Column(db.String(500))  # Store photo URL/path
+    photo = db.Column(db.String(500))      # Store cloud storage path
+    photo_url = db.Column(db.String(500))  # Store public GCS URL
     date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     is_free = db.Column(db.Boolean, nullable=False, default=True)
     
@@ -25,13 +29,17 @@ class Article(db.Model):
     # Relationship with ArticleLike (one-to-many)
     likes = db.relationship('ArticleLike', backref='article', lazy='dynamic', cascade='all, delete-orphan')
 
+    # Configuration
+    BUCKET_NAME = 'rocklandapp'  
+
     def to_dict(self) -> dict:
         """Return a dictionary representation of the article."""
         return {
             'article_id': self.article_id,
             'title': self.title,
             'content': self.content,
-            'photo': self.photo,
+            'photo': self.photo,          # Internal cloud storage path
+            'photo_url': self.photo_url,  # Public URL for frontend
             'date_created': self.date_created.isoformat() if self.date_created else None,
             'is_free': self.is_free,
             'categories_id': self.categories_id,
@@ -43,8 +51,35 @@ class Article(db.Model):
         }
 
     @classmethod
+    def _upload_photo_to_cloud(cls, photo_file, filename):
+        """Upload photo to Google Cloud Storage"""
+        try:
+            client = storage.Client()
+            bucket = client.bucket(cls.BUCKET_NAME)
+            
+            # Generate unique filename
+            file_extension = filename.rsplit('.', 1)[1].lower()
+            unique_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
+            blob_path = f"articles/{unique_filename}"
+            
+            # Upload file
+            blob = bucket.blob(blob_path)
+            photo_file.seek(0)
+            blob.upload_from_file(photo_file, content_type=f'image/{file_extension}')
+            
+            # Return both path and URL
+            photo_url = f"https://storage.googleapis.com/{cls.BUCKET_NAME}/{blob_path}"
+            print(f"✅ Photo uploaded: {photo_url}")
+            
+            return blob_path, photo_url
+            
+        except Exception as e:
+            print(f"❌ Photo upload failed: {e}")
+            return None
+
+    @classmethod
     def createArticle(cls, title: str, content: str, categories_id: int, user_id: int, 
-                     photo: str = None, is_free: bool = True):
+                     photo: str = None, photo_file=None, is_free: bool = True):
         """Create a new article"""
         try:
             # Validate required fields
@@ -85,11 +120,23 @@ class Article(db.Model):
             if not category:
                 return False, 404, f"Category with ID {categories_id} not found", None
             
+            # Handle photo upload if photo_file is provided
+            photo_path = None
+            photo_url = None
+            
+            if photo_file and photo_file.filename:
+                filename = secure_filename(photo_file.filename)
+                if filename:
+                    photo_path, photo_url = cls._upload_photo_to_cloud(photo_file, filename)
+                    if not photo_path:
+                        return False, 500, "Failed to upload photo", None
+            
             # Create new article
             new_article = cls(
                 title=title.strip(),
                 content=content.strip(),
-                photo=photo,
+                photo=photo_path,     # Cloud storage path
+                photo_url=photo_url,  # Public URL
                 categories_id=categories_id,
                 user_id=user_id,
                 is_free=is_free,
@@ -132,19 +179,16 @@ class Article(db.Model):
             article_title = article.title
             article_data = article.to_dict()
             
-            # Delete associated photo file if exists
-            if article.photo:
+            # Delete photo from cloud storage if exists
+            if article.photo:  # Use internal path for deletion
                 try:
-                    import os
-                    # Remove leading slash and construct full path
-                    photo_path = article.photo.lstrip('/')
-                    full_photo_path = os.path.join('static', photo_path)
-                    if os.path.exists(full_photo_path):
-                        os.remove(full_photo_path)
-                        print(f"Deleted photo file: {full_photo_path}")
+                    client = storage.Client()
+                    bucket = client.bucket(cls.BUCKET_NAME)
+                    blob = bucket.blob(article.photo)  # Use internal path
+                    blob.delete()
+                    print(f"✅ Deleted photo from cloud storage: {article.photo}")
                 except Exception as e:
-                    print(f"Warning: Could not delete photo file: {e}")
-                    # Continue with article deletion even if photo deletion fails
+                    print(f"⚠️ Could not delete photo from cloud storage: {e}")
             
             # Delete the article (CASCADE will handle ArticleLike deletions)
             db.session.delete(article)
