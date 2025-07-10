@@ -7,7 +7,7 @@ def create_app():
     app.config.from_object('config.Config')
 
     db.init_app(app)
-    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+    CORS(app)
     
 
     ######## USER CONTROLLER
