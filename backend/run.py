@@ -1,3 +1,14 @@
+import os
+from dotenv import load_dotenv
+
+# Load environment variables first
+load_dotenv()
+
+# Set Google Cloud credentials if specified in .env
+if os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    print(f"🔐 Google Cloud credentials loaded from: {os.getenv('GOOGLE_APPLICATION_CREDENTIALS')}")
+
 from app import create_app
 from app.models import db
 from flask import Flask
@@ -40,6 +51,15 @@ with app.app_context():
         inspector = inspect(db.engine)
         tables = inspector.get_table_names()
         print(f"📋 Created {len(tables)} tables: {', '.join(tables)}")
+        
+        # Test Google Cloud Storage connection
+        try:
+            from google.cloud import storage
+            client = storage.Client()
+            print("✅ Google Cloud Storage authentication successful!")
+        except Exception as storage_error:
+            print(f"⚠️ Google Cloud Storage authentication failed: {storage_error}")
+            print("💡 Video uploads will use local storage fallback")
         
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
