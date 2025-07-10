@@ -1,1 +1,7 @@
 node_modules/
+# Environment files
+.env
+
+# Google Cloud credentials
+config/rockland-service-account.json
+config/*.json
