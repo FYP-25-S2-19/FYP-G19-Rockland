@@ -3,8 +3,8 @@ import { useRouter } from "expo-router";
 import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import { sampleArticles } from "../../data/article";
-import likeIcon from "../../assets/images/like.png";
-import nolikeIcon from "../../assets/images/nolike.png";
+import LikeIcon from "../../assets/images/like.svg";
+import NoLikeIcon from "../../assets/images/nolike.svg";
 import BackIcon from "../../assets/images/back.svg";
 
 export default function ArticleDetail() {
@@ -65,7 +65,11 @@ export default function ArticleDetail() {
 
       <View className="flex-row items-center justify-end mt-5">
         <TouchableOpacity onPress={handleLike} className="flex-row items-center">
-          <Image source={isLiked ? likeIcon : nolikeIcon} style={{ width: 22, height: 22, marginRight: 6 }} />
+          {isLiked ? (
+            <LikeIcon width={21} height={21} style={{ marginRight: 6 }} />
+          ) : (
+            <NoLikeIcon width={24} height={24} style={{ marginRight: 6 }} fill="red"/>
+          )}
           <Text className="text-sm font-medium text-gray-500">{formatLikes(likesCount)}</Text>
         </TouchableOpacity>
       </View>

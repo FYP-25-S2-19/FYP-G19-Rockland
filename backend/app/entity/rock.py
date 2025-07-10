@@ -12,10 +12,11 @@ class Rock(db.Model):
     rock_id = db.Column(db.Integer, primary_key=True)
     rock_name = db.Column(db.String(100), nullable=False)
     rock_type = db.Column(db.String(100), nullable=False)
-    hardness = db.Column(db.Float, nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    hardness = db.Column(db.String(20), nullable=True)
     color = db.Column(db.String(100), nullable=True)
     rarity = db.Column(db.String(100), nullable=True)
-    density = db.Column(db.Float, nullable=True)
+    density = db.Column(db.String(50), nullable=True)
     common_location = db.Column(db.String(255), nullable=True)
     fun_fact = db.Column(db.Text, nullable=True)
     photo_url = db.Column(db.String(255), nullable=True)
@@ -31,6 +32,7 @@ class Rock(db.Model):
             "rock_id": self.rock_id,
             "rock_name": self.rock_name,
             "rock_type": self.rock_type,
+            "description": self.description,
             "hardness": self.hardness,
             "color": self.color,
             "rarity": self.rarity,

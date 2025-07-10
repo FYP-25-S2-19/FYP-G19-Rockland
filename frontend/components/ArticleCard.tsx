@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, Image } from "react-native";
-import likeIcon from "../assets/images/like.png";
-import nolikeIcon from "../assets/images/nolike.png";
+import LikeIcon from "../assets/images/like.svg";
+import NoLikeIcon from "../assets/images/nolike.svg";
 import { useRouter } from "expo-router";
 
 interface ArticleType {
@@ -92,7 +92,11 @@ export default function ArticleCard({
 
         <View className="flex-row items-center justify-end mt-3">
           <TouchableOpacity onPress={handleLikePress} activeOpacity={0.7} className="flex-row items-center">
-            <Image source={article.liked ? likeIcon : nolikeIcon} style={{ width: 22, height: 22, marginRight: 6 }} />
+          {article.liked ? (
+            <LikeIcon width={21} height={21} style={{ marginRight: 6 }} />
+          ) : (
+            <NoLikeIcon width={24} height={24} style={{ marginRight: 6 }} fill="red"/>
+          )}
             <Text className="text-sm font-medium text-gray-500">{formatLikes(article.likes)}</Text>
           </TouchableOpacity>
         </View>
