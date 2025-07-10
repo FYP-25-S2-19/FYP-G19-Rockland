@@ -1,4 +1,8 @@
 {
+  "/dashboard/page": "app/dashboard/page.js",
+  "/useraccount/page": "app/useraccount/page.js",
+  "/usertype/page": "app/usertype/page.js",
   "/registration/page": "app/registration/page.js",
-  "/page": "app/page.js"
+  "/landingpagemanagement/page": "app/landingpagemanagement/page.js",
+  "/login/page": "app/login/page.js"
 }
