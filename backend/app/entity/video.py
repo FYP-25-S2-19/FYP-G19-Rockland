@@ -2,6 +2,7 @@ from app.models import db
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
+from google.cloud import storage
 
 class Video(db.Model):
     __tablename__ = 'video'
@@ -15,7 +16,8 @@ class Video(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
     
     # File attachment fields
-    file_path = db.Column(db.String(500), nullable=False)  # Path to video file on server
+    file_path = db.Column(db.String(500), nullable=False)  # Cloud storage path
+    file_url = db.Column(db.String(500), nullable=False)   # Public GCS URL
     file_name = db.Column(db.String(255), nullable=False)  # Original filename
     file_size = db.Column(db.BigInteger, nullable=True)    # File size in bytes
     file_type = db.Column(db.String(50), nullable=True)    # MIME type (video/mp4, etc.)
@@ -29,6 +31,7 @@ class Video(db.Model):
     # Configuration
     ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm'}
     MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB limit
+    BUCKET_NAME = 'rockland-videos'  # Cloud storage bucket name
     
     def __repr__(self):
         return f'<Video {self.video_id}: {self.name}>'
@@ -41,7 +44,7 @@ class Video(db.Model):
             'description': self.description,
             'date_created': self.date_created.isoformat() if self.date_created else None,
             'user_id': self.user_id,
-            'file_path': self.file_path,
+            'file_url': self.file_url,  # This is the public GCS URL
             'file_name': self.file_name,
             'file_size': self.file_size,
             'file_type': self.file_type,
@@ -78,7 +81,7 @@ class Video(db.Model):
             return None
     
     @classmethod
-    def createVideo(cls, name, description, user_id, file_path, file_name, file_size=None, file_type=None, remarks=None):
+    def createVideo(cls, name, description, user_id, file_path, file_url, file_name, file_size=None, file_type=None, remarks=None):
         """Create a new video"""
         try:
             new_video = cls(
@@ -86,6 +89,7 @@ class Video(db.Model):
                 description=description,
                 user_id=user_id,
                 file_path=file_path,
+                file_url=file_url,
                 file_name=file_name,
                 file_size=file_size,
                 file_type=file_type,
@@ -100,8 +104,27 @@ class Video(db.Model):
             return False, 500, f"Error creating video: {str(e)}", None
     
     @classmethod
+    def _ensure_bucket_exists(cls):
+        """Create bucket if it doesn't exist"""
+        try:
+            client = storage.Client()
+            bucket = client.bucket(cls.BUCKET_NAME)
+            
+            # Check if bucket exists
+            if not bucket.exists():
+                print(f"📦 Creating bucket: {cls.BUCKET_NAME}")
+                bucket = client.create_bucket(cls.BUCKET_NAME, location='asia-southeast1')
+                print(f"✅ Bucket created: {cls.BUCKET_NAME}")
+            
+            return bucket
+            
+        except Exception as e:
+            print(f"❌ Bucket creation failed: {e}")
+            return None
+    
+    @classmethod
     def createVideoWithFile(cls, name, description, user_id, video_file, remarks=None):
-        """Create a new video with file upload handling"""
+        """Create a new video with file upload to Google Cloud Storage"""
         try:
             # Validate file
             if not video_file or video_file.filename == '':
@@ -124,20 +147,57 @@ class Video(db.Model):
             if not filename:
                 filename = f"video_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
             
-            # Create upload directory if it doesn't exist
-            upload_folder = os.path.join('uploads', 'videos')
-            os.makedirs(upload_folder, exist_ok=True)
-            
-            # Generate unique filename to avoid conflicts
-            file_extension = filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
-            file_path = os.path.join(upload_folder, unique_filename)
-            
-            # Save file
+            # Upload to Google Cloud Storage
             try:
-                video_file.save(file_path)
-            except Exception as save_error:
-                return False, 500, f"Failed to save file: {str(save_error)}", None
+                client = storage.Client()
+                
+                # Ensure bucket exists
+                bucket = cls._ensure_bucket_exists()
+                if not bucket:
+                    bucket = client.bucket(cls.BUCKET_NAME)
+                
+                # Generate unique filename to avoid conflicts
+                file_extension = filename.rsplit('.', 1)[1].lower()
+                unique_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
+                blob_path = f"videos/{unique_filename}"
+                
+                # Upload file to cloud storage
+                blob = bucket.blob(blob_path)
+                video_file.seek(0)  # Reset file pointer
+                blob.upload_from_file(video_file, content_type=f'video/{file_extension}')
+                
+                # Get the public GCS URL
+                file_url = f"https://storage.googleapis.com/{cls.BUCKET_NAME}/{blob_path}"
+                
+                print(f"✅ Video uploaded to cloud storage: {blob_path}")
+                print(f"🌐 Public URL: {file_url}")
+                file_path = blob_path
+                
+            except Exception as cloud_error:
+                print(f"❌ Cloud storage upload failed: {str(cloud_error)}")
+                
+                # Temporary fallback to local storage for development
+                print("🔄 Falling back to local storage for development...")
+                try:
+                    # Create upload directory if it doesn't exist
+                    upload_folder = os.path.join('uploads', 'videos')
+                    os.makedirs(upload_folder, exist_ok=True)
+                    
+                    # Generate unique filename to avoid conflicts
+                    unique_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
+                    local_path = os.path.join(upload_folder, unique_filename)
+                    
+                    # Save file locally
+                    video_file.seek(0)  # Reset file pointer
+                    video_file.save(local_path)
+                    
+                    print(f"✅ Video uploaded to local storage: {local_path}")
+                    file_path = local_path
+                    file_url = f"/uploads/videos/{unique_filename}"  # Local URL
+                    
+                except Exception as local_error:
+                    print(f"❌ Local storage fallback also failed: {str(local_error)}")
+                    return False, 500, f"Failed to upload video: {str(cloud_error)}", None
             
             # Get file type
             file_type = f"video/{file_extension}"
@@ -148,6 +208,7 @@ class Video(db.Model):
                 description=description,
                 user_id=user_id,
                 file_path=file_path,
+                file_url=file_url,
                 file_name=filename,
                 file_size=file_size,
                 file_type=file_type,
@@ -155,10 +216,22 @@ class Video(db.Model):
             )
             
             if not success:
-                # If database creation failed, remove the uploaded file
+                # If database creation failed, clean up uploaded file
                 try:
-                    os.remove(file_path)
-                except:
+                    if file_path.startswith('uploads'):
+                        # Local file
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                            print(f"🧹 Cleaned up local file: {file_path}")
+                    else:
+                        # Cloud storage file
+                        client = storage.Client()
+                        bucket = client.bucket(cls.BUCKET_NAME)
+                        blob = bucket.blob(file_path)
+                        blob.delete()
+                        print(f"🧹 Cleaned up cloud file: {file_path}")
+                except Exception as cleanup_error:
+                    print(f"⚠️ Failed to clean up file: {cleanup_error}")
                     pass
             
             return success, status_code, message, new_video
@@ -180,7 +253,7 @@ class Video(db.Model):
     
     @classmethod
     def deleteVideoById(cls, video_id):
-        """Delete video by ID with file cleanup"""
+        """Delete video by ID with cloud storage cleanup"""
         try:
             # Check if video exists
             existing_video = cls.getVideoById(video_id)
@@ -196,15 +269,22 @@ class Video(db.Model):
             success, status_code, message = existing_video.deleteVideo()
             
             if success:
-                # Try to delete the physical file
+                # Delete the file (cloud storage or local fallback)
                 try:
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                        print(f"✅ Deleted video file: {file_path}")
+                    if file_path.startswith('uploads'):
+                        # Local file
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                            print(f"✅ Deleted local file: {file_path}")
                     else:
-                        print(f"⚠️ Video file not found: {file_path}")
+                        # Cloud storage file
+                        client = storage.Client()
+                        bucket = client.bucket(cls.BUCKET_NAME)
+                        blob = bucket.blob(file_path)
+                        blob.delete()
+                        print(f"✅ Deleted cloud storage file: {file_path}")
                 except Exception as file_error:
-                    print(f"⚠️ Failed to delete video file: {str(file_error)}")
+                    print(f"⚠️ Failed to delete file: {str(file_error)}")
                     # Continue anyway - database record is deleted
                 
                 return True, status_code, f"Video '{video_name}' deleted successfully"

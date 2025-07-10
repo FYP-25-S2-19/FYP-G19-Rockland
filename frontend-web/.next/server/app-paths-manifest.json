@@ -1,8 +1,8 @@
 {
-  "/dashboard/page": "app/dashboard/page.js",
-  "/useraccount/page": "app/useraccount/page.js",
-  "/usertype/page": "app/usertype/page.js",
-  "/registration/page": "app/registration/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/landingpagemanagement/page": "app/landingpagemanagement/page.js",
-  "/login/page": "app/login/page.js"
+  "/dashboard/page": "app/dashboard/page.js",
+  "/login/page": "app/login/page.js",
+  "/registration/page": "app/registration/page.js",
+  "/usertype/page": "app/usertype/page.js"
 }
