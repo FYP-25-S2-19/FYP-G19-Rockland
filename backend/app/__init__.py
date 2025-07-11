@@ -98,6 +98,9 @@ def create_app():
 
     from .controller.rock.view_rock_controller import view_rock_blueprint
     app.register_blueprint(view_rock_blueprint)
+
+    from .controller.rock.get_filter_options_controller import filter_options_blueprint
+    app.register_blueprint(filter_options_blueprint)
     
     ###############  ROCK SCAN
     from .controller.rock_scan.save_scan_result_controller import save_scan_result_blueprint

@@ -15,7 +15,7 @@ def get_rock_detail_with_comments(rock_id):
         return jsonify({"success": False, "message": "Rock not found"}), 404
 
     # Get top-level comments (excluding replies)
-    comments = CommentRock.get_comments_by_rock(rock_id)
+    comments = CommentRock.get_parent_comments_by_rock(rock_id)
 
     return jsonify({
         "success": True,

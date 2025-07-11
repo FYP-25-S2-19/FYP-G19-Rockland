@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import BackIcon from "../assets/images/back.svg";
 import ChevronDownIcon from "../assets/images/chevron-down.svg";
+import axios from "axios";
 
 export default function FilterModalRock({
   visible,
@@ -34,42 +35,51 @@ export default function FilterModalRock({
     sortOption: string;
   };
 }) {
+
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedRarities, setSelectedRarities] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Sort by A-Z");
+
+  const [rockTypes, setRockTypes] = useState<string[]>([]);
+  const [rarities, setRarities] = useState<string[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
 
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [locationSearch, setLocationSearch] = useState("");
 
-  const rockTypes = ["Igneous", "Sedimentary", "Metamorphic"];
-
-  const locations = [
-    "Mount Rushmore",
-    "Sierra Nevada",
-    "Scotland",
-    "Indiana",
-    "Egypt",
-    "France",
-    "Hawaii",
-    "Iceland",
-    "Columbia River Plateau",
-    "Appalachian Mountains",
-    "South Dakota",
-    "Brazil",
+  const sortOptions = [
+    "Sort by A-Z",
+    "Sort by Z-A",
+    "Sort by Most Commented",
+    "Sort by Rarity",
   ];
 
-  const rarities = ["Common", "Rare", "Legendary"];
-  const sortOptions = ["Sort by A-Z", "Sort by Z-A", "Sort by Most Commented"];
-
   useEffect(() => {
-    setSelectedTypes(defaultValues.types || []);
-    setSelectedRarities(defaultValues.rarities || []);
-    setSelectedLocations(defaultValues.locations || []);
-    setSortBy(defaultValues.sortOption || "Sort by A-Z");
+    if (visible) {
+      setSelectedTypes(defaultValues.types || []);
+      setSelectedRarities(defaultValues.rarities || []);
+      setSelectedLocations(defaultValues.locations || []);
+      setSortBy(defaultValues.sortOption || "Sort by A-Z");
+      fetchFilterData();
+    }
   }, [defaultValues, visible]);
+
+  const fetchFilterData = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/rocks/filter-options`);
+      if (res.data.success) {
+        setRockTypes(res.data.data.types || []);
+        setRarities(res.data.data.rarities || []);
+        setLocations(res.data.data.locations || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch filter data", err);
+    }
+  };
 
   const toggleSelection = (
     item: string,
@@ -120,7 +130,7 @@ export default function FilterModalRock({
 
               <ScrollView
                 className="px-4"
-                nestedScrollEnabled={true}
+                nestedScrollEnabled
                 contentContainerStyle={{ paddingBottom: 40 }}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
@@ -140,9 +150,7 @@ export default function FilterModalRock({
                               key={index}
                               className="flex-row items-center bg-green-600 px-2.5 py-1.5 rounded-[6px]"
                             >
-                              <Text className="text-white font-semibold text-sm mr-2">
-                                {item}
-                              </Text>
+                              <Text className="text-white font-semibold text-sm mr-2">{item}</Text>
                               <TouchableOpacity
                                 onPress={() =>
                                   toggleSelection(item, selectedTypes, setSelectedTypes)
@@ -159,7 +167,6 @@ export default function FilterModalRock({
                       <ChevronDownIcon width={18} height={18} />
                     </View>
                   </TouchableOpacity>
-
                   {showTypeDropdown && (
                     <View className="border border-gray-300 rounded-lg mt-2 bg-white max-h-40">
                       <ScrollView nestedScrollEnabled>
@@ -207,12 +214,10 @@ export default function FilterModalRock({
                       >
                         <Text
                           className={`text-sm font-medium ${
-                            selectedRarities.includes(rarity)
-                              ? "text-white"
-                              : "text-gray-700"
+                            selectedRarities.includes(rarity) ? "text-white" : "text-gray-700"
                           }`}
                         >
-                          {rarity}
+                          {rarity.charAt(0).toUpperCase() + rarity.slice(1)}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -224,23 +229,19 @@ export default function FilterModalRock({
                   <Text className="text-lg font-semibold mb-3">Location</Text>
                   <TouchableOpacity
                     className="border border-gray-300 rounded-lg px-4 py-3 bg-gray-50"
-                    onPress={() => setShowLocationDropdown((prev) => !prev)}
+                    onPress={() => setShowLocationDropdown(!showLocationDropdown)}
                   >
                     <View className="flex-row flex-wrap items-center justify-between">
                       <View className="flex-row flex-wrap gap-2 flex-1">
                         {selectedLocations.length > 0 ? (
                           selectedLocations.map((item, index) => (
                             <View
-                              key={index}
+                              key={`${item}-${index}`} // make key more unique
                               className="flex-row items-center bg-green-600 px-2.5 py-1.5 rounded-[6px]"
                             >
-                              <Text className="text-white font-semibold text-sm mr-2">
-                                {item}
-                              </Text>
+                              <Text className="text-white font-semibold text-sm mr-2">{item}</Text>
                               <TouchableOpacity
-                                onPress={() =>
-                                  toggleSelection(item, selectedLocations, setSelectedLocations)
-                                }
+                                onPress={() => toggleSelection(item, selectedLocations, setSelectedLocations)}
                               >
                                 <Text className="text-sm font-bold text-white">×</Text>
                               </TouchableOpacity>
@@ -253,7 +254,6 @@ export default function FilterModalRock({
                       <ChevronDownIcon width={18} height={18} />
                     </View>
                   </TouchableOpacity>
-
                   {showLocationDropdown && (
                     <View className="mt-2 border border-gray-200 rounded-lg bg-white">
                       <TextInput
@@ -263,11 +263,7 @@ export default function FilterModalRock({
                         className="border-b border-gray-200 px-4 py-2 text-base"
                         placeholderTextColor="#9ca3af"
                       />
-                      <ScrollView
-                        style={{ maxHeight: 160 }}
-                        nestedScrollEnabled={true}
-                        keyboardShouldPersistTaps="handled"
-                      >
+                      <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled>
                         {[...selectedLocations, ...locations.filter(i => !selectedLocations.includes(i))]
                           .filter((loc) =>
                             loc.toLowerCase().includes(locationSearch.toLowerCase())
@@ -343,9 +339,7 @@ export default function FilterModalRock({
                     onPress={handleApply}
                     className="bg-green-600 py-4 rounded-lg items-center"
                   >
-                    <Text className="text-white text-lg font-semibold">
-                      Apply Filter
-                    </Text>
+                    <Text className="text-white text-lg font-semibold">Apply Filter</Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
