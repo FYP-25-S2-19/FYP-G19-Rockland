@@ -136,4 +136,9 @@ def create_app():
     from .controller.articles.view_article_controller import view_article_blueprint
     app.register_blueprint(view_article_blueprint)
 
+    from .controller.authentication.testlogin import test_login_blueprint
+
+    # Register the test login blueprint
+    app.register_blueprint(test_login_blueprint)
+
     return app
