@@ -34,7 +34,9 @@ interface Article {
   article_id: number
   title: string
   content: string
-  photo?: string
+  photo?: string           // Cloud storage path (articles/20250711_123456_photo.jpg)
+  photo_url?: string       // Public cloud URL (https://storage.googleapis.com/...)
+  signed_photo_url?: string // Signed URL for secure access
   date_created: string
   is_free: boolean
   categories_id: number
@@ -118,6 +120,42 @@ export default function ForumManagement() {
     },
   ]
 
+  // Helper function to get article image URL
+  const getArticleImageUrl = (article: Article): string | null => {
+    // Priority: signed_photo_url (fresh signed URL) > photo_url (old public URL) > fallback
+    if (article.signed_photo_url) {
+      console.log('✅ Using signed_photo_url:', article.signed_photo_url)
+      return article.signed_photo_url
+    }
+    
+    if (article.photo_url) {
+      console.log('⚠️ Using legacy photo_url:', article.photo_url)
+      return article.photo_url
+    }
+    
+    if (article.photo) {
+      // For old local files
+      if (article.photo.startsWith('/')) {
+        const localUrl = `http://localhost:5000${article.photo}`
+        console.log('📁 Using local URL:', localUrl)
+        return localUrl
+      }
+      
+      console.log('❌ Photo path exists but no signed URL available:', article.photo)
+    }
+    
+    console.log('📷 No image available for article:', article.article_id)
+    return null
+  }
+
+  // Make bucket public function (for debugging)
+  const makeBucketPublic = async () => {
+    console.log('📝 To make your Google Cloud Storage bucket public, run these commands:')
+    console.log('gsutil iam ch allUsers:objectViewer gs://rocklandapp')
+    console.log('gsutil cors set cors.json gs://rocklandapp')
+    console.log('Or set bucket permissions in Google Cloud Console')
+  }
+
   // Fetch articles from API
   const fetchArticles = async () => {
     setIsLoadingData(true)
@@ -136,13 +174,14 @@ export default function ForumManagement() {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`, // Adjust based on your auth system
+          'Authorization': `Bearer ${adminToken}`,
         },
       })
 
       const data = await response.json()
 
       if (response.ok && data.success) {
+        console.log('Fetched articles:', data.articles)
         setArticles(data.articles)
       } else {
         setError(data.message || 'Failed to fetch articles')
@@ -315,6 +354,9 @@ export default function ForumManagement() {
     const article = isArticle ? selectedItem as Article : null
     const discussion = !isArticle ? selectedItem as Discussion : null
 
+    // Get the correct image URL for articles
+    const articleImageUrl = article ? getArticleImageUrl(article) : null
+
     return (
       <AdminLayout
         activeMenuItem="forum"
@@ -345,11 +387,33 @@ export default function ForumManagement() {
               {/* Image */}
               <div className="lg:col-span-1">
                 <div className="bg-gray-100 rounded-lg overflow-hidden">
-                  {article?.photo ? (
+                  {articleImageUrl ? (
                     <div className="relative w-full h-80">
                       <Image
-                        src={`http://localhost:5000${article.photo}`}
-                        alt={article.title || 'Article image'}
+                        src={articleImageUrl}
+                        alt={article?.title || 'Article image'}
+                        width={400}
+                        height={320}
+                        className="w-full h-full object-cover rounded-lg"
+                        onError={(e) => {
+                          console.error('Image failed to load:', articleImageUrl)
+                          // Hide the image on error
+                          const target = e.target as HTMLImageElement
+                          target.style.display = 'none'
+                        }}
+                      />
+                      {/* Debug info */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-2">
+                        <p className="truncate">
+                          {articleImageUrl.includes('storage.googleapis.com') ? '☁️ Cloud' : '💻 Local'}: {articleImageUrl}
+                        </p>
+                      </div>
+                    </div>
+                  ) : discussion?.image ? (
+                    <div className="relative w-full h-80">
+                      <Image
+                        src={discussion.image}
+                        alt={discussion.title || 'Discussion image'}
                         width={400}
                         height={320}
                         className="w-full h-full object-cover rounded-lg"
@@ -364,6 +428,12 @@ export default function ForumManagement() {
                           </svg>
                         </div>
                         <p className="text-sm">No image available</p>
+                        {article && (
+                          <p className="text-xs mt-1">
+                            photo: {article.photo || 'null'}<br/>
+                            photo_url: {article.photo_url || 'null'}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -431,7 +501,9 @@ export default function ForumManagement() {
                 </div>
 
                 <div>
-                  <p className="text-gray-700 leading-relaxed">{selectedItem.content}</p>
+                  <p className="text-gray-700 leading-relaxed break-words overflow-wrap-anywhere">
+                    {selectedItem.content}
+                  </p>
                 </div>
 
                 {/* Comments Section for Discussions */}
