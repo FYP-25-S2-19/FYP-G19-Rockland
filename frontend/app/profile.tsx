@@ -22,6 +22,10 @@ import EditIcon from "../assets/images/edit-line.svg";
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from "axios";
 import Toast from 'react-native-toast-message';
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import TrashIcon from "../assets/images/trash.svg";
+import { Modal } from "react-native"; 
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -39,12 +43,19 @@ export default function ProfileScreen() {
   const [interests, setInterests] = useState<string[]>([]);
   const [contactNumber, setContactNumber] = useState("");
   const [region, setRegion] = useState("");
+  const [profileImage, setProfileImage] = useState(initialData.profile_picture);
+  const [previewImage, setPreviewImage] = useState(""); // for immediate UI preview
+  const [localImagePath, setLocalImagePath] = useState(""); // local path to upload later
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [profilePictureBlobPath, setProfilePictureBlobPath] = useState("");
+  const [profilePicturePreviewURL, setProfilePicturePreviewURL] = useState("");
 
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [countryCode, setCountryCode] = useState("+62");
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [showInterestDropdown, setShowInterestDropdown] = useState(false);
+  const [countryCode, setCountryCode] = useState("+65");
   const [phoneNumber, setPhoneNumber] = useState("");
 
   const countryCodes = [
@@ -63,59 +74,77 @@ export default function ProfileScreen() {
 
   const genderOptions = ["Female", "Male", "None"];
 
-  useEffect(() => {
-    const loadInitial = async () => {
-      const role = await AsyncStorage.getItem("userRole");
-      setUserRole(role || "free");
+  const loadInitial = async () => {
+    const role = await AsyncStorage.getItem("userRole");
+    setUserRole(role || "free");
 
-      try {
-        const token = await AsyncStorage.getItem("accessToken");
-        const API_URL = process.env.EXPO_PUBLIC_API_URL;
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-        const api = axios.create({
-          baseURL: API_URL,
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      const api = axios.create({
+        baseURL: API_URL,
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-        const userRes = await api.get("/api/users/me");
-        const user = userRes.data.user;
 
-        setInitialData(user);
-        setFirstName(user.first_name || "");
-        setLastName(user.last_name || "");
-        setEmail(user.email || "");
-        setPassword("");
-        setDateOfBirth(user.date_of_birth || "");
-        setSelectedGender(user.gender || "");
-        if (user.contact_number?.startsWith("+")) {
-          const matchedCode = countryCodes.find(({ code }) =>
-            user.contact_number.startsWith(code)
-          );
-          if (matchedCode) {
-            setCountryCode(matchedCode.code);
-            setPhoneNumber(user.contact_number.replace(matchedCode.code, ""));
-          } else {
-            setPhoneNumber(user.contact_number); // fallback if code not matched
-          }
-        }
-        setRegion(user.region || "");
-        setInterests(user.interests || []);
+      const userRes = await api.get("/api/users/me");
+      const user = userRes.data.user;
 
-        const interestsRes = await api.get("/api/interests/all");
-        setAvailableInterests(
-          Array.isArray(interestsRes.data.interests)
-            ? interestsRes.data.interests.map((i: any) => i.title)
-            : []
+      setInitialData(user);
+      setFirstName(user.first_name || "");
+      setLastName(user.last_name || "");
+      setEmail(user.email || "");
+      setPassword("");
+      setDateOfBirth(user.date_of_birth || "");
+      setSelectedGender(user.gender || "");
+      if (user.contact_number?.startsWith("+")) {
+        const matchedCode = countryCodes.find(({ code }) =>
+          user.contact_number.startsWith(code)
         );
-      } catch (e) {
-        console.log("❌ Failed to load user or interests:", e);
+        if (matchedCode) {
+          setCountryCode(matchedCode.code);
+          setPhoneNumber(user.contact_number.replace(matchedCode.code, ""));
+        } else {
+          setPhoneNumber(user.contact_number);
+        }
       }
+      setRegion(user.region || "");
+      setInterests(user.interests || []);
+      setProfileImage(user.profile_picture); // this is the signed URL  
+      setProfilePictureBlobPath(user.raw_profile_picture || "");
 
-      setLoading(false);
-    };
+      const interestsRes = await api.get("/api/interests/all");
+      setAvailableInterests(
+        Array.isArray(interestsRes.data.interests)
+          ? interestsRes.data.interests.map((i: any) => i.title)
+          : []
+      );
+    } catch (e) {
+      console.log("❌ Failed to load user or interests:", e);
+    }
 
+    setLoading(false);
+  };
+
+  useEffect(() => {
     loadInitial();
   }, []);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+  
+    if (!result.canceled && result.assets?.length > 0) {
+      const pickedImage = result.assets[0];
+      setPreviewImage(pickedImage.uri);        // 👁️ for UI
+      setLocalImagePath(pickedImage.uri);      // 💾 for upload on save
+    }
+  };
 
   const handleBack = () => router.push("/account");
 
@@ -142,48 +171,119 @@ export default function ProfileScreen() {
       }
     }
     setIsEditing(false);
+    setProfileImage(initialData.profile_picture);
+    setProfilePictureBlobPath(initialData.raw_profile_picture || "");
+    setLocalImagePath("");
   };
 
   const handleSave = async () => {
     try {
+
+      const imageChanged =
+      (localImagePath && localImagePath !== "") ||
+      (profileImage === "" && initialData.profile_picture !== "");
+    
+    if (
+      !imageChanged &&
+      email === initialData.email &&
+      firstName === initialData.first_name &&
+      lastName === initialData.last_name &&
+      dateOfBirth === initialData.date_of_birth &&
+      region === initialData.region &&
+      selectedGender === initialData.gender &&
+      (countryCode + phoneNumber) === initialData.contact_number &&
+      password === "" &&
+      JSON.stringify(interests) === JSON.stringify(initialData.interests)
+    ) {
+      Toast.show({ type: "info", text1: "No changes to save." });
+      return;
+    }
+
       const token = await AsyncStorage.getItem("accessToken");
       const API_URL = process.env.EXPO_PUBLIC_API_URL;
+      let finalBlobPath = profilePictureBlobPath;
+      if (finalBlobPath.startsWith("http")) {
+        throw new Error("Backend returned signed URL instead of blob path!");
+      }
+  
+      // ✅ Upload profile image only if new image selected
+      if (localImagePath) {
+        const filename = localImagePath.split("/").pop() || "image.jpg";
+        const mimeType = `image/${filename.split(".").pop()}`;
+        const formData = new FormData();
+  
+        formData.append("file", {
+          uri: localImagePath,
+          name: filename,
+          type: mimeType,
+        } as any);
+  
+        const uploadRes = await fetch(`${API_URL}/api/upload/profile_picture`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+          body: formData,
+        });
+  
+        const uploadData = await uploadRes.json();
 
-      const api = axios.create({
-        baseURL: API_URL,
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        
+        finalBlobPath = uploadData.blob_path;
 
-      const res = await api.post("/api/users/update_user", {
-        email,
-        password,
-        first_name: firstName,
-        last_name: lastName,
-        date_of_birth: dateOfBirth,
-        contact_number: countryCode + phoneNumber,
-        gender: selectedGender,
-        region,
-        interests,
-      });
-
-      setInitialData(res.data.user);
+        setProfilePictureBlobPath(finalBlobPath);
+        if (finalBlobPath.startsWith("http")) {
+          // ❌ BAD — this means your backend is returning a signed URL instead
+          throw new Error("Backend returned signed URL instead of blob path!");
+        }
+      }
+  
+      // 📦 Now update profile info
+      const res = await axios.post(
+        `${API_URL}/api/users/update_user`,
+        {
+          email,
+          password,
+          first_name: firstName,
+          last_name: lastName,
+          date_of_birth: dateOfBirth,
+          contact_number: countryCode + phoneNumber,
+          gender: selectedGender,
+          region,
+          interests,
+          profile_picture: finalBlobPath || "",
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+  
       setIsEditing(false);
-      
-      Toast.show({
-        type: 'success',
-        text1: 'Profile updated!',
-      });
-      
+      setPreviewImage("");         // reset temp preview
+      setLocalImagePath("");       // reset local upload state
+      setProfileImage(res.data.user.profile_picture);
+      setInitialData(res.data.user);
+      setProfilePictureBlobPath(res.data.user.raw_profile_picture || "");
+
+      await loadInitial();
+  
+      Toast.show({ type: "success", text1: "Profile updated!" });
     } catch (e) {
       console.log("❌ Failed to update user:", e);
-      Toast.show({
-        type: 'error',
-        text1: 'Update failed',
-        text2: 'Please try again later.',
-      });
+      Toast.show({ type: "error", text1: "Update failed" });
     }
-    
   };
+
+  const handleRemoveImage = () => {
+    setPreviewImage("");
+    setProfileImage("");
+    setProfilePictureBlobPath(""); // this is what gets sent to backend as ""
+    setLocalImagePath(""); 
+    setShowRemoveModal(false);
+  };
+  
+
 
   const formatDate = (date: Date): string => {
     const day = date.getDate().toString().padStart(2, '0');
@@ -266,8 +366,14 @@ export default function ProfileScreen() {
             elevation: 4,
             borderRadius: 50,
           }}>
-            <Image
-              source={require("../assets/images/profilepicture.png")}
+           <Image
+               source={
+                previewImage
+                  ? { uri: previewImage }
+                  : profileImage
+                  ? { uri: profileImage }
+                  : require("../assets/images/profilepicture.png")
+              }
               style={{
                 width: 100,
                 height: 100,
@@ -276,28 +382,49 @@ export default function ProfileScreen() {
               }}
             />
 
-            {isEditing && (
-              <TouchableOpacity
-                onPress={() => {
-                  console.log("Change profile picture");
-                }}
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  right: 0,
-                  backgroundColor: "#fff",
-                  borderRadius: 20,
-                  padding: 6,
-                  elevation: 3,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 2,
-                }}
-              >
-                <EditIcon width={16} height={16} />
-              </TouchableOpacity>
-            )}
+{isEditing && (
+  <>
+    <TouchableOpacity
+      onPress={pickImage}
+      style={{
+        position: "absolute",
+        bottom: 0,
+        right: 0,
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 6,
+        elevation: 3,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+      }}
+    >
+      <EditIcon width={18} height={18} />
+    </TouchableOpacity>
+
+    <TouchableOpacity
+      onPress={() => setShowRemoveModal(true)}
+      style={{
+        position: "absolute",
+        top: 0,
+        right: 0,
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 6,
+        elevation: 3,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+      }}
+    >
+      <TrashIcon width={18} height={18} />
+    </TouchableOpacity>
+  </>
+)}
+
+          
           </View>
         </View>
 
@@ -327,13 +454,13 @@ export default function ProfileScreen() {
               {/* Country code dropdown */}
               <TouchableOpacity
                 disabled={!isEditing}
-                onPress={() => setShowDropdown((prev) => !prev)}
+                onPress={() => setShowCountryDropdown((prev) => !prev)}
               >
                 <Text className="text-base text-gray-800 mr-2">{countryCode}</Text>
               </TouchableOpacity>
 
               {/* Dropdown menu */}
-              {showDropdown && (
+              {showCountryDropdown && (
                 <View className="absolute z-50 top-[60px] bg-white border border-gray-300 rounded-lg w-[150px]">
                   <ScrollView nestedScrollEnabled style={{ maxHeight: 200 }}>
                     {countryCodes.map(({ code, label }) => (
@@ -341,7 +468,7 @@ export default function ProfileScreen() {
                         key={code}
                         onPress={() => {
                           setCountryCode(code);
-                          setShowDropdown(false);
+                          setShowCountryDropdown(false);
                         }}
                         className="px-4 py-2"
                       >
@@ -427,7 +554,7 @@ export default function ProfileScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               className="border border-gray-300 rounded-lg px-4 py-3 bg-gray-50"
-              onPress={() => isEditing && setShowDropdown((prev) => !prev)}
+              onPress={() => isEditing && setShowInterestDropdown((prev) => !prev)}
             >
               <View className="flex-row flex-wrap items-center justify-between">
                 <View className="flex-row flex-wrap gap-2 flex-1">
@@ -452,7 +579,7 @@ export default function ProfileScreen() {
               </View>
             </TouchableOpacity>
 
-            {showDropdown && (
+            {showInterestDropdown && (
               <View className="border border-gray-300 rounded-lg mt-2 bg-white max-h-40">
                 <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={{ maxHeight: 160 }}>
                   {[...interests, ...availableInterests.filter(i => !interests.includes(i))].map((interest, index) => (
@@ -511,6 +638,41 @@ export default function ProfileScreen() {
 
         <View className="h-10" />
       </ScrollView>
+      <Modal
+        visible={showRemoveModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowRemoveModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black bg-opacity-40 px-8">
+          <View className="bg-white rounded-xl p-6 w-full">
+            <Text className="text-lg font-semibold text-gray-900 mb-4">
+              Remove Profile Picture?
+            </Text>
+            <Text className="text-base text-gray-700 mb-6">
+              This will remove your current image and set a default placeholder.
+            </Text>
+
+            <View className="flex-row justify-end space-x-4">
+              <TouchableOpacity
+                onPress={() => setShowRemoveModal(false)}
+                className="bg-gray-200 px-4 py-2 rounded-md mr-6"
+                activeOpacity={0.8}
+              >
+                <Text className="text-gray-700 text-base font-medium">Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleRemoveImage}
+                className="bg-red-600 px-4 py-2 rounded-md"
+                activeOpacity={0.8}
+              >
+                <Text className="text-white text-base font-medium">Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
     </LinearGradient>
   );

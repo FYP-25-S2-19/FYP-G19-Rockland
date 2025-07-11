@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Image, Modal, Text } from "react-native";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Marker, Camera } from "react-native-maps";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import BackIcon from "../assets/images/back.svg";
@@ -11,17 +11,22 @@ const INITIAL_RADIUS = 300;
 const MAX_MARKERS = 5;
 const rockIcon = require("../assets/images/rock.png");
 
-// Odds based rarity generator
+const mapStyle = [
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  { featureType: "business", stylers: [{ visibility: "off" }] },
+];
+
 const generateRarity = () => {
   const rand = Math.random();
-  if (rand < 0.1) return "Legendary";  // 10%
-  if (rand < 0.4) return "Rare";       // 30%
-  return "Common";                     // 60%
+  if (rand < 0.1) return "Legendary";
+  if (rand < 0.4) return "Rare";
+  return "Common";
 };
 
 const getLifetime = (rarity: string) => {
   switch (rarity) {
-    case "Legendary": return 30; // seconds
+    case "Legendary": return 30;
     case "Rare": return 60;
     default: return 120;
   }
@@ -47,19 +52,14 @@ export default function RockMapScreen() {
     })();
   }, []);
 
-  // Handle lifetime expiration
   useEffect(() => {
     const interval = setInterval(() => {
       setRockMarkers(prev =>
         prev
-          .map(marker => ({
-            ...marker,
-            remaining: marker.remaining - 1
-          }))
+          .map(marker => ({ ...marker, remaining: marker.remaining - 1 }))
           .filter(marker => marker.remaining > 0)
       );
     }, 1000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -87,10 +87,7 @@ export default function RockMapScreen() {
     const v = Math.random();
     const w = radiusInDegrees * Math.sqrt(u);
     const t = 2 * Math.PI * v;
-    return {
-      lat: w * Math.cos(t),
-      lon: w * Math.sin(t),
-    };
+    return { lat: w * Math.cos(t), lon: w * Math.sin(t) };
   };
 
   const randomName = () => {
@@ -105,12 +102,16 @@ export default function RockMapScreen() {
 
   const handleRecenter = () => {
     if (!location || !mapRef.current) return;
-    mapRef.current.animateToRegion({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      latitudeDelta: 0.005,
-      longitudeDelta: 0.005,
-    }, 1000);
+    mapRef.current.animateCamera({
+      center: {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      },
+      pitch: 60,
+      heading: 0,
+      zoom: 17,
+      altitude: 1000,
+    }, { duration: 1000 });
   };
 
   const handleSaveToCollection = () => {
@@ -120,32 +121,31 @@ export default function RockMapScreen() {
   };
 
   if (!location) {
-    return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#16A34A" />
-      </View>
-    );
+    return <View style={styles.loader}><ActivityIndicator size="large" color="#16A34A" /></View>;
   }
-
-  const initialRegion: Region = {
-    latitude: location.coords.latitude,
-    longitude: location.coords.longitude,
-    latitudeDelta: 0.005,
-    longitudeDelta: 0.005,
-  };
 
   return (
     <View style={styles.container}>
       <MapView
         ref={mapRef}
         style={styles.map}
-        initialRegion={initialRegion}
         showsUserLocation
         showsMyLocationButton={false}
+        customMapStyle={mapStyle}
+        initialCamera={{
+          center: {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          },
+          pitch: 60,
+          heading: 0,
+          altitude: 1000,
+          zoom: 17,
+        }}  
         scrollEnabled
-        zoomEnabled={false}
-        rotateEnabled={false}
-        pitchEnabled={false}
+        zoomEnabled={true}
+        rotateEnabled={true}
+        pitchEnabled={true}
       >
         {rockMarkers.map(marker => (
           <Marker
@@ -158,26 +158,18 @@ export default function RockMapScreen() {
         ))}
       </MapView>
 
-      {/* Back button */}
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <BackIcon width={24} height={24} />
       </TouchableOpacity>
 
-      {/* Recenter button */}
       <TouchableOpacity onPress={handleRecenter} style={styles.recenterButton}>
         <Ionicons name="locate" size={30} color="#111827" />
       </TouchableOpacity>
 
-      {/* Backpack button */}
-      <TouchableOpacity
-        onPress={() => router.push("/mycollection")}
-        style={styles.backpackButton}
-        activeOpacity={0.8}
-      >
-        <BackpackIcon width={50} height={50} color="#111827"/>
+      <TouchableOpacity onPress={() => router.push("/mycollection")} style={styles.backpackButton} activeOpacity={0.8}>
+        <BackpackIcon width={50} height={50} color="#111827" />
       </TouchableOpacity>
 
-      {/* Rock Info Modal */}
       <Modal visible={!!selectedRock} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -185,18 +177,10 @@ export default function RockMapScreen() {
             <Text>Type: {selectedRock?.type}</Text>
             <Text>Rarity: {selectedRock?.rarity}</Text>
             <Text>Lifetime: {selectedRock?.remaining}s</Text>
-
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: "#16A34A" }]}
-              onPress={handleSaveToCollection}
-            >
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: "#16A34A" }]} onPress={handleSaveToCollection}>
               <Text style={styles.modalButtonText}>Save to Collection</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: "#111827" }]}
-              onPress={() => setSelectedRock(null)}
-            >
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: "#111827" }]} onPress={() => setSelectedRock(null)}>
               <Text style={styles.modalButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
