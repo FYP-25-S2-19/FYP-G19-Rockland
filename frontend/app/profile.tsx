@@ -44,11 +44,12 @@ export default function ProfileScreen() {
   const [contactNumber, setContactNumber] = useState("");
   const [region, setRegion] = useState("");
   const [profileImage, setProfileImage] = useState(initialData.profile_picture);
-  const [previewImage, setPreviewImage] = useState(""); // for immediate UI preview
-  const [localImagePath, setLocalImagePath] = useState(""); // local path to upload later
+  const [previewImage, setPreviewImage] = useState("");
+  const [localImagePath, setLocalImagePath] = useState("");
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [profilePictureBlobPath, setProfilePictureBlobPath] = useState("");
   const [profilePicturePreviewURL, setProfilePicturePreviewURL] = useState("");
+  const [isImageRemoved, setIsImageRemoved] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -87,7 +88,6 @@ export default function ProfileScreen() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-
       const userRes = await api.get("/api/users/me");
       const user = userRes.data.user;
 
@@ -98,6 +98,11 @@ export default function ProfileScreen() {
       setPassword("");
       setDateOfBirth(user.date_of_birth || "");
       setSelectedGender(user.gender || "");
+      setRegion(user.region || "");
+      setInterests(user.interests || []);
+      setProfileImage(user.profile_picture);
+      setProfilePictureBlobPath(user.raw_profile_picture || "");
+
       if (user.contact_number?.startsWith("+")) {
         const matchedCode = countryCodes.find(({ code }) =>
           user.contact_number.startsWith(code)
@@ -109,10 +114,6 @@ export default function ProfileScreen() {
           setPhoneNumber(user.contact_number);
         }
       }
-      setRegion(user.region || "");
-      setInterests(user.interests || []);
-      setProfileImage(user.profile_picture); // this is the signed URL  
-      setProfilePictureBlobPath(user.raw_profile_picture || "");
 
       const interestsRes = await api.get("/api/interests/all");
       setAvailableInterests(
@@ -138,11 +139,11 @@ export default function ProfileScreen() {
       aspect: [1, 1],
       quality: 0.7,
     });
-  
+
     if (!result.canceled && result.assets?.length > 0) {
       const pickedImage = result.assets[0];
-      setPreviewImage(pickedImage.uri);        // 👁️ for UI
-      setLocalImagePath(pickedImage.uri);      // 💾 for upload on save
+      setPreviewImage(pickedImage.uri);
+      setLocalImagePath(pickedImage.uri);
     }
   };
 
@@ -157,8 +158,14 @@ export default function ProfileScreen() {
     setPassword("");
     setDateOfBirth(initialData.date_of_birth);
     setSelectedGender(initialData.gender);
-    setInterests(initialData.interests);
     setRegion(initialData.region);
+    setInterests(initialData.interests);
+    setProfileImage(initialData.profile_picture);
+    setProfilePictureBlobPath(initialData.raw_profile_picture || "");
+    setPreviewImage("");
+    setLocalImagePath("");
+    setIsImageRemoved(false);
+
     if (initialData.contact_number?.startsWith("+")) {
       const matchedCode = countryCodes.find(({ code }) =>
         initialData.contact_number.startsWith(code)
@@ -170,54 +177,46 @@ export default function ProfileScreen() {
         setPhoneNumber(initialData.contact_number);
       }
     }
+
     setIsEditing(false);
-    setProfileImage(initialData.profile_picture);
-    setProfilePictureBlobPath(initialData.raw_profile_picture || "");
-    setLocalImagePath("");
   };
 
   const handleSave = async () => {
     try {
-
-      const imageChanged =
-      (localImagePath && localImagePath !== "") ||
-      (profileImage === "" && initialData.profile_picture !== "");
-    
-    if (
-      !imageChanged &&
-      email === initialData.email &&
-      firstName === initialData.first_name &&
-      lastName === initialData.last_name &&
-      dateOfBirth === initialData.date_of_birth &&
-      region === initialData.region &&
-      selectedGender === initialData.gender &&
-      (countryCode + phoneNumber) === initialData.contact_number &&
-      password === "" &&
-      JSON.stringify(interests) === JSON.stringify(initialData.interests)
-    ) {
-      Toast.show({ type: "info", text1: "No changes to save." });
-      return;
-    }
-
       const token = await AsyncStorage.getItem("accessToken");
       const API_URL = process.env.EXPO_PUBLIC_API_URL;
-      let finalBlobPath = profilePictureBlobPath;
-      if (finalBlobPath.startsWith("http")) {
-        throw new Error("Backend returned signed URL instead of blob path!");
+
+      const imageChanged = !!localImagePath || isImageRemoved;
+
+      if (
+        !imageChanged &&
+        email === initialData.email &&
+        firstName === initialData.first_name &&
+        lastName === initialData.last_name &&
+        dateOfBirth === initialData.date_of_birth &&
+        region === initialData.region &&
+        selectedGender === initialData.gender &&
+        (countryCode + phoneNumber) === initialData.contact_number &&
+        password === "" &&
+        JSON.stringify(interests) === JSON.stringify(initialData.interests)
+      ) {
+        Toast.show({ type: "info", text1: "No changes to save." });
+        return;
       }
-  
-      // ✅ Upload profile image only if new image selected
+
+      let finalBlobPath = profilePictureBlobPath || initialData.raw_profile_picture || "";
+
       if (localImagePath) {
         const filename = localImagePath.split("/").pop() || "image.jpg";
         const mimeType = `image/${filename.split(".").pop()}`;
         const formData = new FormData();
-  
+
         formData.append("file", {
           uri: localImagePath,
           name: filename,
           type: mimeType,
         } as any);
-  
+
         const uploadRes = await fetch(`${API_URL}/api/upload/profile_picture`, {
           method: "POST",
           headers: {
@@ -226,48 +225,50 @@ export default function ProfileScreen() {
           },
           body: formData,
         });
-  
-        const uploadData = await uploadRes.json();
 
-        
+        const uploadData = await uploadRes.json();
         finalBlobPath = uploadData.blob_path;
 
-        setProfilePictureBlobPath(finalBlobPath);
-        if (finalBlobPath.startsWith("http")) {
-          // ❌ BAD — this means your backend is returning a signed URL instead
+        if (!finalBlobPath || finalBlobPath.startsWith("http")) {
           throw new Error("Backend returned signed URL instead of blob path!");
         }
+
+        setProfilePictureBlobPath(finalBlobPath);
       }
-  
-      // 📦 Now update profile info
-      const res = await axios.post(
-        `${API_URL}/api/users/update_user`,
-        {
-          email,
-          password,
-          first_name: firstName,
-          last_name: lastName,
-          date_of_birth: dateOfBirth,
-          contact_number: countryCode + phoneNumber,
-          gender: selectedGender,
-          region,
-          interests,
-          profile_picture: finalBlobPath || "",
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-  
+
+      // Construct payload conditionally
+      const updatePayload: any = {
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+        date_of_birth: dateOfBirth,
+        contact_number: countryCode + phoneNumber,
+        gender: selectedGender,
+        region,
+        interests,
+      };
+
+      if (isImageRemoved) {
+        updatePayload.profile_picture = "";
+      } else if (localImagePath) {
+        updatePayload.profile_picture = finalBlobPath;
+      }
+
+      const res = await axios.post(`${API_URL}/api/users/update_user`, updatePayload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       setIsEditing(false);
-      setPreviewImage("");         // reset temp preview
-      setLocalImagePath("");       // reset local upload state
+      setPreviewImage("");
+      setLocalImagePath("");
       setProfileImage(res.data.user.profile_picture);
       setInitialData(res.data.user);
       setProfilePictureBlobPath(res.data.user.raw_profile_picture || "");
+      setIsImageRemoved(false);
 
       await loadInitial();
-  
+
       Toast.show({ type: "success", text1: "Profile updated!" });
     } catch (e) {
       console.log("❌ Failed to update user:", e);
@@ -278,12 +279,11 @@ export default function ProfileScreen() {
   const handleRemoveImage = () => {
     setPreviewImage("");
     setProfileImage("");
-    setProfilePictureBlobPath(""); // this is what gets sent to backend as ""
-    setLocalImagePath(""); 
+    setProfilePictureBlobPath("");
+    setLocalImagePath("");
+    setIsImageRemoved(true);
     setShowRemoveModal(false);
   };
-  
-
 
   const formatDate = (date: Date): string => {
     const day = date.getDate().toString().padStart(2, '0');
