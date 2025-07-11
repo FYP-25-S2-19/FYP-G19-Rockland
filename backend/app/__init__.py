@@ -136,9 +136,20 @@ def create_app():
     from .controller.articles.view_article_controller import view_article_blueprint
     app.register_blueprint(view_article_blueprint)
 
-    from .controller.authentication.testlogin import test_login_blueprint
+    ### Discussion
+    from .controller.discussion.view_discussion_controller import view_discussion_blueprint
+    app.register_blueprint(view_discussion_blueprint)
+
+    from .controller.discussion.delete_discussion_controller import delete_discussion_blueprint
+    app.register_blueprint(delete_discussion_blueprint)
+
+    from.controller.discussion.create_discussion_controller import create_discussion_blueprint
+    app.register_blueprint(create_discussion_blueprint)
 
     # Register the test login blueprint
+    from .controller.authentication.testlogin import test_login_blueprint
     app.register_blueprint(test_login_blueprint)
+
+    
 
     return app
