@@ -14,7 +14,8 @@ Each RockSpawn:
 The rock distribution logic (e.g., Bukit Timah = 90% igneous) will be handled
 externally by a spawn generator function or service.
 
-Spawn collection is tracked individually using the UserRockSpawn table so once the userrockspawn status is collected, rock marker will not be shown to the user.
+Spawn collection is tracked individually using the UserRockSpawn table.
+Once the userrockspawn status is collected, rock marker will not be shown to the user.
 """
 
 
