@@ -3,9 +3,10 @@ from app.models import db
 from app.entity.quiz import QuizOption, QuizResult
 from app.entity.user import User
 from app.controller.authentication.permission_required import permission_required
-from datetime import datetime, timedelta
+from datetime import datetime
 
 create_quizattempt_blueprint = Blueprint('create_quizattempt', __name__)
+
 
 @create_quizattempt_blueprint.route('/api/quizzes/<int:quiz_id>/submit', methods=['POST'])
 @permission_required('has_freeuser_permission')
@@ -19,14 +20,15 @@ def submit_quiz(quiz_id, current_user):
     # Enforce limit
     if current_user.user_type.name == "Free" and attempts_today >= 3:
         return jsonify({"success": False, "message": "Daily quiz limit reached for Free users"}), 403
+
     data = request.get_json()
     answers = data.get('answers')
 
     print("📩 Received answers:", answers)
 
-    answers = data.get('answers')
-    if not answers or not isinstance(answers, list) or len(answers) == 0:
-        return jsonify({"success": False, "message": "No answers submitted."}), 200  # <-- Still allow 0 score
+    if not answers:
+        print("❌ No answers received.")
+        return jsonify({"success": False, "message": "Answers are required"}), 400
 
     correct_count = 0
     for ans in answers:
@@ -56,6 +58,7 @@ def submit_quiz(quiz_id, current_user):
     db.session.commit()
 
     return jsonify({"success": True, "score": correct_count, "points_earned": points}), 200
+
 
 @create_quizattempt_blueprint.route('/api/quizzes/<int:quiz_id>/check-eligibility', methods=['GET'])
 @permission_required('has_freeuser_permission')
