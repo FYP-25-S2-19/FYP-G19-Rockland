@@ -1,4 +1,4 @@
-# app/controller/rock_scan/delete_from_collection_controller.py
+# app/controller/rock_collection/delete_from_collection_controller.py
 
 from flask import Blueprint, jsonify
 from app.entity.user_rock_collection import UserRockCollection

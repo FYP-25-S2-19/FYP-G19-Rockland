@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 # Load environment variables first
 load_dotenv()
@@ -32,6 +33,14 @@ from app.entity.article_like import ArticleLike
 # Create app - no environment switching, always use Cloud SQL
 app = create_app()
 
+# Configure Google Cloud Storage for gsc.py
+app.config['GCS_BUCKET_NAME'] = 'rocklandapp'
+print(f"☁️ GCS Bucket configured: {app.config['GCS_BUCKET_NAME']}")
+
+# Enable CORS for frontend communication
+CORS(app, origins=["http://localhost:3000", "http://localhost:3001"])
+print("🌐 CORS enabled for frontend communication")
+
 print("🚀 Starting Rockland app with Cloud SQL")
 print(f"📊 Database: {app.config['SQLALCHEMY_DATABASE_URI'].split('@')[1] if '@' in app.config['SQLALCHEMY_DATABASE_URI'] else 'Unknown'}")
 
@@ -52,14 +61,23 @@ with app.app_context():
         tables = inspector.get_table_names()
         print(f"📋 Created {len(tables)} tables: {', '.join(tables)}")
         
-        # Test Google Cloud Storage connection
+        # Test Google Cloud Storage connection and gsc.py functions
         try:
             from google.cloud import storage
             client = storage.Client()
             print("✅ Google Cloud Storage authentication successful!")
+            
+            # Test if gsc.py functions work
+            try:
+                from app.utils.gcs import generate_signed_url
+                print("✅ gsc.py utilities imported successfully!")
+            except ImportError as gsc_error:
+                print(f"⚠️ Could not import gsc.py utilities: {gsc_error}")
+                print("💡 Make sure app/utils/gsc.py exists and has the required functions")
+                
         except Exception as storage_error:
             print(f"⚠️ Google Cloud Storage authentication failed: {storage_error}")
-            print("💡 Video uploads will use local storage fallback")
+            print("💡 Article photo uploads will fail without proper GCS authentication")
         
     except Exception as e:
         print(f"❌ Database connection failed: {e}")

@@ -6,24 +6,21 @@ from app.controller.authentication.permission_required import permission_require
 search_rock_blueprint: Blueprint = Blueprint('search_rock_bp', __name__)
 
 @search_rock_blueprint.route('/api/rocks/search', methods=['GET'])
-# All authenticated users can search
 def search_rocks():
     try:
         query_params = request.args
 
-        # Extract filter parameters from query string
-        rock_type = query_params.get('rock_type')
-        rarity = query_params.get('rarity')
-        location = query_params.get('location')
-        sort_by = query_params.get('sort_by')
+        filters = {
+            "rock_name": query_params.get("rock_name", ""),  # ✅ Add this line
+            "rock_type": query_params.getlist('rock_type[]'),
+            "rarity": query_params.getlist('rarity[]'),
+            "common_location": query_params.getlist('location[]'),
+            "sort": query_params.get('sort_by')
+        }
 
-        # Perform filtered search
-        rocks = Rock.search_rocks(
-            rock_type=rock_type,
-            rarity=rarity,
-            location=location,
-            sort_by=sort_by
-        )
+        # ⬇️ This is where all business logic happens (inside entity)
+        rocks = Rock.search_rocks(filters)
+        print("Received rock_name:", query_params.get("rock_name"))
 
         return jsonify({
             "success": True,
@@ -32,7 +29,6 @@ def search_rocks():
         }), 200
 
     except Exception as e:
-        print(f"Error in search_rocks: {e}")
         return jsonify({
             "success": False,
             "error": str(e)
