@@ -48,18 +48,11 @@ interface Article {
 }
 
 interface Discussion {
-  id: string
-  title: string
-  content: string
-  date: string
-  userId: string
-  userType: "Expert" | "Premium" | "Free"
-  likeCount: number
-  dislikeCount: number
-  category: string
-  author: string
-  comments: Comment[]
-  image?: string
+  id: number
+  user: string
+  text: string
+  timestamp: string
+  comment_count: number
 }
 
 interface Comment {
@@ -88,37 +81,9 @@ export default function ForumManagement() {
   } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [articles, setArticles] = useState<Article[]>([])
+  const [discussions, setDiscussions] = useState<Discussion[]>([])
   const [isLoadingData, setIsLoadingData] = useState(false)
   const [error, setError] = useState("")
-
-  // Sample discussions data (kept for now)
-  const discussions: Discussion[] = [
-    {
-      id: "1",
-      title: "Rocks found in",
-      content:
-        "I found a... Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin porta nulla ac tincidunt bibendum. Donec ac faucibus mauris.",
-      date: "19/10/2025",
-      userId: "1029",
-      userType: "Premium",
-      likeCount: 1500,
-      dislikeCount: 164,
-      category: "Sodium Rocks",
-      author: "Jason",
-      image: "/placeholder.svg?height=200&width=300",
-      comments: [
-        {
-          id: "1",
-          author: "Mason",
-          content:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin porta nulla ac tincidunt bibendum. Donec ac faucibus mauris.",
-          date: "19/10/2025",
-          likeCount: 45,
-          dislikeCount: 3,
-        },
-      ],
-    },
-  ]
 
   // Helper function to get article image URL
   const getArticleImageUrl = (article: Article): string | null => {
@@ -146,14 +111,6 @@ export default function ForumManagement() {
     
     console.log('📷 No image available for article:', article.article_id)
     return null
-  }
-
-  // Make bucket public function (for debugging)
-  const makeBucketPublic = async () => {
-    console.log('📝 To make your Google Cloud Storage bucket public, run these commands:')
-    console.log('gsutil iam ch allUsers:objectViewer gs://rocklandapp')
-    console.log('gsutil cors set cors.json gs://rocklandapp')
-    console.log('Or set bucket permissions in Google Cloud Console')
   }
 
   // Fetch articles from API
@@ -188,6 +145,44 @@ export default function ForumManagement() {
       }
     } catch (error) {
       console.error('Error fetching articles:', error)
+      setError('Unable to connect to server')
+    } finally {
+      setIsLoadingData(false)
+    }
+  }
+
+  // Fetch discussions from API
+  const fetchDiscussions = async () => {
+    setIsLoadingData(true)
+    setError("")
+    
+    try {
+      // Get admin token from localStorage
+      const adminToken = localStorage.getItem('adminToken')
+      
+      if (!adminToken) {
+        setError("Admin authentication required")
+        return
+      }
+
+      const response = await fetch('http://localhost:5000/api/discussions/admin/all', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`,
+        },
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        console.log('Fetched discussions:', data.discussions)
+        setDiscussions(data.discussions)
+      } else {
+        setError(data.message || 'Failed to fetch discussions')
+      }
+    } catch (error) {
+      console.error('Error fetching discussions:', error)
       setError('Unable to connect to server')
     } finally {
       setIsLoadingData(false)
@@ -229,10 +224,47 @@ export default function ForumManagement() {
     }
   }
 
-  // Load articles on component mount
+  // Delete discussion
+  const deleteDiscussion = async (discussionId: string) => {
+    try {
+      const adminToken = localStorage.getItem('adminToken')
+      
+      if (!adminToken) {
+        setError("Admin authentication required")
+        return false
+      }
+
+      const response = await fetch(`http://localhost:5000/api/discussions/delete/${discussionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`,
+        },
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        // Remove discussion from local state
+        setDiscussions(prev => prev.filter(discussion => discussion.id.toString() !== discussionId))
+        return true
+      } else {
+        setError(data.message || 'Failed to delete discussion')
+        return false
+      }
+    } catch (error) {
+      console.error('Error deleting discussion:', error)
+      setError('Unable to connect to server')
+      return false
+    }
+  }
+
+  // Load data on component mount and forum type change
   useEffect(() => {
     if (forumType === "Articles") {
       fetchArticles()
+    } else if (forumType === "Discussion") {
+      fetchDiscussions()
     }
   }, [forumType])
 
@@ -285,10 +317,8 @@ export default function ForumManagement() {
     let success = false
     if (itemType === "article") {
       success = await deleteArticle(itemId)
-    } else {
-      // Handle discussion deletion when implemented
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      success = true
+    } else if (itemType === "discussion") {
+      success = await deleteDiscussion(itemId)
     }
     
     setIsLoading(false)
@@ -306,19 +336,6 @@ export default function ForumManagement() {
   const handleBackToList = () => {
     setViewMode("list")
     setSelectedItem(null)
-  }
-
-  const getUserTypeColor = (type: string) => {
-    switch (type) {
-      case "Expert":
-        return "bg-purple-100 text-purple-700 border-purple-200"
-      case "Premium":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200"
-      case "Free":
-        return "bg-blue-100 text-blue-700 border-blue-200"
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200"
-    }
   }
 
   const getArticleTypeColor = (isFree: boolean) => {
@@ -384,158 +401,112 @@ export default function ForumManagement() {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
             <div className="grid lg:grid-cols-3 gap-8">
-              {/* Image */}
-              <div className="lg:col-span-1">
-                <div className="bg-gray-100 rounded-lg overflow-hidden">
-                  {articleImageUrl ? (
-                    <div className="relative w-full h-80">
-                      <Image
-                        src={articleImageUrl}
-                        alt={article?.title || 'Article image'}
-                        width={400}
-                        height={320}
-                        className="w-full h-full object-cover rounded-lg"
-                        onError={(e) => {
-                          console.error('Image failed to load:', articleImageUrl)
-                          // Hide the image on error
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
-                        }}
-                      />
-                      {/* Debug info */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-2">
-                        <p className="truncate">
-                          {articleImageUrl.includes('storage.googleapis.com') ? '☁️ Cloud' : '💻 Local'}: {articleImageUrl}
-                        </p>
-                      </div>
-                    </div>
-                  ) : discussion?.image ? (
-                    <div className="relative w-full h-80">
-                      <Image
-                        src={discussion.image}
-                        alt={discussion.title || 'Discussion image'}
-                        width={400}
-                        height={320}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-full h-80 flex items-center justify-center bg-gray-200">
-                      <div className="text-gray-400 text-center">
-                        <div className="w-16 h-16 mx-auto mb-2 bg-gray-300 rounded flex items-center justify-center">
-                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <p className="text-sm">No image available</p>
-                        {article && (
-                          <p className="text-xs mt-1">
-                            photo: {article.photo || 'null'}<br/>
-                            photo_url: {article.photo_url || 'null'}
+              {/* Image Section - Only for Articles */}
+              {isArticle && (
+                <div className="lg:col-span-1">
+                  <div className="bg-gray-100 rounded-lg overflow-hidden">
+                    {articleImageUrl ? (
+                      <div className="relative w-full h-80">
+                        <Image
+                          src={articleImageUrl}
+                          alt={article?.title || 'Article image'}
+                          width={400}
+                          height={320}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            console.error('Image failed to load:', articleImageUrl)
+                            // Hide the image on error
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                          }}
+                        />
+                        {/* Debug info */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-2">
+                          <p className="truncate">
+                            {articleImageUrl.includes('storage.googleapis.com') ? '☁️ Cloud' : '💻 Local'}: {articleImageUrl}
                           </p>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Article metadata */}
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Likes:</span>
-                    <div className="flex items-center">
-                      <ThumbsUp className="w-4 h-4 mr-1 text-blue-500" />
-                      <span className="font-medium">{article ? article.total_likes : 0}</span>
-                    </div>
+                    ) : (
+                      <div className="w-full h-80 flex items-center justify-center bg-gray-200">
+                        <div className="text-gray-400 text-center">
+                          <div className="w-16 h-16 mx-auto mb-2 bg-gray-300 rounded flex items-center justify-center">
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <p className="text-sm">No image available</p>
+                          <p className="text-xs mt-1">
+                            photo: {article?.photo || 'null'}<br/>
+                            photo_url: {article?.photo_url || 'null'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
-                  {article && (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Type:</span>
-                        <Badge className={`text-xs ${getArticleTypeColor(article.is_free)}`}>
-                          {article.is_free ? 'Free' : 'Premium'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Category:</span>
-                        <span className="text-sm font-medium">{article.category_title || 'N/A'}</span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Author:</span>
-                        <span className="text-sm font-medium">{article.author_name || 'Unknown'}</span>
-                      </div>
-                    </>
-                  )}
-                  
-                  {discussion && (
+                  {/* Article metadata */}
+                  <div className="mt-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">Dislike:</span>
-                      <span className="font-medium">{discussion.dislikeCount}</span>
+                      <span className="text-sm text-gray-500">Likes:</span>
+                      <div className="flex items-center">
+                        <ThumbsUp className="w-4 h-4 mr-1 text-blue-500" />
+                        <span className="font-medium">{article?.total_likes || 0}</span>
+                      </div>
                     </div>
-                  )}
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Type:</span>
+                      <Badge className={`text-xs ${getArticleTypeColor(article?.is_free || false)}`}>
+                        {article?.is_free ? 'Free' : 'Premium'}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Category:</span>
+                      <span className="text-sm font-medium">{article?.category_title || 'N/A'}</span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Author:</span>
+                      <span className="text-sm font-medium">{article?.author_name || 'Unknown'}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Content */}
-              <div className="lg:col-span-2 space-y-4">
+              <div className={`${isArticle ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-4`}>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">
-                    Category: {article ? article.category_title || 'N/A' : discussion?.category}
+                    {isArticle ? `Category: ${article?.category_title || 'N/A'}` : 'Discussion'}
                   </p>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">
-                    {forumType === "Articles" ? "Article" : "Discussion"} Title: {selectedItem.title}
+                    {forumType === "Articles" ? "Article" : "Discussion"} Title: {isArticle ? article?.title : discussion?.text}
                   </h3>
                 </div>
 
                 <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <span>
-                    Posted By: {article ? article.author_name || 'Unknown Author' : discussion?.author}
+                    Posted By: {isArticle ? (article?.author_name || 'Unknown Author') : discussion?.user}
                   </span>
                   <Separator orientation="vertical" className="h-4" />
                   <span>
-                    Date: {article ? formatDate(article.date_created) : discussion?.date}
+                    Date: {isArticle ? formatDate(article?.date_created || '') : formatDate(discussion?.timestamp || '')}
                   </span>
+                  {!isArticle && discussion?.comment_count !== undefined && (
+                    <>
+                      <Separator orientation="vertical" className="h-4" />
+                      <span>Comments: {discussion.comment_count}</span>
+                    </>
+                  )}
                 </div>
 
                 <div>
                   <p className="text-gray-700 leading-relaxed break-words overflow-wrap-anywhere">
-                    {selectedItem.content}
+                    {isArticle ? article?.content : discussion?.text}
                   </p>
                 </div>
-
-                {/* Comments Section for Discussions */}
-                {forumType === "Discussion" && discussion && discussion.comments.length > 0 && (
-                  <div className="mt-8">
-                    <Separator className="mb-6" />
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Comments</h4>
-                    <div className="space-y-4">
-                      {discussion.comments.map((comment) => (
-                        <Card key={comment.id} className="border-l-4 border-l-green-500">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium text-gray-900">Comment by: {comment.author}</span>
-                              <span className="text-sm text-gray-500">{comment.date}</span>
-                            </div>
-                            <p className="text-gray-700 mb-3">{comment.content}</p>
-                            <div className="flex items-center space-x-4 text-sm text-gray-500">
-                              <div className="flex items-center">
-                                <ThumbsUp className="w-4 h-4 mr-1" />
-                                {comment.likeCount}
-                              </div>
-                              <div className="flex items-center">
-                                <ThumbsDown className="w-4 h-4 mr-1" />
-                                {comment.dislikeCount}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -562,7 +533,7 @@ export default function ForumManagement() {
                 <p className="text-gray-600 mt-1">Select Forum</p>
               </div>
               <Button
-                onClick={() => forumType === "Articles" ? fetchArticles() : null}
+                onClick={() => forumType === "Articles" ? fetchArticles() : fetchDiscussions()}
                 variant="outline"
                 size="sm"
                 disabled={isLoadingData}
@@ -600,11 +571,9 @@ export default function ForumManagement() {
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               {forumType === "Articles" ? "Article" : "Discussion"} List
-              {forumType === "Articles" && (
-                <span className="ml-2 text-sm font-normal text-gray-500">
-                  ({filteredData.length} articles)
-                </span>
-              )}
+              <span className="ml-2 text-sm font-normal text-gray-500">
+                ({filteredData.length} {forumType.toLowerCase()})
+              </span>
             </h3>
 
             {/* Loading State */}
@@ -631,10 +600,10 @@ export default function ForumManagement() {
                         </>
                       ) : (
                         <>
-                          <TableHead className="font-semibold">Discussion Title</TableHead>
-                          <TableHead className="font-semibold">Content</TableHead>
+                          <TableHead className="font-semibold">Discussion Text</TableHead>
                           <TableHead className="font-semibold">Date</TableHead>
                           <TableHead className="font-semibold">Author</TableHead>
+                          <TableHead className="font-semibold text-center">Comments</TableHead>
                           <TableHead className="font-semibold text-center">Action</TableHead>
                         </>
                       )}
@@ -710,14 +679,16 @@ export default function ForumManagement() {
                           const discussion = item as Discussion
                           return (
                             <TableRow key={discussion.id} className="hover:bg-gray-50 transition-colors">
-                              <TableCell className="font-medium text-gray-900 max-w-xs">
-                                <p className="line-clamp-1">{discussion.title}</p>
+                              <TableCell className="font-medium text-gray-900 max-w-md">
+                                <p className="line-clamp-2">{discussion.text}</p>
                               </TableCell>
-                              <TableCell className="text-gray-600 max-w-md">
-                                <p className="line-clamp-2">{discussion.content}</p>
+                              <TableCell className="text-gray-600">{formatDate(discussion.timestamp)}</TableCell>
+                              <TableCell className="text-gray-600">{discussion.user}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline" className="font-medium">
+                                  {discussion.comment_count}
+                                </Badge>
                               </TableCell>
-                              <TableCell className="text-gray-600">{discussion.date}</TableCell>
-                              <TableCell className="text-gray-600">{discussion.author}</TableCell>
                               <TableCell>
                                 <div className="flex items-center justify-center space-x-2">
                                   <Button
@@ -734,8 +705,8 @@ export default function ForumManagement() {
                                     onClick={() => {
                                       setConfirmAction({
                                         type: "delete",
-                                        itemId: discussion.id,
-                                        itemTitle: discussion.title,
+                                        itemId: discussion.id.toString(),
+                                        itemTitle: discussion.text.substring(0, 50) + "...",
                                         itemType: "discussion",
                                       })
                                       setShowConfirmDialog(true)

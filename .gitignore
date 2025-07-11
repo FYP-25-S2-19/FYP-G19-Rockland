@@ -4,4 +4,12 @@ node_modules/
 
 # Google Cloud credentials
 config/rockland-service-account.json
+
+# Python bytecode cache
+__pycache__/
+
+# Next.js build output
+frontend-web/.next/
+
+# Google Cloud credentials
 config/*.json
