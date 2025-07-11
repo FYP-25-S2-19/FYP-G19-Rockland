@@ -96,7 +96,9 @@ class User(db.Model):
             "interests": [interest.title for interest in self.interests],
             "profile_picture": generate_signed_url(
                 self.profile_picture if self.profile_picture else get_placeholder_profile_picture(self.gender)
-            )
+            ),
+            "raw_profile_picture": self.profile_picture,
+            
         }
 
     @classmethod
@@ -513,7 +515,7 @@ class User(db.Model):
             
 
             # 📸 Profile picture logic
-            if profile_picture is not None:
+            if "profile_picture" in data:
                 print("🖼️ New profile picture value:", profile_picture)
 
                 # ✅ Empty string = remove image
