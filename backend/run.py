@@ -1,21 +1,24 @@
+import os
+from dotenv import load_dotenv
+
+# Load environment variables first
+load_dotenv()
+
+# Set Google Cloud credentials if specified in .env
+if os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    print(f"🔐 Google Cloud credentials loaded from: {os.getenv('GOOGLE_APPLICATION_CREDENTIALS')}")
+
 from app import create_app
 from app.models import db
 from flask import Flask
 
-# CRITICAL: Import models in correct order
-# Import these BEFORE calling create_all()
+# Import all models to ensure they're registered
 from app.entity.categories import Categories
 from app.entity.interest import Interest
 from app.entity.faq import Faq
 from app.entity.user import User
 from app.entity.usertype import UserType
-from app.entity.rock import Rock
-from app.entity.comment_rock import CommentRock
-from app.entity.like_comment_rock import LikeCommentRock
-from app.entity.rock_scan_history import RockScanHistory
-from app.entity.user_rock_collection import UserRockCollection
-from app.entity.rock_spawn import RockSpawn
-from app.entity.user_rock_spawn import UserRockSpawn
 from app.entity.video import Video
 from app.entity.applink import AppLink
 from app.entity.testimonials import Testimonials
@@ -25,8 +28,6 @@ from app.entity.application_answer import ApplicationAnswer
 from app.entity.application_file import ApplicationFile
 from app.entity.article import Article
 from app.entity.article_like import ArticleLike
-from app.entity.trade_offer import TradeOffer
-
 
 # Create app - no environment switching, always use Cloud SQL
 app = create_app()
@@ -50,6 +51,15 @@ with app.app_context():
         inspector = inspect(db.engine)
         tables = inspector.get_table_names()
         print(f"📋 Created {len(tables)} tables: {', '.join(tables)}")
+        
+        # Test Google Cloud Storage connection
+        try:
+            from google.cloud import storage
+            client = storage.Client()
+            print("✅ Google Cloud Storage authentication successful!")
+        except Exception as storage_error:
+            print(f"⚠️ Google Cloud Storage authentication failed: {storage_error}")
+            print("💡 Video uploads will use local storage fallback")
         
     except Exception as e:
         print(f"❌ Database connection failed: {e}")

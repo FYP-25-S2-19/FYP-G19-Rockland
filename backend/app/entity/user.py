@@ -9,6 +9,9 @@ import re
 # Local dependencies
 from app.models import db
 from app.entity.usertype import UserType
+from app.utils.placeholder import get_placeholder_profile_picture
+from app.utils.gcs import generate_signed_url 
+from app.utils.gcs import delete_file_from_gcs
 
 # Association table for many-to-many relationship between User and Interest
 user_interest_association = db.Table('userinterest',
@@ -28,6 +31,7 @@ class User(db.Model):
     contact_number = db.Column(db.String(20))
     gender = db.Column(db.String(50))
     region = db.Column(db.String(100))
+    profile_picture = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(20), nullable=False, default='Active')
     total_points = db.Column(db.Integer, default=0)
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -63,6 +67,7 @@ class User(db.Model):
             'contact_number': self.contact_number,
             'gender': self.gender,
             'region': self.region,
+            "profile_picture": self.profile_picture if self.profile_picture else get_placeholder_profile_picture(self.gender),
             'status': self.status,
             'total_points': self.total_points,
             'user_type_id': self.user_type_id,
@@ -71,6 +76,27 @@ class User(db.Model):
             
             # ✅ Add this line to return interest titles
             'interests': [interest.title for interest in self.interests] if self.interests else []
+        }
+    
+    
+    def to_dict_with_signed_url(self):
+        return {
+            "user_id": self.user_id,
+            "email": self.email,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "date_of_birth": str(self.date_of_birth) if self.date_of_birth else None,
+            "gender": self.gender,
+            "region": self.region,
+            "contact_number": self.contact_number,
+            "status": self.status,
+            "user_type": self.user_type.to_dict() if self.user_type else None,
+            "user_type_name": self.user_type.name if self.user_type else None,  # ✅ Add this
+            "user_type_id": self.user_type_id,  # ✅ Add this too if needed
+            "interests": [interest.title for interest in self.interests],
+            "profile_picture": generate_signed_url(
+                self.profile_picture if self.profile_picture else get_placeholder_profile_picture(self.gender)
+            )
         }
 
     @classmethod
@@ -267,7 +293,7 @@ class User(db.Model):
                         total_points: int = 0,
                         interests: list = None):  # Added interests parameter
         """Create a new user account"""
-        
+
         # Check if user already exists
         if cls.queryUserAccount(email):
             return False, 409, "User with this email already exists", None
@@ -275,11 +301,11 @@ class User(db.Model):
         # Validate required fields
         if not email or not password or not first_name or not last_name or not date_of_birth:
             return False, 400, "Missing required fields", None
-        
+
         # Validate email format
         if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
             return False, 400, "Invalid email format", None
-        
+
         # Check if user_type_id exists
         user_type = UserType.query.get(user_type_id)
         if not user_type:
@@ -290,8 +316,11 @@ class User(db.Model):
             dob_date = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
         except ValueError:
             return False, 400, "Invalid date format. Use YYYY-MM-DD", None
-        
+
         try:
+            # Automatically assign placeholder based on gender
+            placeholder_url = get_placeholder_profile_picture(gender)
+
             # Create new user instance
             new_user = cls(
                 email=email.lower(),  # Store email in lowercase
@@ -301,44 +330,39 @@ class User(db.Model):
                 contact_number=contact_number,
                 gender=gender,
                 region=region,
+                profile_picture=placeholder_url,
                 user_type_id=user_type_id,
                 status=status,
                 total_points=total_points,
                 created_date=datetime.utcnow()
             )
-            
-            # Hash the password using the instance method
+
+            # Hash the password
             new_user.set_password(password)
 
             # Save to database first to get user_id
             db.session.add(new_user)
-            db.session.flush()  # This assigns the user_id without committing
-            
+            db.session.flush()  # Assigns user_id without committing
+
             # Handle interests if provided
             if interests and isinstance(interests, list):
-                # Import Interest model
                 from app.entity.interest import Interest
-                
-                # Process each interest
                 for interest_title in interests:
                     if interest_title and interest_title.strip():
-                        # Find the interest by title
                         interest = Interest.query.filter_by(title=interest_title.strip()).first()
                         if interest:
-                            # Add the interest to the user's interests
                             new_user.interests.append(interest)
                         else:
-                            print(f"Warning: Interest '{interest_title}' not found in database")
-            
-            # Commit all changes
-            db.session.commit()
+                            print(f"⚠️ Interest '{interest_title}' not found in database")
 
+            db.session.commit()
             return True, 201, "User created successfully", new_user
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error creating user: {e}")
+            print(f"❌ Error creating user: {e}")
             return False, 500, f"Error creating user: {str(e)}", None
+
         
     @classmethod
     def upgradeUserType(cls, user_id: int, target_user_type: str) -> Tuple[bool, int, str, Optional['User']]:
@@ -397,7 +421,45 @@ class User(db.Model):
             db.session.rollback()
             print(f"Error upgrading user: {e}")
             return False, 500, f"An error occurred while upgrading user: {str(e)}", None
-        
+
+    @classmethod
+    def updateProfilePicture(cls, current_user, file, filename: str):
+        """
+        Handles file upload and stores predictable blob path like:
+        profile_pictures/user_{id}/avatar.jpg
+        """
+        try:
+            from app.utils.gcs import upload_file_to_gcs
+            user = cls.query.get(current_user.user_id)
+            if not user:
+                return False, 404, "User not found", None
+
+            print(f"📤 Uploading profile picture for user ID {user.user_id}...")
+
+            # 👇 Construct predictable blob path
+            custom_filename = f"user_{user.user_id}/avatar"
+
+            blob_path = upload_file_to_gcs(
+                file_stream=file.stream,
+                filename=filename,
+                folder="profile_pictures",
+                custom_filename=custom_filename,
+                overwrite=True
+            )
+
+            print(f"✅ Upload success. Blob path: {blob_path}")
+            print(f"🧾 Final stored profile_picture in DB: {blob_path}")
+
+            # 🔁 Update DB
+            user.profile_picture = blob_path
+            db.session.commit()
+
+            return True, 200, "Profile picture updated", user
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error uploading profile picture: {e}")
+            return False, 500, f"Server error: {str(e)}", None
 
     @classmethod
     def updateUserAccount(cls, current_user, data: dict) -> Tuple[bool, int, str, Optional['User']]:
@@ -407,7 +469,10 @@ class User(db.Model):
             from datetime import datetime
             import re
 
-            # Load update fields from data
+            print("📥 Incoming update payload:", data)
+            print("👤 Updating user ID:", current_user.user_id)
+
+            # Load update fields
             email = data.get("email")
             password = data.get("password")
             first_name = data.get("first_name")
@@ -416,19 +481,17 @@ class User(db.Model):
             contact_number = data.get("contact_number")
             gender = data.get("gender")
             region = data.get("region")
+            profile_picture = data.get("profile_picture")
             status = data.get("status")
             interests = data.get("interests")
 
-            # Get the current user object
             user = cls.query.get(current_user.user_id)
             if not user:
                 return False, 404, "User not found", None
 
-            # Validate email format
             if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
                 return False, 400, "Invalid email format", None
 
-            # Update fields
             if email is not None:
                 user.email = email.strip()
             if first_name is not None:
@@ -446,20 +509,56 @@ class User(db.Model):
                 user.gender = gender
             if region is not None:
                 user.region = region
+
+            
+
+            # 📸 Profile picture logic
+            if profile_picture is not None:
+                print("🖼️ New profile picture value:", profile_picture)
+
+                # ✅ Empty string = remove image
+                if profile_picture == "":
+                    from app.utils.gcs import delete_file_from_gcs
+                    if user.profile_picture and "placeholder" not in user.profile_picture:
+                        try:
+                            delete_file_from_gcs(user.profile_picture)
+                            print(f"🧹 Removed profile picture: {user.profile_picture}")
+                        except Exception as e:
+                            print(f"⚠️ Failed to delete profile picture: {e}")
+                    user.profile_picture = None  # clear it in DB
+
+                else:
+                    # ✅ Disallow signed URLs
+                    if profile_picture.startswith("http"):
+                        return False, 400, "Invalid profile picture format", None
+
+                    new_blob_path = profile_picture.strip()
+                    old_blob_path = user.profile_picture
+
+                    if old_blob_path != new_blob_path and old_blob_path and "placeholder" not in old_blob_path:
+                        try:
+                            from app.utils.gcs import delete_file_from_gcs
+                            delete_file_from_gcs(old_blob_path)
+                            print(f"🧹 Deleted old profile picture: {old_blob_path}")
+                        except Exception as e:
+                            print(f"⚠️ Failed to delete old profile picture: {e}")
+
+                    user.profile_picture = new_blob_path
+
             if password is not None and password.strip():
                 user.set_password(password)
 
-            # ✅ Admin-only: Update status field
-            if status is not None and getattr(current_user, "status", None) == "Admin":
+            # Admin-only status update
+            if status is not None and getattr(current_user.user_type, "name", None) == "Admin":
                 valid_statuses = ['Active', 'Inactive', 'Suspended']
                 if status not in valid_statuses:
                     return False, 400, f"Invalid status. Must be one of: {', '.join(valid_statuses)}", None
                 user.status = status
 
-           # 🔄 Update interests
+            # 🔄 Handle interests
             if interests is not None:
-                from app.entity.interest import Interest
-                user.interests = []  # ✅ Correctly clear the existing relationships
+                print(f"🎯 Updating interests: {interests}")
+                user.interests = []
                 for interest_title in interests:
                     interest = Interest.query.filter_by(title=interest_title.strip()).first()
                     if interest:
@@ -468,12 +567,14 @@ class User(db.Model):
                         print(f"⚠️ Interest '{interest_title}' not found, skipping.")
 
             db.session.commit()
+            print("✅ User account updated successfully")
             return True, 200, "User account updated successfully", user
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error updating user account: {e}")
+            print(f"❌ Error updating user account: {e}")
             return False, 500, f"An error occurred while updating user: {str(e)}", None
+
 
         
     @classmethod
