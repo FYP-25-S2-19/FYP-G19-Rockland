@@ -11,9 +11,9 @@ class Application(db.Model):
     status = db.Column(db.String(50), nullable=False, default='Pending')  # Pending, Approved, Rejected, Under Review
     
     # Relationships - Use string references to avoid import order issues
-    user = db.relationship('User', backref='applications')
-    answers = db.relationship('ApplicationAnswer', backref='application', cascade='all, delete-orphan')
-    files = db.relationship('ApplicationFile', backref='application', cascade='all, delete-orphan')
+    # user = db.relationship('User', backref='applications')
+    # # answers = db.relationship("ApplicationAnswer", backref="application", lazy='dynamic')
+    # files = db.relationship('ApplicationFile', backref='application', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Application {self.application_id} by User {self.user_id}>'
