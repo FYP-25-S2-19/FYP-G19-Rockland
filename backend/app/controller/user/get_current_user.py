@@ -27,7 +27,7 @@ def get_current_user(current_user):
 
         return jsonify({
             "success": True,
-            "user": current_user.to_dict(),
+            "user": current_user.to_dict_with_signed_url(),
             "message": "User profile loaded successfully"
         }), 200
 
