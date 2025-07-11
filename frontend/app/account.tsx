@@ -43,7 +43,6 @@ export default function AccountScreen() {
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const queryClient = useQueryClient();
 
-  // Fetch user profile from API using accessToken stored in AsyncStorage
   const fetchUserProfile = async () => {
     const token = await AsyncStorage.getItem("accessToken");
     if (!token) throw new Error("No access token found");
@@ -67,7 +66,6 @@ export default function AccountScreen() {
     const data = JSON.parse(raw);
     if (!data.success) throw new Error(data.error || "Failed to fetch user profile");
 
-    // Save role to AsyncStorage for global use
     const role = data.user.user_type_name?.toLowerCase() || "free";
     await AsyncStorage.setItem("userRole", role);
 
@@ -78,15 +76,13 @@ export default function AccountScreen() {
     };
   };
 
-  // Use React Query for user profile with cache and refetch
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["userProfile"],
     queryFn: fetchUserProfile,
-    staleTime: 60000,
+    staleTime: 3000,
     retry: 1,
   });
 
-  // Navigation handlers
   const handleSettings = () => router.push("/settings");
   const handleProfile = () => router.push("/profile");
   const handleSubscribe = () => console.log("Subscribe Now pressed");
@@ -129,7 +125,7 @@ export default function AccountScreen() {
     );
   }
 
-  const { fullName, role: userRole } = data;
+  const { fullName, role: userRole, user } = data;
   const gradientColors =
     userRole === "premium"
       ? (["#EF9E1C", "#FDE68A"] as const)
@@ -169,29 +165,16 @@ export default function AccountScreen() {
             </TouchableOpacity>
           </LinearGradient>
 
-          <View
-            className="bg-gray-50 rounded-t-3xl -mt-20 px-5 pt-10"
-            style={{ flex: 1 }}
-          >
+          <View className="bg-gray-50 rounded-t-3xl -mt-20 px-5 pt-10" style={{ flex: 1 }}>
             <View style={{ alignItems: "center", marginTop: -100 }}>
-              <View
-                style={{
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 6,
-                  elevation: 8,
-                  borderRadius: 100,
-                  backgroundColor: "white",
-                }}
-              >
+              <View style={{ ...shadowStyle, borderRadius: 100, backgroundColor: "white" }}>
                 <Image
-                  source={ProfilePicture}
+                  source={user.profile_picture ? { uri: user.profile_picture } : ProfilePicture}
                   style={{
                     width: 150,
                     height: 150,
                     borderRadius: 100,
-                    borderWidth: 6,
+                    borderWidth: 1,
                     borderColor: "white",
                   }}
                 />
@@ -201,26 +184,9 @@ export default function AccountScreen() {
             <View className="items-center mt-4 mb-4">
               <Text className="text-2xl font-bold text-gray-900">{fullName || "User"}</Text>
               <View className="flex-row items-center mt-2">
-                {userRole === "premium" && (
-                  <CrownIcon
-                    width={18}
-                    height={18}
-                    fill="#EF9E1C"
-                    style={{ marginRight: 4 }}
-                  />
-                )}
-                <Text
-                  className={`text-base ${
-                    userRole === "premium"
-                      ? "text-[#EF9E1C] font-semibold"
-                      : "text-gray-500"
-                  }`}
-                >
-                  {userRole === "premium"
-                    ? "Premium User"
-                    : userRole === "expert"
-                    ? "Expert User"
-                    : "Free User"}
+                {userRole === "premium" && <CrownIcon width={18} height={18} fill="#EF9E1C" style={{ marginRight: 4 }} />}
+                <Text className={`text-base ${userRole === "premium" ? "text-[#EF9E1C] font-semibold" : "text-gray-500"}`}>
+                  {userRole === "premium" ? "Premium User" : userRole === "expert" ? "Expert User" : "Free User"}
                 </Text>
               </View>
             </View>
@@ -248,9 +214,7 @@ export default function AccountScreen() {
                   <View className="absolute left-4">
                     <CrownIcon width={20} height={20} fill="white" />
                   </View>
-                  <Text className="text-white text-base font-semibold ml-4">
-                    Subscribe Now
-                  </Text>
+                  <Text className="text-white text-base font-semibold ml-4">Subscribe Now</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -261,50 +225,19 @@ export default function AccountScreen() {
                 borderRadius: 16,
                 paddingHorizontal: 16,
                 paddingVertical: 8,
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.06,
-                shadowRadius: 10,
-                elevation: 2,
+                ...shadowStyle,
               }}
             >
-              {userRole === "free" && (
-                <MenuItem
-                  icon={BackpackIcon}
-                  label="My Collection"
-                  onPress={handleMyCollection}
-                />
-              )}
+              {userRole === "free" && <MenuItem icon={BackpackIcon} label="My Collection" onPress={handleMyCollection} />}
               {userRole === "premium" && (
                 <>
-                  <MenuItem
-                    icon={BackpackIcon}
-                    label="My Collection"
-                    onPress={handleMyCollection}
-                  />
-                  <MenuItem
-                    icon={TradeIcon}
-                    label="Trade Rock Collection"
-                    onPress={handleTradeList}
-                  />
-                  <MenuItem
-                    icon={MedalIcon}
-                    label="Badges and Achievements"
-                    onPress={handleBadgesAndAchievements}
-                  />
+                  <MenuItem icon={BackpackIcon} label="My Collection" onPress={handleMyCollection} />
+                  <MenuItem icon={TradeIcon} label="Trade Rock Collection" onPress={handleTradeList} />
+                  <MenuItem icon={MedalIcon} label="Badges and Achievements" onPress={handleBadgesAndAchievements} />
                 </>
               )}
-              {userRole === "expert" && (
-                <Text className="text-center text-gray-500 py-4">
-                  No menu for expert user yet.
-                </Text>
-              )}
-              <MenuItem
-                icon={SettingIcon}
-                label="Settings"
-                onPress={handleSettingsNavigation}
-                last
-              />
+              {userRole === "expert" && <Text className="text-center text-gray-500 py-4">No menu for expert user yet.</Text>}
+              <MenuItem icon={SettingIcon} label="Settings" onPress={handleSettingsNavigation} last />
             </View>
           </View>
         </ScrollView>

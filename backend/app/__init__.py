@@ -35,6 +35,9 @@ def create_app():
     from .controller.user.get_current_user import get_current_user_blueprint
     app.register_blueprint(get_current_user_blueprint)
 
+    from .controller.user.upload_profile_picture import upload_profile_picture_blueprint
+    app.register_blueprint(upload_profile_picture_blueprint)
+
     ##################################################### USER TYPE CONTROLLERS##################################################################
     from .controller.usertype.create_usertype_controller import create_usertype_blueprint
     app.register_blueprint(create_usertype_blueprint)
