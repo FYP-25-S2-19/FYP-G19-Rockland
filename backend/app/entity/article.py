@@ -15,7 +15,7 @@ class Article(db.Model):
     title = db.Column(db.String(255), nullable=False)
     content = db.Column(db.Text, nullable=False)
     photo = db.Column(db.String(500))      # Store cloud storage path only
-    photo_url = db.Column(db.String(500))  # Store public GCS URL
+    photo_url = db.Column(db.Text)  # Store public GCS URL
     date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     is_free = db.Column(db.Boolean, nullable=False, default=True)
     

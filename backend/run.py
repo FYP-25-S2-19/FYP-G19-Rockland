@@ -29,6 +29,8 @@ from app.entity.application_answer import ApplicationAnswer
 from app.entity.application_file import ApplicationFile
 from app.entity.article import Article
 from app.entity.article_like import ArticleLike
+from app.entity.discussion import Discussion
+from app.entity.discussion_comment import DiscussionComment
 
 # Create app - no environment switching, always use Cloud SQL
 app = create_app()
