@@ -7,7 +7,7 @@ update_rock_blueprint = Blueprint('update_rock', __name__)
 class UpdateRockController:
     @staticmethod
     @update_rock_blueprint.route('/api/rocks/update/<int:rock_id>', methods=['PUT'])
-    @permission_required('has_expert_permission')  # Only experts can update rocks
+    @permission_required('has_expert_permission')
     def update_rock(rock_id, current_user=None):
         """Update an existing rock (Expert only)"""
         try:
@@ -18,9 +18,12 @@ class UpdateRockController:
                     'message': 'No data provided'
                 }), 400
 
+            # Ensure current user's ID is included
+            data["user_id"] = current_user.user_id
+
             success, status_code, message, updated_rock = Rock.update_rock(rock_id, **data)
 
-            if success and updated_rock:
+            if success:
                 return jsonify({
                     'success': True,
                     'message': message,

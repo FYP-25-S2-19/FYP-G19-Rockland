@@ -7,9 +7,8 @@ create_rock_blueprint = Blueprint('create_rock', __name__)
 class CreateRockController:
     @staticmethod
     @create_rock_blueprint.route('/api/rocks/create', methods=['POST'])
-    @permission_required('has_expert_permission')  # Now matches your usertype model
+    @permission_required('has_expert_permission')  # Only experts allowed
     def create_rock(current_user=None):
-        """Create a new rock (Expert only)"""
         try:
             data = request.get_json()
 
@@ -19,9 +18,13 @@ class CreateRockController:
                     'message': 'No data provided'
                 }), 400
 
+            # ✅ Inject current user's ID into the data dict
+            data['user_id'] = current_user.user_id
+
+            # ✅ Call logic inside the entity
             success, status_code, message, rock = Rock.create_rock(**data)
 
-            if success and rock:
+            if success:
                 return jsonify({
                     'success': True,
                     'message': message,

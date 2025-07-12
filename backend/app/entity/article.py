@@ -1,8 +1,12 @@
 # Libraries
 from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
+from io import BytesIO
 
 # Local dependencies
 from app.models import db
+from app.utils.gcs import generate_signed_url, upload_file_to_gcs, delete_file_from_gcs
 
 class Article(db.Model):
     __tablename__ = 'article'
@@ -10,7 +14,8 @@ class Article(db.Model):
     article_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String(255), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    photo = db.Column(db.String(500))  # Store photo URL/path
+    photo = db.Column(db.String(500))      # Store cloud storage path only
+    photo_url = db.Column(db.Text)  # Store public GCS URL
     date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     is_free = db.Column(db.Boolean, nullable=False, default=True)
     
@@ -25,13 +30,27 @@ class Article(db.Model):
     # Relationship with ArticleLike (one-to-many)
     likes = db.relationship('ArticleLike', backref='article', lazy='dynamic', cascade='all, delete-orphan')
 
+    # Configuration
+    ALLOWED_PHOTO_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+    MAX_PHOTO_SIZE = 10 * 1024 * 1024  # 10MB limit for photos
+
     def to_dict(self) -> dict:
         """Return a dictionary representation of the article."""
+        # Generate signed URL for photo if it exists
+        signed_photo_url = None
+        if self.photo:
+            try:
+                signed_photo_url = generate_signed_url(self.photo, expiration_minutes=60)
+            except Exception as e:
+                print(f"⚠️ Failed to generate signed URL for {self.photo}: {e}")
+        
         return {
             'article_id': self.article_id,
             'title': self.title,
             'content': self.content,
-            'photo': self.photo,
+            'photo': self.photo,          # Internal cloud storage path
+            'photo_url': self.photo_url,  # Stored public URL (for backward compatibility)
+            'signed_photo_url': signed_photo_url,  # Fresh signed URL
             'date_created': self.date_created.isoformat() if self.date_created else None,
             'is_free': self.is_free,
             'categories_id': self.categories_id,
@@ -43,8 +62,55 @@ class Article(db.Model):
         }
 
     @classmethod
+    def allowed_photo_file(cls, filename):
+        """Check if photo file extension is allowed"""
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in cls.ALLOWED_PHOTO_EXTENSIONS
+
+    @classmethod
+    def _upload_photo_to_cloud(cls, photo_file, filename):
+        """Upload photo to Google Cloud Storage using friend's gsc utilities"""
+        try:
+            # Validate file type
+            if not cls.allowed_photo_file(filename):
+                print(f"❌ Invalid file type: {filename}")
+                return None, None
+            
+            # Check file size
+            if hasattr(photo_file, 'seek'):
+                photo_file.seek(0, os.SEEK_END)
+                file_size = photo_file.tell()
+                photo_file.seek(0)
+                
+                if file_size > cls.MAX_PHOTO_SIZE:
+                    print(f"❌ Photo too large: {file_size} bytes (max: {cls.MAX_PHOTO_SIZE})")
+                    return None, None
+            
+            # Upload using friend's GCS utilities
+            blob_path = upload_file_to_gcs(
+                file_stream=photo_file,
+                filename=filename,
+                folder="articles",
+                custom_filename=None,  # Let it generate UUID-based name
+                overwrite=True
+            )
+            
+            if blob_path:
+                # Generate signed URL for the uploaded file
+                signed_url = generate_signed_url(blob_path, expiration_minutes=60)
+                print(f"✅ Photo uploaded to cloud: {blob_path}")
+                print(f"✅ Generated signed URL: {signed_url}")
+                return blob_path, signed_url
+            else:
+                print(f"❌ Failed to upload photo: {filename}")
+                return None, None
+                
+        except Exception as e:
+            print(f"❌ Error uploading photo: {e}")
+            return None, None
+
+    @classmethod
     def createArticle(cls, title: str, content: str, categories_id: int, user_id: int, 
-                     photo: str = None, is_free: bool = True):
+                     photo: str = None, photo_file=None, is_free: bool = True):
         """Create a new article"""
         try:
             # Validate required fields
@@ -85,11 +151,23 @@ class Article(db.Model):
             if not category:
                 return False, 404, f"Category with ID {categories_id} not found", None
             
+            # Handle photo upload if photo_file is provided
+            photo_path = None
+            photo_url = None
+            
+            if photo_file and photo_file.filename:
+                filename = secure_filename(photo_file.filename)
+                if filename:
+                    photo_path, photo_url = cls._upload_photo_to_cloud(photo_file, filename)
+                    if not photo_path:
+                        return False, 500, "Failed to upload photo", None
+            
             # Create new article
             new_article = cls(
                 title=title.strip(),
                 content=content.strip(),
-                photo=photo,
+                photo=photo_path,     # Cloud storage path
+                photo_url=photo_url,  # Public URL
                 categories_id=categories_id,
                 user_id=user_id,
                 is_free=is_free,
@@ -132,19 +210,13 @@ class Article(db.Model):
             article_title = article.title
             article_data = article.to_dict()
             
-            # Delete associated photo file if exists
+            # Delete photo from cloud storage if exists
             if article.photo:
-                try:
-                    import os
-                    # Remove leading slash and construct full path
-                    photo_path = article.photo.lstrip('/')
-                    full_photo_path = os.path.join('static', photo_path)
-                    if os.path.exists(full_photo_path):
-                        os.remove(full_photo_path)
-                        print(f"Deleted photo file: {full_photo_path}")
-                except Exception as e:
-                    print(f"Warning: Could not delete photo file: {e}")
-                    # Continue with article deletion even if photo deletion fails
+                success = delete_file_from_gcs(article.photo)
+                if success:
+                    print(f"✅ Deleted photo from cloud storage: {article.photo}")
+                else:
+                    print(f"⚠️ Could not delete photo from cloud storage: {article.photo}")
             
             # Delete the article (CASCADE will handle ArticleLike deletions)
             db.session.delete(article)
@@ -209,7 +281,7 @@ class Article(db.Model):
             
             # Free users can only view free articles (unlimited)
             elif user_type_name == 'Free':
-                articles = cls.query.filter_by(is_free=True).order_by(cls.date_created.desc()).all()
+                articles = cls.query.order_by(cls.date_created.desc()).all()
                 articles_data = [article.to_dict() for article in articles]
                 return articles_data, 200, "Free articles only for free user"
             
