@@ -57,6 +57,10 @@ def create_app():
 
     from .controller.categories.delete_categories_controller import delete_categories_blueprint
     app.register_blueprint(delete_categories_blueprint)
+    
+    ############### UPGRADE USER
+    from app.controller.user.upgrade_user_controller import upgrade_user_blueprint
+    app.register_blueprint(upgrade_user_blueprint)
 
     ############### INTEREST
     from .controller.interest.view_interest_controller import view_interest_blueprint
@@ -115,6 +119,20 @@ def create_app():
     
     from app.controller.quiz.view_quizhistory_controller import view_quizhistory_blueprint
     app.register_blueprint(view_quizhistory_blueprint)
+    
+    ###############  ACHIEVEMENTS
+    from app.controller.achievements.collect_achievement_controller import collect_achievement_blueprint
+    app.register_blueprint(collect_achievement_blueprint)
+    
+    from app.controller.achievements.view_achievement_controller import view_achievement_blueprint
+    app.register_blueprint(view_achievement_blueprint)
+    
+    from app.controller.achievements.create_achievement_controller import create_achievement_blueprint
+    app.register_blueprint(create_achievement_blueprint)  # optional
+    
+    ###############  LEADERBOARD
+    from .controller.leaderboard.leaderboard_controller import leaderboard_blueprint
+    app.register_blueprint(leaderboard_blueprint)
 
     ###############  MACHINE LEARNING
     from .controller.rockrecognition.recognize_rock import rock_blueprint as rock_recognition_blueprint
@@ -137,15 +155,12 @@ def create_app():
     from app.controller.rock_collection.filter_user_collection_controller import filter_user_collection_blueprint
     app.register_blueprint(filter_user_collection_blueprint)
 
-
     ################ COMMENT
     from .controller.comment.rock.create_comment_controller import create_rock_comment_blueprint
     app.register_blueprint(create_rock_comment_blueprint)
 
     from .controller.comment.rock.toggle_like_comment_controller import toggle_like_comment_blueprint
     app.register_blueprint(toggle_like_comment_blueprint)
-    
-
     
     ######## FAQ
     from .controller.faq.view_faq_controller import view_faq_blueprint
