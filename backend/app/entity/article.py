@@ -6,7 +6,7 @@ from io import BytesIO
 
 # Local dependencies
 from app.models import db
-from app.utils.gsc import generate_signed_url, upload_file_to_gcs, delete_file_from_gcs
+from app.utils.gcs import generate_signed_url, upload_file_to_gcs, delete_file_from_gcs
 
 class Article(db.Model):
     __tablename__ = 'article'

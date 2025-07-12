@@ -1,20 +1,34 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Play, Plus, Minus } from "lucide-react"
+import { Check, Play, Plus, Minus, Loader2 } from "lucide-react"
 
 interface FAQItem {
   question: string
   answer: string
 }
 
+interface Video {
+  video_id: number
+  name: string
+  description: string
+  file_url: string
+  file_name: string
+  file_size: number
+  file_type: string
+  date_created: string
+}
+
 export default function RocklandLanding(): JSX.Element {
   const [openFAQIndex, setOpenFAQIndex] = useState<number | null>(null)
+  const [demoVideo, setDemoVideo] = useState<Video | null>(null)
+  const [videoLoading, setVideoLoading] = useState(true)
+  const [videoError, setVideoError] = useState<string | null>(null)
 
   const faqData: FAQItem[] = [
     {
@@ -43,8 +57,66 @@ export default function RocklandLanding(): JSX.Element {
     }
   ]
 
+  // Fetch the most recent video for landing page
+  useEffect(() => {
+    const fetchLatestVideo = async () => {
+      try {
+        setVideoLoading(true)
+        setVideoError(null)
+        
+        // Use the correct backend port (5000)
+        const response = await fetch('http://localhost:5000/api/videos')
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            setVideoError("No videos available")
+          } else {
+            throw new Error(`HTTP error! status: ${response.status}`)
+          }
+          return
+        }
+        
+        const videoData = await response.json()
+        console.log('📹 Received video data:', videoData)
+        
+        // Check if we got video data
+        if (videoData && videoData.video_id) {
+          // Use signed_video_url (the working GCS URL with authentication)
+          const videoUrl = videoData.signed_video_url || videoData.file_url
+          
+          if (videoUrl) {
+            // Create video object with the working URL
+            const workingVideo = {
+              ...videoData,
+              file_url: videoUrl  // Use the signed URL
+            }
+            setDemoVideo(workingVideo)
+            console.log('✅ Video loaded successfully:', workingVideo.name)
+            console.log('🔗 Video URL:', videoUrl)
+          } else {
+            setVideoError("Video file not accessible")
+          }
+        } else {
+          setVideoError("No videos available")
+        }
+      } catch (error) {
+        console.error('❌ Error fetching latest video:', error)
+        setVideoError("Failed to load video")
+      } finally {
+        setVideoLoading(false)
+      }
+    }
+
+    fetchLatestVideo()
+  }, [])
+
   const toggleFAQ = (index: number): void => {
     setOpenFAQIndex(openFAQIndex === index ? null : index)
+  }
+
+  const formatFileSize = (bytes: number): string => {
+    const mb = bytes / (1024 * 1024)
+    return `${mb.toFixed(1)} MB`
   }
 
   return (
@@ -193,18 +265,63 @@ export default function RocklandLanding(): JSX.Element {
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-4">App Demo</h2>
-          <p className="text-gray-600 mb-8">Lets see virtually how its work</p>
+          <p className="text-gray-600 mb-8">Let's see virtually how it works</p>
 
-          <div className="bg-gray-900 rounded-2xl aspect-video overflow-hidden shadow-2xl">
-            <video 
-              className="w-full h-full object-cover"
-              controls
-              poster="/video-thumbnail.jpg"
-            >
-              <source src="/rock.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+          <div className="bg-gray-900 rounded-2xl aspect-video overflow-hidden shadow-2xl relative">
+            {videoLoading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center text-white">
+                  <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+                  <p>Loading demo video...</p>
+                </div>
+              </div>
+            ) : videoError ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center text-white">
+                  <div className="text-red-400 mb-2">⚠️</div>
+                  <p className="text-red-300">{videoError}</p>
+                  <p className="text-sm text-gray-400 mt-2">Please check back later</p>
+                </div>
+              </div>
+            ) : demoVideo ? (
+              <>
+                <video 
+                  className="w-full h-full object-cover"
+                  controls
+                  preload="metadata"
+                >
+                  <source src={demoVideo.file_url} type={demoVideo.file_type} />
+                  Your browser does not support the video tag.
+                </video>
+                
+                {/* Video Info Overlay */}
+                <div className="absolute bottom-4 left-4 bg-black bg-opacity-70 text-white rounded-lg px-3 py-2 text-sm">
+                  <div className="font-medium">{demoVideo.name}</div>
+                  {demoVideo.description && (
+                    <div className="text-xs text-gray-300 mt-1">{demoVideo.description}</div>
+                  )}
+                  <div className="text-xs text-gray-400 mt-1">
+                    {formatFileSize(demoVideo.file_size)} • {demoVideo.file_type}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-center text-white">
+                  <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p>No demo video available</p>
+                </div>
+              </div>
+            )}
           </div>
+          
+          {demoVideo && (
+            <div className="mt-4 text-center text-gray-600">
+              <p className="text-sm">
+                Video uploaded on {new Date(demoVideo.date_created).toLocaleDateString()}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
