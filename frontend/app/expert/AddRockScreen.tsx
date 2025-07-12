@@ -1,367 +1,371 @@
 import React, { useState } from 'react';
-import * as ImagePicker from 'expo-image-picker';
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Image,
   TextInput,
+  Image,
   ScrollView,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const rockTypes = ['Igneous', 'Sedimentary', 'Metamorphic', 'Other'];
+const rockTypes = ['Igneous Rock', 'Sedimentary Rock', 'Metamorphic Rock'];
+const rarityOptions = ['common', 'rare', 'legendary'];
+
+type Photo = {
+  uri: string;
+  width: number;
+  height: number;
+  loading?: boolean;
+};
 
 export default function AddRockScreen() {
   const navigation = useNavigation();
+  const API_URL = process.env.EXPO_PUBLIC_API_URL
 
-  const [rockType, setRockType] = useState('Igneous');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [rarity, setRarity] = useState({
-    common: false,
-    rare: false,
-    legendary: false,
-  });
-  const [rockName, setRockName] = useState('');
-  const [description, setDescription] = useState('');
-  const [photos, setPhotos] = useState<{ uri: string; width: number; height: number }[]>([]);
+
+  const [rockName, setRockName] = useState<string>('');
+  const [rockType, setRockType] = useState<string>('Igneous Rock');
+  const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
+  const [rarity, setRarity] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+  const [hardness, setHardness] = useState<string>('');
+  const [color, setColor] = useState<string>('');
+  const [composition, setComposition] = useState<string>('');
+  const [density, setDensity] = useState<string>('');
+  const [commonLocation, setCommonLocation] = useState<string>('');
+  const [funFact, setFunFact] = useState<string>('');
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Sorry, we need camera roll permissions to make this work!');
+      alert('Permission denied!');
       return;
     }
 
-    let result = await ImagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: false,
       quality: 1,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets?.length > 0) {
       const asset = result.assets[0];
       const uri = asset.uri;
 
-      Image.getSize(
-        uri,
-        (width, height) => {
-          setPhotos((prev) => [...prev, { uri, width, height }]);
-        },
-        (error) => {
-          console.error('Failed to get image size', error);
-        }
-      );
+      const loadingPhoto = { uri, width: 1, height: 1, loading: true };
+      setPhotos((prev) => [...prev, loadingPhoto]);
+
+      setTimeout(() => {
+        Image.getSize(uri, (width, height) => {
+          setPhotos((prev) =>
+            prev.map((p) => (p.uri === uri ? { uri, width, height, loading: false } : p))
+          );
+        });
+      }, 1000);
     }
   };
 
-  const toggleDropdown = () => setDropdownOpen((prev) => !prev);
-  const selectRockType = (type) => {
+  const handleSubmit = async () => {
+    if (!validateFields()) return;
+  
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token) throw new Error("No access token found");
+  
+      let photoBase64 = null;
+      if (photos.length > 0) {
+        const fileUri = photos[0].uri;
+        const fileBase64 = await FileSystem.readAsStringAsync(fileUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        photoBase64 = `data:image/jpeg;base64,${fileBase64}`;
+      }
+  
+      const payload = {
+        rock_name: rockName,
+        rock_type: rockType,
+        rarity,
+        description,
+        hardness,
+        color,
+        composition,
+        density,
+        common_location: commonLocation,
+        fun_fact: funFact,
+        photo: photoBase64, // include base64 if image picked
+      };
+  
+      const response = await axios.post(
+        `${API_URL}/api/rocks/create`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+  
+      if (response.data.success) {
+        alert("✅ Rock added successfully!");
+        navigation.goBack();
+      } else {
+        alert(`❌ ${response.data.message}`);
+      }
+    } catch (err: any) {
+      if (axios.isAxiosError(err)) {
+        const message = err.response?.data?.message || "Unexpected error";
+    
+        if (err.response?.status === 409) {
+          alert("⚠️ Rock already exists with that name!");
+        } else {
+          alert(`❌ ${message}`);
+        }
+      } else {
+        alert("❌ Something went wrong. Please try again.");
+      }
+    }
+  };
+
+  const removePhoto = (uri: string) => {
+    setPhotos((prev) => prev.filter((p) => p.uri !== uri));
+  };
+
+  const validateFields = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!rockName.trim()) newErrors.rockName = 'Rock name is required';
+    if (!rockType.trim()) newErrors.rockType = 'Rock type is required';
+    if (!rarity.trim()) newErrors.rarity = 'Please select rarity';
+    if (!description.trim()) newErrors.description = 'Description is required';
+    if (!funFact.trim()) newErrors.funFact = 'Fun fact is required';
+
+    if (!(hardness.trim() || color.trim() || composition.trim() || density.trim())) {
+      newErrors.details = 'At least one detail is required (hardness, color, composition, or density)';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+  const selectRockType = (type: string) => {
     setRockType(type);
     setDropdownOpen(false);
   };
-  const toggleRarity = (key) => {
-    setRarity((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+
+  const selectRarity = (option: string) => {
+    setRarity((prev) => (prev === option ? '' : option));
   };
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.cancelText}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Text style={styles.postText}>Post</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.iconRow}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Image
-            source={require('../../assets/images/camera.png')}
-            style={styles.icon}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
-          <Image
-            source={require('../../assets/images/picture.png')}
-            style={styles.icon}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Dropdown */}
-      <View style={{ marginTop: 20 }}>
-        <TouchableOpacity
-          style={styles.dropdownContainer}
-          onPress={toggleDropdown}
-          activeOpacity={0.7}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+      >
+        <ScrollView
+          style={{ flex: 1, backgroundColor: '#fff' }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 120, paddingHorizontal: 16, paddingTop: 30 }}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.dropdownText}>{rockType}</Text>
-          <Text style={styles.dropdownArrow}>{dropdownOpen ? '▲' : '▼'}</Text>
-        </TouchableOpacity>
+          {/* Header Buttons */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={{ fontSize: 16, color: 'black' }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSubmit}>
+              <Text style={{ fontSize: 16, color: 'green', fontWeight: 'bold' }}>Save</Text>
+            </TouchableOpacity>
+          </View>
+          {/* Photo Section */}
+          <Text className="text-sm font-semibold text-gray-600 pt-5 mb-2">Rock Photo</Text>
+          <View
+            className={`min-h-[100px] border border-dashed border-gray-300 rounded-lg items-center justify-center w-[93%] self-center px-3 py-2 mb-4 ${
+              photos.length > 0 ? 'border-0' : ''
+            }`}
+          >
+            {photos.length === 0 ? (
+              <Text className="text-gray-400 italic">Photos will appear here...</Text>
+            ) : (
+              <View className="w-full">
+                {photos.map((photo, index) => (
+                  <View key={index} className="mb-4 relative">
+                    <Image
+                      source={{ uri: photo.uri }}
+                      style={{
+                        width: '100%',
+                        aspectRatio: photo.width / photo.height,
+                        borderRadius: 8,
+                      }}
+                      resizeMode="contain"
+                    />
+                    <TouchableOpacity
+                      className="absolute top-2 right-2 bg-black/60 rounded-full w-6 h-6 items-center justify-center z-10"
+                      onPress={() => removePhoto(photo.uri)}
+                    >
+                      <Text className="text-white text-sm font-bold">×</Text>
+                    </TouchableOpacity>
+                    {photo.loading && (
+                      <View className="absolute top-0 left-0 right-0 bottom-0 bg-white/70 items-center justify-center rounded-lg">
+                        <ActivityIndicator size="small" color="#000" />
+                        <Text className="text-xs text-gray-700 mt-2">Uploading...</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
 
-        {dropdownOpen && (
-          <View style={styles.dropdownList}>
-            {rockTypes.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={styles.dropdownItem}
-                onPress={() => selectRockType(type)}
-              >
-                <Text
-                  style={[
-                    styles.dropdownItemText,
-                    type === rockType && { fontWeight: 'bold' },
-                  ]}
+          {/* Upload Buttons */}
+          <View className="flex-row justify-end pr-2 mb-4">
+            <TouchableOpacity className="ml-3 p-1" onPress={() => alert('Camera pressed')}>
+              <Image source={require('../../assets/images/camera.png')} className="w-[18px] h-[18px]" />
+            </TouchableOpacity>
+            <TouchableOpacity className="ml-3 p-1" onPress={pickImage}>
+              <Image source={require('../../assets/images/picture.png')} className="w-[18px] h-[18px]" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Input Fields */}
+          <Text className="text-sm font-semibold text-gray-600 mb-1">Rock Name</Text>
+          <TextInput
+            className="mb-1 px-4 py-3 rounded-lg border border-gray-200 text-base"
+            placeholder="e.g. Granite"
+            placeholderTextColor="#bcbcbc"
+            value={rockName}
+            onChangeText={setRockName}
+          />
+          {errors.rockName && <Text className="text-red-500 text-xs mb-2">{errors.rockName}</Text>}
+
+          <Text className="text-sm font-semibold text-gray-600 mb-1">Rock Type</Text>
+          <TouchableOpacity
+            className="flex-row justify-between items-center border border-black rounded-xl py-3 px-4 mb-1 bg-white"
+            onPress={toggleDropdown}
+          >
+            <Text className="text-base text-black">{rockType}</Text>
+            <Text className="text-base text-black">{dropdownOpen ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
+          {dropdownOpen && (
+            <View className="border border-black rounded-lg bg-white shadow mb-2">
+              {rockTypes.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  onPress={() => selectRockType(type)}
+                  className="px-4 py-3"
                 >
-                  {type}
+                  <Text className={`text-base text-black ${type === rockType ? 'font-bold' : ''}`}>
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {errors.rockType && <Text className="text-red-500 text-xs mb-2">{errors.rockType}</Text>}
+
+          <Text className="text-sm font-semibold text-gray-600 mb-2">Rarity</Text>
+          <View className="flex-row justify-between mb-2">
+            {rarityOptions.map((key) => (
+              <TouchableOpacity
+                key={key}
+                className="flex-row items-center"
+                onPress={() => selectRarity(key)}
+              >
+                <View
+                  className={`w-4 h-4 border rounded mr-2 items-center justify-center border-[#76472D] ${
+                    rarity === key ? 'bg-[#76472D]' : ''
+                  }`}
+                >
+                  {rarity === key && <Text className="text-white text-[14px] font-bold">✓</Text>}
+                </View>
+                <Text className={`text-base text-[#76472D] ${rarity === key ? 'font-bold' : ''}`}>
+                  {key.charAt(0).toUpperCase() + key.slice(1)}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-        )}
-      </View>
+          {errors.rarity && <Text className="text-red-500 text-xs mb-2">{errors.rarity}</Text>}
 
-      {/* Rarity Checkboxes */}
-      <View style={styles.checkboxRow}>
-        {['common', 'rare', 'legendary'].map((key) => (
-          <TouchableOpacity
-            key={key}
-            style={styles.checkboxContainer}
-            onPress={() => toggleRarity(key)}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                { borderColor: '#76472D' },
-                rarity[key] && styles.checkboxChecked,
-              ]}
-            >
-              {rarity[key] && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text
-              style={[
-                styles.checkboxLabel,
-                { color: '#76472D' },
-                rarity[key] && styles.checkboxLabelBold,
-              ]}
-            >
-              {key.charAt(0).toUpperCase() + key.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+          <Text className="text-sm font-semibold text-gray-600 mb-1">Description</Text>
+          <TextInput
+            className="mb-1 px-4 py-3 rounded-lg border border-gray-200 text-base min-h-[80px]"
+            placeholder="e.g. Granite is a coarse-grained intrusive rock..."
+            placeholderTextColor="#bcbcbc"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            textAlignVertical="top"
+          />
+          {errors.description && <Text className="text-red-500 text-xs mb-2">{errors.description}</Text>}
 
-      {/* Rock Name Input */}
-      <TextInput
-        style={styles.rockNameInput}
-        placeholder="Rock Name..."
-        placeholderTextColor="#A9A9A9"
-        value={rockName}
-        onChangeText={setRockName}
-        underlineColorAndroid="transparent"
-      />
+          <Text className="text-sm font-semibold text-gray-600 mb-1">Hardness</Text>
+          <TextInput
+            className="mb-2 px-4 py-3 rounded-lg border border-gray-200 text-base"
+            placeholder="e.g. 6 - 7"
+            placeholderTextColor="#bcbcbc"
+            value={hardness}
+            onChangeText={setHardness}
+          />
 
-      {/* Photos Container */}
-      <View
-        style={[
-          styles.photosContainer,
-          photos.length > 0 && styles.photosContainerNoBorder,
-        ]}
-      >
-        {photos.length === 0 ? (
-          <Text style={{ color: '#999', fontStyle: 'italic' }}>
-            Photos will appear here...
-          </Text>
-        ) : (
-          <View style={{ width: '100%' }}>
-            {photos.map((photo, index) => (
-              <Image
-                key={index}
-                source={{ uri: photo.uri }}
-                style={{
-                  width: '100%',
-                  aspectRatio: photo.width / photo.height,
-                  borderRadius: 8,
-                  marginBottom: 10,
-                }}
-                resizeMode="contain"
-              />
-            ))}
-          </View>
-        )}
-      </View>
+          <Text className="text-sm font-semibold text-gray-600 mb-1">Color</Text>
+          <TextInput
+            className="mb-2 px-4 py-3 rounded-lg border border-gray-200 text-base"
+            placeholder="e.g. White, Pink, Gray"
+            placeholderTextColor="#bcbcbc"
+            value={color}
+            onChangeText={setColor}
+          />
 
-      <TextInput
-        style={styles.descriptionInput}
-        placeholder="Description..."
-        placeholderTextColor="#999"
-        multiline
-        value={description}
-        onChangeText={setDescription}
-        textAlignVertical="top"
-      />
-    </ScrollView>
+          <Text className="text-sm font-semibold text-gray-600 mb-1">Composition</Text>
+          <TextInput
+            className="mb-2 px-4 py-3 rounded-lg border border-gray-200 text-base"
+            placeholder="e.g. Quartz, Feldspar, Mica"
+            placeholderTextColor="#bcbcbc"
+            value={composition}
+            onChangeText={setComposition}
+          />
+
+          <Text className="text-sm font-semibold text-gray-600 mb-1">Density</Text>
+          <TextInput
+            className="mb-2 px-4 py-3 rounded-lg border border-gray-200 text-base"
+            placeholder="e.g. 2.65 - 2.75 g/cm³"
+            placeholderTextColor="#bcbcbc"
+            value={density}
+            onChangeText={setDensity}
+          />
+          {errors.details && <Text className="text-red-500 text-xs mb-2">{errors.details}</Text>}
+
+          <Text className="text-sm font-semibold text-gray-600 mb-1">Common Location</Text>
+          <TextInput
+            className="mb-2 px-4 py-3 rounded-lg border border-gray-200 text-base"
+            placeholder="e.g. Bukit Timah, Pulau Ubin, etc."
+            placeholderTextColor="#bcbcbc"
+            value={commonLocation}
+            onChangeText={setCommonLocation}
+          />
+
+          <Text className="text-sm font-semibold text-gray-600 mb-1">Fun Fact</Text>
+          <TextInput
+            className="mb-10 px-4 py-3 rounded-lg border border-gray-200 text-base min-h-[80px]"
+            placeholder="e.g. Pulau Ubin once had multiple granite quarries..."
+            placeholderTextColor="#bcbcbc"
+            value={funFact}
+            onChangeText={setFunFact}
+            multiline
+            textAlignVertical="top"
+          />
+          {errors.funFact && <Text className="text-red-500 text-xs mb-4">{errors.funFact}</Text>}
+        </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 30,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-  },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  cancelText: {
-    fontSize: 16,
-    color: '#000000',
-    marginLeft: 20,
-  },
-  postText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#459B6C',
-    marginRight: 20,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 4,
-    marginRight: 10,
-  },
-  iconButton: {
-    marginLeft: 12,
-    padding: 6,
-    borderRadius: 8,
-  },
-  icon: {
-    width: 18,
-    height: 18,
-  },
-  dropdownContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '93%',
-    alignSelf: 'center',
-    borderColor: '#000000',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-  },
-  dropdownText: {
-    color: '#000000',
-    fontSize: 16,
-  },
-  dropdownArrow: {
-    color: '#000000',
-    fontSize: 16,
-  },
-  dropdownList: {
-    marginTop: 4,
-    borderColor: '#000000',
-    borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-    width: '93%',
-    alignSelf: 'center',
-  },
-  dropdownItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  dropdownItemText: {
-    color: '#000000',
-    fontSize: 16,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    width: '90%',
-    alignSelf: 'center',
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkbox: {
-    width: 16,
-    height: 16,
-    borderWidth: 1,
-    borderRadius: 4,
-    marginRight: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#76472D',
-  },
-  checkmark: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
-    lineHeight: 18,
-  },
-  checkboxLabel: {
-    fontSize: 16,
-  },
-  checkboxLabelBold: {
-    fontWeight: 'bold',
-  },
-  rockNameInput: {
-    marginTop: 20,
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: '#000',
-    paddingVertical: 8,
-    marginLeft: 20,
-  },
-  photosContainer: {
-    marginTop: 20,
-    minHeight: 100,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    width: '93%',
-    alignSelf: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    padding: 10,
-  },
-  descriptionInput: {
-    marginTop: 20,
-    fontSize: 16,
-    color: '#000',
-    minHeight: 100,
-    padding: 12,
-    borderRadius: 8,
-    textAlignVertical: 'top',
-    marginLeft: 15,
-  },
-
-  photosContainerNoBorder: {
-  borderWidth: 0,
-},
-});

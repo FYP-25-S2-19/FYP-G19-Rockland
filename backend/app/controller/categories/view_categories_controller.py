@@ -10,7 +10,7 @@ class ViewCategoriesController:
     # Get all categories for admin view
     @staticmethod
     @view_categories_blueprint.route('/api/categories/all', methods=['GET'])
-    @permission_required('has_admin_permission')  # Temporarily commented out
+    # @permission_required('has_admin_permission')  # Temporarily commented out
     def get_all_categories(**kwargs):
         try:
             categories = Categories.getAllCategories()
