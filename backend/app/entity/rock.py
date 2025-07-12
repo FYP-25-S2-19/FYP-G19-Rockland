@@ -5,9 +5,14 @@ from typing import Optional, Tuple, List
 from sqlalchemy import func
 from app.models import db
 from app.entity.comment_rock import CommentRock  # Required for join in get_top_commented_rocks()
-from app.utils.gcs import generate_signed_url
+from app.utils.gcs import generate_signed_url, upload_file_to_gcs
 from sqlalchemy import case
 from sqlalchemy import or_
+from io import BytesIO
+from werkzeug.utils import secure_filename
+from datetime import datetime
+import base64
+import re
 
 class Rock(db.Model):
     __tablename__ = 'rock'
@@ -55,17 +60,73 @@ class Rock(db.Model):
 
     def total_comment_count(self) -> int:
         return len(self.comments)
+    
+    @classmethod
+    def clean_filename_from_title(cls, title: str) -> str:
+        return re.sub(r"[^a-z0-9_]", "", title.strip().lower().replace(" ", "_"))
 
     @classmethod
-    def create_rock(cls, **kwargs) -> Tuple[bool, int, str, Optional['Rock']]:
+    def create_rock(cls, **kwargs):
         try:
-            rock = cls(**kwargs)
+            rock_name = kwargs.get("rock_name", "").strip()
+            if not rock_name:
+                return False, 400, "Rock name is required", None
+
+            cleaned_name = cls.clean_filename_from_title(rock_name)  # e.g. talc_carbonate
+
+            # ✅ Check for duplicates by comparing cleaned name
+            existing_rocks = cls.query.all()
+            for rock in existing_rocks:
+                existing_cleaned = cls.clean_filename_from_title(rock.rock_name)
+                if existing_cleaned == cleaned_name:
+                    return False, 400, f"Duplicate rock. A rock with similar name ('{rock.rock_name}') already exists.", None
+
+            # ✅ Handle image upload
+            photo_base64 = kwargs.get("photo")
+            photo_url = None
+            if photo_base64:
+                if ',' in photo_base64:
+                    photo_base64 = photo_base64.split(',')[1]  # Remove data:image/jpeg;base64,...
+
+                photo_data = base64.b64decode(photo_base64)
+                photo_file = BytesIO(photo_data)
+
+                timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+                filename = secure_filename(f"{cleaned_name}_{timestamp}.jpg")
+                photo_file.filename = filename
+
+                blob_path = upload_file_to_gcs(
+                    photo_file,
+                    filename=filename,
+                    folder="rock-image-display",  # GCS folder
+                    custom_filename=f"{cleaned_name}_{timestamp}",
+                    overwrite=True
+                )
+                photo_url = blob_path  # Just the blob path (signed URL is generated later)
+
+            # ✅ Create rock in DB
+            rock = cls(
+                rock_name=rock_name,  # Original user input
+                rock_type=kwargs.get("rock_type"),
+                description=kwargs.get("description"),
+                hardness=kwargs.get("hardness"),
+                color=kwargs.get("color"),
+                composition=kwargs.get("composition"),
+                rarity=kwargs.get("rarity"),
+                density=kwargs.get("density"),
+                common_location=kwargs.get("common_location"),
+                fun_fact=kwargs.get("fun_fact"),
+                photo_url=photo_url,
+                user_id=kwargs.get("user_id")
+            )
+
             db.session.add(rock)
             db.session.commit()
             return True, 201, "Rock created successfully", rock
+
         except Exception as e:
             db.session.rollback()
-            print(f"Error creating rock: {e}")
+            print(f"❌ Error creating rock: {e}")
             return False, 500, f"Error creating rock: {str(e)}", None
 
     @classmethod
@@ -136,21 +197,62 @@ class Rock(db.Model):
         return query.all()
 
     @classmethod
-    def update_rock(cls, rock_id: int, **kwargs) -> Tuple[bool, int, str, Optional['Rock']]:
+    def update_rock(cls, rock_id: int, **kwargs):
         try:
             rock = cls.query.get(rock_id)
             if not rock:
                 return False, 404, "Rock not found", None
 
+            new_rock_name = kwargs.get("rock_name", rock.rock_name).strip()
+            new_cleaned_name = cls.clean_filename_from_title(new_rock_name)
+            current_cleaned_name = cls.clean_filename_from_title(rock.rock_name)
+
+            # ✅ Check for duplicate if rock_name is changed
+            if new_cleaned_name != current_cleaned_name:
+                all_rocks = cls.query.all()
+                for other in all_rocks:
+                    if other.rock_id != rock.rock_id:
+                        if cls.clean_filename_from_title(other.rock_name) == new_cleaned_name:
+                            return False, 400, f"Duplicate rock name. '{other.rock_name}' already exists.", None
+
+            # ✅ Handle new photo if provided (base64)
+            photo_base64 = kwargs.get("photo")
+            if photo_base64:
+                from io import BytesIO
+                import base64
+                from werkzeug.utils import secure_filename
+                from datetime import datetime
+                from app.utils.gcs import upload_file_to_gcs
+
+                if ',' in photo_base64:
+                    photo_base64 = photo_base64.split(',')[1]
+                photo_data = base64.b64decode(photo_base64)
+                photo_file = BytesIO(photo_data)
+
+                timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+                filename = secure_filename(f"{new_cleaned_name}_{timestamp}.jpg")
+                photo_file.filename = filename
+
+                blob_path = upload_file_to_gcs(
+                    photo_file,
+                    filename=filename,
+                    folder="rocks",
+                    custom_filename=f"{new_cleaned_name}_{timestamp}",
+                    overwrite=True
+                )
+                rock.photo_url = blob_path
+
+            # ✅ Update all fields
             for key, value in kwargs.items():
                 if hasattr(rock, key) and value is not None:
                     setattr(rock, key, value)
 
             db.session.commit()
             return True, 200, "Rock updated successfully", rock
+
         except Exception as e:
             db.session.rollback()
-            print(f"Error updating rock: {e}")
+            print(f"❌ Error updating rock: {e}")
             return False, 500, f"Error updating rock: {str(e)}", None
 
     @classmethod
