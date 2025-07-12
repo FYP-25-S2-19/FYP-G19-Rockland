@@ -10,24 +10,111 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-
-const articleTypes = ['Igneous', 'Sedimentary', 'Metamorphic', 'Other'];
+import { Alert } from 'react-native';
+import { useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { KeyboardAvoidingView, Platform } from 'react-native';
 
 export default function AddArtcleScreen() {
   const navigation = useNavigation();
 
   const [articleType, setarticleType] = useState('Article Category');
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [rarity, setRarity] = useState({
-    common: false,
-    rare: false,
-    legendary: false,
-  });
+  const [visibility, setVisibility] = useState<'Free' | 'Premium' | null>(null);
   const [rockName, setRockName] = useState('');
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState<{ uri: string; width: number; height: number }[]>([]);
+  const [categories, setCategories] = useState<{ categories_id: number, title: string }[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const API_URL = process.env.EXPO_PUBLIC_API_URL
 
-  // Pick image from gallery
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const token = await AsyncStorage.getItem('accessToken');
+        const res = await fetch(`${API_URL}/api/categories/all`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+  
+        const result = await res.json();
+        if (res.ok) {
+          setCategories(result.categories);
+        } else {
+          console.error('Failed to load categories:', result.error);
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+  
+    fetchCategories();
+  }, []);
+  
+
+  const submitArticle = async () => {
+    if (!rockName || !description || !articleType || !visibility) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+  
+    try {
+      const token = await AsyncStorage.getItem('accessToken'); // your auth token
+      if (!token) {
+        Alert.alert('Error', 'User not authenticated');
+        return;
+      }
+  
+      // Convert image to base64
+      let photoBase64 = null;
+      if (photos.length > 0) {
+        const response = await fetch(photos[0].uri);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        const readAsBase64 = () =>
+          new Promise((resolve) => {
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+        const base64 = (await readAsBase64()) as string;
+        photoBase64 = base64;
+      }
+  
+      const payload = {
+        title: rockName,
+        content: description,
+        categories_id: selectedCategoryId,
+        is_free: visibility === 'Free',
+        photo: photoBase64,
+      };
+  
+      const res = await fetch(`${API_URL}/api/articles/create`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+  
+      const result = await res.json();
+  
+      if (res.ok) {
+        Alert.alert('Success', 'Article posted successfully!');
+        navigation.goBack();
+      } else {
+        Alert.alert('Error', result.message || 'Failed to post article');
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Something went wrong');
+    }
+  };
+
+  
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -37,7 +124,8 @@ export default function AddArtcleScreen() {
 
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: false,
+      allowsEditing: true,
+      aspect: [1, 1], // force 1:1 crop
       quality: 1,
     });
 
@@ -57,7 +145,6 @@ export default function AddArtcleScreen() {
     }
   };
 
-  // Take photo with camera
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
@@ -66,6 +153,8 @@ export default function AddArtcleScreen() {
     }
 
     let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
       quality: 1,
     });
 
@@ -90,106 +179,29 @@ export default function AddArtcleScreen() {
     setarticleType(type);
     setDropdownOpen(false);
   };
-  const toggleRarity = (key: string) => {
-    setRarity((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
+
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+  >
+    <ScrollView
+      style={styles.container}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ paddingBottom: 100 }}
+    >
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={submitArticle}>
           <Text style={styles.postText}>Post</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.iconRow}>
-        <TouchableOpacity style={styles.iconButton} onPress={takePhoto}>
-          <Image
-            source={require('../../assets/images/camera.png')}
-            style={styles.icon}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
-          <Image
-            source={require('../../assets/images/picture.png')}
-            style={styles.icon}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Dropdown */}
-      <View style={{ marginTop: 20 }}>
-        <TouchableOpacity
-          style={styles.dropdownContainer}
-          onPress={toggleDropdown}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.dropdownText}>{articleType}</Text>
-          <Text style={styles.dropdownArrow}>{dropdownOpen ? '▲' : '▼'}</Text>
-        </TouchableOpacity>
-
-        {dropdownOpen && (
-          <View style={styles.dropdownList}>
-            {articleTypes.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={styles.dropdownItem}
-                onPress={() => selectArticleType(type)}
-              >
-                <Text
-                  style={[
-                    styles.dropdownItemText,
-                    type === articleType && { fontWeight: 'bold' },
-                  ]}
-                >
-                  {type}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* Rarity Checkboxes */}
-      <View style={styles.checkboxRow}>
-        {['beginner', 'intermediate', 'advanced'].map((key) => (
-          <TouchableOpacity
-            key={key}
-            style={styles.checkboxContainer}
-            onPress={() => toggleRarity(key)}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                { borderColor: '#76472D' },
-                rarity[key] && styles.checkboxChecked,
-              ]}
-            >
-              {rarity[key] && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text
-              style={[
-                styles.checkboxLabel,
-                { color: '#76472D' },
-                rarity[key] && styles.checkboxLabelBold,
-              ]}
-            >
-              {key.charAt(0).toUpperCase() + key.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Rock Name Input */}
+      {/* Title */}
       <TextInput
         style={styles.rockNameInput}
         placeholder="Article Title..."
@@ -213,20 +225,117 @@ export default function AddArtcleScreen() {
         ) : (
           <View style={{ width: '100%' }}>
             {photos.map((photo, index) => (
+            <View key={index} style={styles.imageWrapper}>
               <Image
-                key={index}
                 source={{ uri: photo.uri }}
                 style={{
                   width: '100%',
                   aspectRatio: photo.width / photo.height,
                   borderRadius: 8,
-                  marginBottom: 10,
                 }}
                 resizeMode="contain"
               />
-            ))}
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                  setPhotos((prev) => prev.filter((_, i) => i !== index));
+                }}
+              >
+                <Text style={styles.deleteButtonText}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
           </View>
         )}
+      </View>
+
+      {/* Camera & Upload buttons */}
+      <View style={styles.iconRow}>
+        <TouchableOpacity style={styles.iconButton} onPress={takePhoto}>
+          <Image
+            source={require('../../assets/images/camera.png')}
+            style={styles.icon}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
+          <Image
+            source={require('../../assets/images/picture.png')}
+            style={styles.icon}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Category Dropdown */}
+      <View style={{ marginTop: 20 }}>
+      <TouchableOpacity
+        style={styles.dropdownContainer}
+        onPress={toggleDropdown}
+      >
+        <Text style={styles.dropdownText}>
+          {selectedCategoryId
+            ? categories.find(cat => cat.categories_id === selectedCategoryId)?.title
+            : 'Select Category'}
+        </Text>
+        <Text style={styles.dropdownArrow}>{dropdownOpen ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+
+      {dropdownOpen && (
+        <View style={styles.dropdownList}>
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category.categories_id}
+              style={styles.dropdownItem}
+              onPress={() => {
+                setSelectedCategoryId(category.categories_id);
+                setDropdownOpen(false);
+              }}
+            >
+              <Text style={[
+                styles.dropdownItemText,
+                category.categories_id === selectedCategoryId && { fontWeight: 'bold' },
+              ]}>
+                {category.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      </View>
+
+      {/* Visibility (Free / Premium) */}
+      <Text style={{ marginTop: 20, marginBottom: 10, fontWeight: 'bold', fontSize: 16, marginLeft: 16 }}>
+        Who can see:
+      </Text>
+      <View style={styles.checkboxRow}>
+        {['Free', 'Premium'].map((option) => (
+          <TouchableOpacity
+            key={option}
+            style={styles.checkboxContainer}
+            onPress={() => setVisibility(option as 'Free' | 'Premium')}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                { borderColor: '#76472D' },
+                visibility === option && styles.checkboxChecked,
+              ]}
+            >
+              {visibility === option && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text
+              style={[
+                styles.checkboxLabel,
+                { color: '#76472D' },
+                visibility === option && styles.checkboxLabelBold,
+              ]}
+            >
+              {option}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Description */}
@@ -240,6 +349,7 @@ export default function AddArtcleScreen() {
         textAlignVertical="top"
       />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -269,7 +379,7 @@ const styles = StyleSheet.create({
   iconRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 4,
+    marginTop: 12,
     marginRight: 10,
   },
   iconButton: {
@@ -326,8 +436,8 @@ const styles = StyleSheet.create({
   },
   checkboxRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
+    justifyContent: 'space-around',
+    marginTop: 10,
     width: '90%',
     alignSelf: 'center',
   },
@@ -392,5 +502,27 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     textAlignVertical: 'top',
     marginLeft: 15,
+  },
+  imageWrapper: {
+    marginBottom: 10,
+    position: 'relative',
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    lineHeight: 18,
+    fontWeight: 'bold',
   },
 });

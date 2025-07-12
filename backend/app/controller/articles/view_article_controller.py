@@ -88,7 +88,7 @@ class ViewArticleController:
     
     @staticmethod
     @view_article_blueprint.route('/api/articles/premium/view', methods=['GET'])
-    @permission_required('has_premium_permission')
+    @permission_required('has_freeuser_permission')
     def get_articles_premium(**kwargs):
         """Premium users can view articles"""
         try:
