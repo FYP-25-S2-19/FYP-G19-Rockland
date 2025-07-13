@@ -251,7 +251,11 @@ def create_app():
     app.register_blueprint(get_article_by_id_blueprint)
 
     
-    ### Articles
+    from .controller.articles.unlike_article_controller import unlike_article_blueprint
+    app.register_blueprint(unlike_article_blueprint)
+
+    
+    ### trade offer
 
     from .controller.trade_offer.accept_trade_offer_controller import accept_trade_offer_bp
     app.register_blueprint(accept_trade_offer_bp)
@@ -270,6 +274,7 @@ def create_app():
 
     from .controller.trade_offer.search_my_trade_offer_controller import search_my_trade_offer_bp
     app.register_blueprint(search_my_trade_offer_bp)
+
 
 
     ## Dashboard

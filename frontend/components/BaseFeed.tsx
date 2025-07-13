@@ -11,7 +11,7 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
-import ArticleCard from "./ArticleCard"; // Adjust path if needed
+import ArticleCard from "./ArticleCard";
 import DiscussionCard from "./DiscussionCard";
 import FilterModal from "./FilterModalFeed";
 import FilterIcon from "../assets/images/filter.svg";
@@ -27,16 +27,18 @@ type BaseFeedProps = {
   tabs: { key: TabKey; label: string }[];
   onLikeToggle: (articleId: number) => void;
   onUpgradeRequest: (message: string) => void;
+  updateArticleLike: (articleId: number, liked: boolean, likeCount: number) => void;
 };
 
 export default function BaseFeed({
   userRole,
-  articles,
+  articles: incomingArticles,
   discussions = [],
   rocks = [],
   tabs,
   onLikeToggle,
   onUpgradeRequest,
+  updateArticleLike,
 }: BaseFeedProps) {
   const router = useRouter();
 
@@ -46,6 +48,17 @@ export default function BaseFeed({
   const [upgradeMessage, setUpgradeMessage] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
+  // ✅ Local article state for real-time updates
+  const [articles, setArticles] = useState(incomingArticles);
+
+  // ✅ Article like updater
+  const handleUpdateLike = (articleId: number, liked: boolean, likeCount: number) => {
+    const updated = articles.map((a) =>
+      a.id === articleId ? { ...a, liked, likes: likeCount } : a
+    );
+    setArticles(updated);
+    updateArticleLike(articleId, liked, likeCount); // sync to parent
+  };
   const filteredArticles = useMemo(() => {
     const keyword = searchText.toLowerCase();
     return articles.filter(
@@ -73,7 +86,6 @@ export default function BaseFeed({
 
   const handleTabPress = (tabKey: TabKey) => {
     const normalizedRole = userRole?.trim().toLowerCase() || "";
-
     if (
       normalizedRole === "free" &&
       (tabKey === "discussions" || tabKey === "rocks")
@@ -85,15 +97,6 @@ export default function BaseFeed({
       return;
     }
     setActiveTab(tabKey);
-  };
-
-  const openArticle = (article: any) => {
-    if (article.isPremium && userRole === "free") {
-      setUpgradeMessage("Upgrade to Premium to open this article.");
-      setShowUpgradeModal(true);
-      return;
-    }
-    router.push(`/article/${article.id}`);
   };
 
   const openRock = (rock: any) => {
@@ -150,27 +153,31 @@ export default function BaseFeed({
         ))}
       </View>
 
-      {/* Content */}
+      {/* Articles */}
       {activeTab === "articles" && (
         <FlatList
           data={filteredArticles}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <ArticleCard
-              article={item}
-              onLikeToggle={() => onLikeToggle(item.id)}
-              isPremiumUser={userRole === "premium"}
-              onUpgrade={() => {
-                setUpgradeMessage("Upgrade to Premium to open this article.");
-                setShowUpgradeModal(true);
-              }}
-            />
+            article={item}
+            onLikeToggle={() => onLikeToggle(item.id)}
+            isPremiumUser={userRole === "premium"}
+            onUpgrade={() => {
+              setUpgradeMessage("Upgrade to Premium to open this article.");
+              setShowUpgradeModal(true);
+            }}
+            updateLikeState={(liked, likeCount) =>
+              handleUpdateLike(item.id, liked, likeCount)  // ✅ Use it here
+            }
+          />
           )}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
         />
       )}
 
+      {/* Discussions */}
       {activeTab === "discussions" && (
         <>
           <FlatList
@@ -196,6 +203,7 @@ export default function BaseFeed({
         </>
       )}
 
+      {/* Rocks */}
       {activeTab === "rocks" && (
         <FlatList
           data={filteredRocks}
@@ -237,8 +245,8 @@ export default function BaseFeed({
                       item.rarity === "Common"
                         ? "#6D6D6D"
                         : item.rarity === "Rare"
-                          ? "#459B6C"
-                          : "#EF9E1C",
+                        ? "#459B6C"
+                        : "#EF9E1C",
                   }}
                 >
                   <Text className="text-xs font-medium text-white">
