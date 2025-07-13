@@ -165,7 +165,7 @@ export default function LandingPageManagement() {
         return
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/videos/all`, {
+      const response = await fetch(`${API_BASE_URL}/api/videos/admin/all`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authInfo.token}`,

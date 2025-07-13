@@ -16,12 +16,13 @@ class ViewApplicationController:
             applications = Application.getAllApplications()
             
             if applications is not None:
-                # Convert to list of dictionaries
-                applications_data = [app.to_dict() for app in applications]
+                # Use to_dict_detailed() to include user information
+                applications_data = [app.to_dict_detailed() for app in applications]
                 return jsonify({"success": True, "applications": applications_data}), 200
             else:
                 return jsonify({"success": False, "error": "Failed to fetch applications"}), 500
         except Exception as e:
+            print(f"Error in get_all_applications: {e}")
             return jsonify({"success": False, "error": f"Error: {str(e)}"}), 500
     
     # Get pending applications only
@@ -34,11 +35,13 @@ class ViewApplicationController:
             applications = Application.getApplicationsByStatus('Pending')
             
             if applications is not None:
-                applications_data = [app.to_dict() for app in applications]
+                # Use to_dict_detailed() to include user information
+                applications_data = [app.to_dict_detailed() for app in applications]
                 return jsonify({"success": True, "applications": applications_data}), 200
             else:
                 return jsonify({"success": False, "error": "Failed to fetch pending applications"}), 500
         except Exception as e:
+            print(f"Error in get_pending_applications: {e}")
             return jsonify({"success": False, "error": f"Error: {str(e)}"}), 500
     
     # Get past applications (approved/rejected)
@@ -51,11 +54,13 @@ class ViewApplicationController:
             applications = Application.getPastApplications()
             
             if applications is not None:
-                applications_data = [app.to_dict() for app in applications]
+                # Use to_dict_detailed() to include user information
+                applications_data = [app.to_dict_detailed() for app in applications]
                 return jsonify({"success": True, "applications": applications_data}), 200
             else:
                 return jsonify({"success": False, "error": "Failed to fetch past applications"}), 500
         except Exception as e:
+            print(f"Error in get_past_applications: {e}")
             return jsonify({"success": False, "error": f"Error: {str(e)}"}), 500
     
     # Get specific application details by ID
@@ -79,6 +84,7 @@ class ViewApplicationController:
                 }), status_code
             
         except Exception as e:
+            print(f"Error in view_application_details: {e}")
             return jsonify({
                 "success": False, 
                 "error": f"Error: {str(e)}"
@@ -123,7 +129,70 @@ class ViewApplicationController:
                 }), status_code
             
         except Exception as e:
+            print(f"Error in view_application_by_param: {e}")
             return jsonify({
                 "success": False, 
+                "error": f"Error: {str(e)}"
+            }), 500
+
+    # Accept application endpoint
+    @staticmethod
+    @view_application_blueprint.route('/api/applications/accept', methods=['POST'])
+    @permission_required('has_admin_permission')
+    def accept_application(**kwargs):
+        """Accept an application"""
+        try:
+            data = request.get_json()
+            application_id = data.get('application_id')
+            admin_email = kwargs.get('email', 'admin')
+            
+            if not application_id:
+                return jsonify({
+                    "success": False,
+                    "error": "Application ID is required"
+                }), 400
+            
+            success, status_code, message = Application.acceptApplication(application_id, admin_email)
+            
+            return jsonify({
+                "success": success,
+                "message": message
+            }), status_code
+            
+        except Exception as e:
+            print(f"Error in accept_application: {e}")
+            return jsonify({
+                "success": False,
+                "error": f"Error: {str(e)}"
+            }), 500
+
+    # Reject application endpoint
+    @staticmethod
+    @view_application_blueprint.route('/api/applications/reject', methods=['POST'])
+    @permission_required('has_admin_permission')
+    def reject_application(**kwargs):
+        """Reject an application"""
+        try:
+            data = request.get_json()
+            application_id = data.get('application_id')
+            admin_email = kwargs.get('email', 'admin')
+            
+            if not application_id:
+                return jsonify({
+                    "success": False,
+                    "error": "Application ID is required"
+                }), 400
+            
+            success, status_code, message = Application.rejectApplication(application_id, admin_email)
+            
+            return jsonify({
+                "success": success,
+                "message": message
+            }), status_code
+            
+        except Exception as e:
+            print(f"Error in reject_application: {e}")
+            return jsonify({
+                "success": False,
                 "error": f"Error: {str(e)}"
             }), 500
