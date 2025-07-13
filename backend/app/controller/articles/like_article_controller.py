@@ -11,7 +11,7 @@ class LikeArticleController:
     
     @staticmethod
     @like_article_blueprint.route('/api/articles/<int:article_id>/like', methods=['POST'])
-    @permission_required('has_freeuser_permission')  # Free users (covers both Free and Premium users)
+    @permission_required([])  # Free users (covers both Free and Premium users)
     def like_article(article_id, **kwargs):
         """Like an article - Premium and Free users only"""
         try:
@@ -54,7 +54,7 @@ class LikeArticleController:
     
     @staticmethod
     @like_article_blueprint.route('/api/articles/<int:article_id>/like/check', methods=['GET'])
-    @permission_required('has_freeuser_permission')  # Free users (covers both Free and Premium users)
+    @permission_required([])  # Free users (covers both Free and Premium users)
     def check_article_like(article_id, **kwargs):
         """Check if user has already liked an article"""
         try:
@@ -92,7 +92,7 @@ class LikeArticleController:
     
     @staticmethod
     @like_article_blueprint.route('/api/articles/<int:article_id>/likes', methods=['GET'])
-    @permission_required('has_freeuser_permission')  # Free users (covers both Free and Premium users)
+    @permission_required([]) 
     def get_article_likes(article_id, **kwargs):
         """Get all likes for a specific article"""
         try:
