@@ -33,7 +33,7 @@ export default function FilterModal({ visible, onClose }: { visible: boolean; on
       <SafeAreaView className="flex-1 bg-white">
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-200">
-          <TouchableOpacity onPress={onClose}><BackIcon width={24} height={24} /></TouchableOpacity>
+          <TouchableOpacity onPress={onClose}><BackIcon width={20} height={20} /></TouchableOpacity>
           <Text className="text-lg font-semibold text-gray-900">Filter</Text>
           <TouchableOpacity onPress={handleReset}><Text className="text-green-600 font-medium">Reset</Text></TouchableOpacity>
         </View>
