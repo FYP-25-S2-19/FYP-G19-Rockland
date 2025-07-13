@@ -11,6 +11,12 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
+<<<<<<< HEAD
+    "/registration/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/registration/page.js"
+=======
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -55,6 +61,7 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/landingpagemanagement/page.js"
+>>>>>>> origin/main
     ]
   }
 }
