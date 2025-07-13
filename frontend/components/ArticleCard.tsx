@@ -14,6 +14,8 @@ interface ArticleType {
   preview: string;
   likes: number;
   liked: boolean;
+  timeAgo: string; // ✅ new field
+  
 }
 
 interface ArticleCardProps {
@@ -70,7 +72,7 @@ export default function ArticleCard({
         <Image source={article.authorImage} style={{ width: 40, height: 40, borderRadius: 999 }} className="mr-3" />
         <View className="flex-1">
           <Text className="text-base font-semibold text-gray-900">{article.authorName}</Text>
-          <Text className="text-xs text-gray-500">1 min ago</Text>
+          <Text className="text-xs text-gray-500">{article.timeAgo}</Text>
         </View>
         <View style={[{ minWidth: 80, alignItems: 'center'}, shadowStyle]} className={`px-3 py-1 rounded-full ${article.isPremium ? "bg-[#EF9E1C]" : "bg-[#459B6C]"}`}>
           <Text className="text-white text-sm">{article.isPremium ? "Premium" : "Free"}</Text>

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Alert } from "react-native";
+import { Alert, ActivityIndicator, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BaseFeed from "../../components/BaseFeed";
 import { sampleArticles } from "../../data/article";
-
 import axios from "axios";
 
 export default function FreePremiumFeed() {
@@ -12,75 +11,67 @@ export default function FreePremiumFeed() {
   const [articles, setArticles] = useState(
     sampleArticles.map((article) => ({ ...article, liked: false }))
   );
-  const API_URL = process.env.EXPO_PUBLIC_API_URL
   const [discussions, setDiscussions] = useState([]);
 
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
   useEffect(() => {
-    const fetchArticles = async () => {
-      const endpoint = getArticleEndpoint(userRole);
-      if (!endpoint) return;
-  
+    const initialize = async () => {
+      setLoading(true);
       try {
-        const token = await AsyncStorage.getItem("accessToken"); // Assuming you stored JWT
-        const response = await axios.get(`${API_URL}${endpoint}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        // Load role
+        const role = await AsyncStorage.getItem("userRole");
+        setUserRole(role === "premium" ? "premium" : "free");
+
+        const token = await AsyncStorage.getItem("accessToken");
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Fetch articles
+        const articleRes = await axios.get(`${API_URL}/api/articles/all`, {
+          headers,
         });
-  
-        if (response.data.success) {
-          const fetchedArticles = response.data.articles.map((article: any) => ({
+
+        if (articleRes.data.success) {
+          const fetchedArticles = articleRes.data.articles.map((article: any) => ({
             id: article.article_id,
             title: article.title,
-            preview: article.content?.slice(0, 100), // adjust preview logic
+            preview: article.content?.slice(0, 100),
             category: article.category_title,
             authorName: article.author_name,
-            authorImage: require("../../assets/images/profilepicture.png"), // fallback
+            authorImage: article.author_profile_picture
+              ? { uri: article.author_profile_picture }
+              : require("../../assets/images/profilepicture.png"),
             isPremium: !article.is_free,
             thumbnail: { uri: article.signed_photo_url || article.photo_url },
             likes: article.total_likes,
-            liked: false, // default, until like API connected
+            liked: false,
+            timeAgo: article.date_created, // ✅ add this
           }));
           setArticles(fetchedArticles);
         } else {
-          Alert.alert("Error", response.data.message);
+          Alert.alert("Error", articleRes.data.message || "Failed to load articles");
         }
-      } catch (err: any) {
-        console.error("❌ Failed to fetch articles:", err.message);
-        Alert.alert("Error", "Failed to fetch articles");
-      }
-    };
 
-    const fetchDiscussions = async () => {
-      try {
-        const token = await AsyncStorage.getItem("accessToken");
-        console.log("📡 Fetching discussions with token:", token);
-        console.log("🌐 Fetching from:", `${API_URL}/api/discussions`);
-        const res = await fetch(`${API_URL}/api/discussions`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) {
-          setDiscussions(json.discussions);
+        // Fetch discussions
+        const discussionRes = await fetch(`${API_URL}/api/discussions`, { headers });
+        const discussionJson = await discussionRes.json();
+
+        if (discussionJson.success) {
+          setDiscussions(discussionJson.discussions);
+        } else {
+          console.warn("⚠️ Failed to load discussions:", discussionJson.message);
         }
+
       } catch (e) {
-        console.error("Failed to fetch discussions", e);
+        console.error("❌ Error initializing feed:", e);
+        Alert.alert("Error", "Something went wrong while loading content.");
+      } finally {
+        setLoading(false);
       }
     };
 
-  
-    if (userRole) {
-      fetchArticles();
-    fetchDiscussions();
-    }
-  }, [userRole]);
-
-  const getArticleEndpoint = (role: string) => {
-    if (role === "free" || role === "premium") {
-      return "/api/articles/premium/view"; // unified endpoint
-    }
-    return "";
-  };
+    initialize();
+  }, []);
 
   const onLikeToggle = (articleId: number) => {
     setArticles((prev) =>
@@ -91,6 +82,14 @@ export default function FreePremiumFeed() {
       )
     );
   };
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center bg-white">
+        <ActivityIndicator size="large" color="#459B6C" />
+      </View>
+    );
+  }
 
   return (
     <BaseFeed
