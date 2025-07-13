@@ -5,13 +5,13 @@ from app.controller.authentication.permission_required import permission_require
 import stripe
 import os
 
-upgrade_user_blueprint = Blueprint('upgrade_user', __name__)
+self_upgrade_blueprint = Blueprint('self_upgrade', __name__)
 
 # Set your Stripe secret key (ensure you use an env var in production)
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # Initiate Stripe Checkout Session
-@upgrade_user_blueprint.route('/api/user/upgrade/initiate', methods=['POST'])
+@self_upgrade_blueprint.route('/api/user/upgrade/initiate', methods=['POST'])
 @permission_required('has_freeuser_permission')
 def initiate_upgrade(current_user):
     try:
@@ -40,7 +40,7 @@ def initiate_upgrade(current_user):
 
 
 # Stripe webhook to confirm and process upgrade
-@upgrade_user_blueprint.route('/api/user/upgrade/webhook', methods=['POST'])
+@self_upgrade_blueprint.route('/api/user/upgrade/webhook', methods=['POST'])
 def upgrade_webhook():
     payload = request.data
     sig_header = request.headers.get('stripe-signature')
