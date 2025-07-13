@@ -288,3 +288,28 @@ class Rock(db.Model):
             "rarities": sorted([r[0] for r in rarities if r[0]]),
             "locations": sorted(location_set),
         }
+
+    @classmethod
+    def getTotalRockCount(cls):
+        """Get total count of all rocks"""
+        try:
+            total_rocks = cls.query.count()
+            return total_rocks, 200, "Rock count fetched successfully"
+        except Exception as e:
+            print(f"Error fetching rock count: {e}")
+            return 0, 500, f"Error: {str(e)}"
+
+    @classmethod
+    def getRockCountByType(cls):
+        """Get rock count by type for category analysis"""
+        try:
+            from sqlalchemy import func
+            rock_counts = db.session.query(
+                cls.rock_type,
+                func.count(cls.rock_id).label('count')
+            ).group_by(cls.rock_type).all()
+            
+            return rock_counts, 200, "Rock type counts fetched successfully"
+        except Exception as e:
+            print(f"Error fetching rock type counts: {e}")
+            return [], 500, f"Error: {str(e)}"

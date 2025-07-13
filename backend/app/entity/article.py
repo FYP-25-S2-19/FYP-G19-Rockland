@@ -352,3 +352,26 @@ class Article(db.Model):
         except Exception as e:
             print(f"Error searching articles: {e}")
             return None, 500, f"Error searching articles: {str(e)}"
+    @classmethod
+    def getArticlesForLandingPage(cls):
+        """Get maximum 3 articles for landing page (public access)"""
+        try:
+            # Get the 3 most recent articles for landing page
+            articles = cls.query.order_by(cls.date_created.desc()).limit(3).all()
+            articles_data = [article.to_dict() for article in articles]
+            
+            return articles_data, 200, f"Retrieved {len(articles_data)} articles for landing page"
+            
+        except Exception as e:
+            print(f"Error fetching articles for landing page: {e}")
+            return None, 500, f"Error fetching articles: {str(e)}"
+    
+    @classmethod
+    def getTotalArticleCount(cls):
+        """Get total count of all articles"""
+        try:
+            total_articles = cls.query.count()
+            return total_articles, 200, "Article count fetched successfully"
+        except Exception as e:
+            print(f"Error fetching article count: {e}")
+            return 0, 500, f"Error: {str(e)}"
