@@ -10,7 +10,7 @@ class ViewDiscussionController:
     
     @staticmethod
     @view_discussion_blueprint.route('/api/discussions', methods=['GET'])
-    @permission_required('has_premium_permission')
+    @permission_required('has_premium_permission', 'has_expert_permission')
     def get_discussions(**kwargs):
         """Fetch all discussions for premium users"""
         try:
@@ -38,7 +38,7 @@ class ViewDiscussionController:
     
     @staticmethod
     @view_discussion_blueprint.route('/api/discussions/<int:discussion_id>', methods=['GET'])
-    @permission_required('has_premium_permission')
+    @permission_required('has_premium_permission', 'has_expert_permission')
     def get_discussion_detail(discussion_id, **kwargs):
         """Fetch discussion detail for premium users"""
         try:

@@ -266,15 +266,5 @@ def create_app():
     app.register_blueprint(search_my_trade_offer_bp)
 
 
-    ### Discussion
-    from .controller.discussion.view_discussion_controller import view_discussion_blueprint
-    app.register_blueprint(view_discussion_blueprint)
-
-    from .controller.discussion.delete_discussion_controller import delete_discussion_blueprint
-    app.register_blueprint(delete_discussion_blueprint)
-
-    from.controller.discussion.create_discussion_controller import create_discussion_blueprint
-    app.register_blueprint(create_discussion_blueprint)
-
     
     return app
