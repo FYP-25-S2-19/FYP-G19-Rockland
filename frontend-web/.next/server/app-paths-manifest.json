@@ -1,1 +1,7 @@
-{}
+{
+  "/dashboard/page": "app/dashboard/page.js",
+  "/forummanagement/page": "app/forummanagement/page.js",
+  "/useraccount/page": "app/useraccount/page.js",
+  "/landingpagemanagement/page": "app/landingpagemanagement/page.js",
+  "/page": "app/page.js"
+}

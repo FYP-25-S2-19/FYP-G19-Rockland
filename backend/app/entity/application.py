@@ -1,4 +1,4 @@
-# application.py
+# application.py - Fixed version
 from app.models import db
 from datetime import datetime
 from app.utils.gcs import generate_signed_url, upload_file_to_gcs
@@ -138,15 +138,20 @@ class Application(db.Model):
 
     @classmethod
     def getPastApplications(cls):
-        """Get processed applications (Approved + Rejected)"""
+        """Get processed applications (Approved + Rejected) - FIXED VERSION"""
         try:
             from sqlalchemy import or_
+            
+            # Execute the query and get results using .all()
             applications = cls.query.filter(
                 or_(cls.status == 'Approved', cls.status == 'Rejected')
             ).order_by(cls.submission_date.desc()).all()
+            
+            print(f"🔍 Found {len(applications)} past applications")
             return applications
+            
         except Exception as e:
-            print(f"Error fetching past applications: {e}")
+            print(f"❌ Error fetching past applications: {e}")
             return None
 
     @classmethod
@@ -193,8 +198,9 @@ class Application(db.Model):
                 'attached_files': []
             }
             
-            # Get answers
-            if application.answers:
+            # Get answers - Fixed to handle the lazy loading properly
+            answers_list = list(application.answers.all())  # Convert to list
+            if answers_list:
                 questions_data = {
                     'question1': 'Why do you want to become an expert?',
                     'answer1': '',
@@ -202,7 +208,7 @@ class Application(db.Model):
                     'answer2': ''
                 }
                 
-                for i, answer in enumerate(application.answers):
+                for i, answer in enumerate(answers_list):
                     if i == 0:
                         questions_data['answer1'] = answer.answer_text
                     elif i == 1:
@@ -260,9 +266,8 @@ class Application(db.Model):
             else:
                 success_message = "Application accepted but user not found"
             
-            # You can add admin tracking here if needed
-            # application.processed_by = admin_id
-            # application.processed_date = datetime.utcnow()
+            
+            application.processed_by = admin_id
             
             db.session.commit()
             return True, 200, success_message
@@ -286,11 +291,7 @@ class Application(db.Model):
             
             # Update status to Rejected
             application.status = 'Rejected'
-            
-            # You can add admin tracking and rejection reason here if needed
-            # application.processed_by = admin_id
-            # application.processed_date = datetime.utcnow()
-            # application.rejection_reason = rejection_reason
+            application.processed_by = admin_id
             
             db.session.commit()
             return True, 200, "Application rejected successfully"
@@ -316,10 +317,7 @@ class Application(db.Model):
             
             # Update status
             application.status = new_status
-            
-            # You can add admin tracking here if needed
-            # application.processed_by = admin_id
-            # application.processed_date = datetime.utcnow()
+            application.processed_by = admin_id
             
             db.session.commit()
             return True, 200, f"Application status updated to {new_status}"
@@ -331,6 +329,11 @@ class Application(db.Model):
         
     def to_dict_detailed(self):
         user = self.user
+        
+        # Fixed: Convert lazy-loaded relationships to lists before checking length
+        files_list = list(self.files) if self.files else []
+        answers_list = list(self.answers.all()) if self.answers else []
+        
         return {
             'application_id': self.application_id,
             'user_id': self.user_id,
@@ -338,10 +341,35 @@ class Application(db.Model):
             'last_name': user.last_name if user else "Unknown", 
             'email': user.email if user else "Unknown",
             'submission_date': self.submission_date.isoformat() if self.submission_date else None,
-            'files_submitted': len(self.files) if self.files else 0,
+            'files_submitted': len(files_list),  # Now using the list
             'status': self.status,
-            'answers_count': len(self.answers) if self.answers else 0,
+            'answers_count': len(answers_list),  # Now using the list
             # For past applications
             'date_processed': self.submission_date.isoformat() if self.submission_date else None,
             'admin_id': 'N/A'  # You can add this field later to track who processed it
         }
+
+    @classmethod
+    def getTotalApplicationCount(cls):
+        """Get total count of all applications"""
+        try:
+            total_applications = cls.query.count()
+            return total_applications, 200, "Application count fetched successfully"
+        except Exception as e:
+            print(f"Error fetching application count: {e}")
+            return 0, 500, f"Error: {str(e)}"
+
+    @classmethod
+    def getApplicationCountByStatus(cls):
+        """Get application count by status"""
+        try:
+            from sqlalchemy import func
+            app_counts = db.session.query(
+                cls.status,
+                func.count(cls.application_id).label('count')
+            ).group_by(cls.status).all()
+            
+            return app_counts, 200, "Application status counts fetched successfully"
+        except Exception as e:
+            print(f"Error fetching application status counts: {e}")
+            return [], 500, f"Error: {str(e)}"
