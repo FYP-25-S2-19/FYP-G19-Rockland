@@ -56,28 +56,31 @@ export default function BaseFeed({
   }, [articles, searchText]);
 
   const filteredDiscussions = useMemo(() => {
-  const keyword = searchText.toLowerCase();
-  return discussions.filter(
-    (d) =>
-      typeof d.text === "string" && d.text.toLowerCase().includes(keyword)
-  );
-}, [discussions, searchText]);
+    const keyword = searchText.toLowerCase();
+    return discussions.filter(
+      (d) =>
+        typeof d.text === "string" && d.text.toLowerCase().includes(keyword)
+    );
+  }, [discussions, searchText]);
 
   const filteredRocks = useMemo(() => {
     const keyword = searchText.toLowerCase();
     return rocks.filter(
-      (r) => typeof r.name === "string" && r.name.toLowerCase().includes(keyword)
+      (r) =>
+        typeof r.name === "string" && r.name.toLowerCase().includes(keyword)
     );
   }, [rocks, searchText]);
 
   const handleTabPress = (tabKey: TabKey) => {
     const normalizedRole = userRole?.trim().toLowerCase() || "";
-  
+
     if (
       normalizedRole === "free" &&
       (tabKey === "discussions" || tabKey === "rocks")
     ) {
-      setUpgradeMessage("Premium Features Only\nUpgrade to unlock all features.");
+      setUpgradeMessage(
+        "Premium Features Only\nUpgrade to unlock all features."
+      );
       setShowUpgradeModal(true);
       return;
     }
@@ -168,16 +171,30 @@ export default function BaseFeed({
         />
       )}
 
-
-    {activeTab === "discussions" && (
-    <FlatList
-        data={filteredDiscussions}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <DiscussionCard discussion={item} />}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-    />
-    )}
+      {activeTab === "discussions" && (
+        <>
+          <FlatList
+            data={filteredDiscussions}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => <DiscussionCard discussion={item} />}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingBottom: 100,
+            }}
+            showsVerticalScrollIndicator={false}
+          />
+          <View className="px-4 pb-5">
+            <TouchableOpacity
+              className="bg-green-600 rounded-full px-4 py-3"
+              onPress={() => router.push("/creatediscussion")}
+            >
+              <Text className="text-white text-center font-semibold">
+                Start a New Discussion
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       {activeTab === "rocks" && (
         <FlatList
@@ -220,8 +237,8 @@ export default function BaseFeed({
                       item.rarity === "Common"
                         ? "#6D6D6D"
                         : item.rarity === "Rare"
-                        ? "#459B6C"
-                        : "#EF9E1C",
+                          ? "#459B6C"
+                          : "#EF9E1C",
                   }}
                 >
                   <Text className="text-xs font-medium text-white">

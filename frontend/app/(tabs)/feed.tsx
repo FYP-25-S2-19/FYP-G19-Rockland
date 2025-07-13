@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BaseFeed from "../../components/BaseFeed";
 import { sampleArticles } from "../../data/article";
-import { sampleDiscussions } from "../../data/discussion";
+
 import axios from "axios";
 
 export default function FreePremiumFeed() {
@@ -13,6 +13,7 @@ export default function FreePremiumFeed() {
     sampleArticles.map((article) => ({ ...article, liked: false }))
   );
   const API_URL = process.env.EXPO_PUBLIC_API_URL
+  const [discussions, setDiscussions] = useState([]);
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -49,9 +50,28 @@ export default function FreePremiumFeed() {
         Alert.alert("Error", "Failed to fetch articles");
       }
     };
+
+    const fetchDiscussions = async () => {
+      try {
+        const token = await AsyncStorage.getItem("accessToken");
+        console.log("📡 Fetching discussions with token:", token);
+        console.log("🌐 Fetching from:", `${API_URL}/api/discussions`);
+        const res = await fetch(`${API_URL}/api/discussions`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (json.success) {
+          setDiscussions(json.discussions);
+        }
+      } catch (e) {
+        console.error("Failed to fetch discussions", e);
+      }
+    };
+
   
     if (userRole) {
       fetchArticles();
+    fetchDiscussions();
     }
   }, [userRole]);
 
@@ -76,7 +96,7 @@ export default function FreePremiumFeed() {
     <BaseFeed
       userRole={userRole}
       articles={articles}
-      discussions={sampleDiscussions}
+      discussions={discussions}
       tabs={[
         { key: "articles", label: "Articles" },
         { key: "discussions", label: "Discussions" },
