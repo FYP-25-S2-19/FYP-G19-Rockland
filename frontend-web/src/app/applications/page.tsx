@@ -24,7 +24,7 @@ interface Application {
   first_name: string
   last_name: string
   email: string
-  date_submitted: string
+  submission_date: string // Changed from date_submitted to match backend
   files_submitted: number
   status: "Pending" | "Approved" | "Rejected"
   date_processed?: string
@@ -232,7 +232,7 @@ export default function ApplicationsManagement() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          application_id: parseInt(applicationId.replace('#', ''))
+          application_id: parseInt(applicationId) // Remove the # prefix handling since we're passing clean ID
         })
       })
 
@@ -283,7 +283,7 @@ export default function ApplicationsManagement() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          application_id: parseInt(applicationId.replace('#', ''))
+          application_id: parseInt(applicationId) // Remove the # prefix handling since we're passing clean ID
         })
       })
 
@@ -313,7 +313,19 @@ export default function ApplicationsManagement() {
     }
   }
 
-  // Load applications on component mount and tab change
+  // Load both sets of applications on component mount
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await Promise.all([
+        fetchPendingApplications(),
+        fetchPastApplications()
+      ])
+    }
+    
+    loadInitialData()
+  }, [])
+
+  // Load applications when tab changes (for refresh)
   useEffect(() => {
     if (activeTab === "pending") {
       fetchPendingApplications()
@@ -424,8 +436,12 @@ export default function ApplicationsManagement() {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A'
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-GB')
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('en-GB')
+    } catch {
+      return 'Invalid Date'
+    }
   }
 
   // Show error dialog if there's an error
@@ -505,49 +521,49 @@ export default function ApplicationsManagement() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">First Name</label>
-                      <Input value={selectedApplication.first_name} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.first_name || ''} readOnly className="bg-gray-50" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Last Name</label>
-                      <Input value={selectedApplication.last_name} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.last_name || ''} readOnly className="bg-gray-50" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Date of Birth</label>
-                      <Input value={selectedApplication.date_of_birth || ""} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.date_of_birth || "N/A"} readOnly className="bg-gray-50" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Contact Number</label>
-                      <Input value={selectedApplication.contact_number || ""} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.contact_number || "N/A"} readOnly className="bg-gray-50" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">Email</label>
-                    <Input value={selectedApplication.email} readOnly className="bg-gray-50" />
+                    <Input value={selectedApplication.email || ''} readOnly className="bg-gray-50" />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Interest</label>
-                      <Input value={selectedApplication.interest || ""} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.interest || "N/A"} readOnly className="bg-gray-50" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Role</label>
-                      <Input value={selectedApplication.role || ""} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.role || "N/A"} readOnly className="bg-gray-50" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Gender</label>
-                      <Input value={selectedApplication.gender || ""} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.gender || "N/A"} readOnly className="bg-gray-50" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Region</label>
-                      <Input value={selectedApplication.region || ""} readOnly className="bg-gray-50" />
+                      <Input value={selectedApplication.region || "N/A"} readOnly className="bg-gray-50" />
                     </div>
                   </div>
 
@@ -561,7 +577,7 @@ export default function ApplicationsManagement() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Created Date</label>
-                      <Input value={selectedApplication.created_date || ""} readOnly className="bg-gray-50" />
+                      <Input value={formatDate(selectedApplication.created_date || '')} readOnly className="bg-gray-50" />
                     </div>
                   </div>
 
@@ -581,7 +597,7 @@ export default function ApplicationsManagement() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Question 1</label>
                       <Input 
-                        value={selectedApplication.questions?.question1 || ""} 
+                        value={selectedApplication.questions?.question1 || "Why do you want to become an expert?"} 
                         readOnly 
                         className="bg-gray-50" 
                       />
@@ -589,7 +605,7 @@ export default function ApplicationsManagement() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Answer</label>
                       <textarea 
-                        value={selectedApplication.questions?.answer1 || ""} 
+                        value={selectedApplication.questions?.answer1 || "No answer provided"} 
                         readOnly 
                         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-md resize-none"
                         rows={3}
@@ -601,7 +617,7 @@ export default function ApplicationsManagement() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Question 2</label>
                       <Input 
-                        value={selectedApplication.questions?.question2 || ""} 
+                        value={selectedApplication.questions?.question2 || "Describe your background and expertise in your field."} 
                         readOnly 
                         className="bg-gray-50" 
                       />
@@ -609,7 +625,7 @@ export default function ApplicationsManagement() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">Answer</label>
                       <textarea 
-                        value={selectedApplication.questions?.answer2 || ""} 
+                        value={selectedApplication.questions?.answer2 || "No answer provided"} 
                         readOnly 
                         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-md resize-none"
                         rows={3}
@@ -620,12 +636,19 @@ export default function ApplicationsManagement() {
                   <div className="space-y-4">
                     <label className="text-sm font-medium text-gray-700">Attached Files</label>
                     <div className="space-y-2">
-                      {selectedApplication.attached_files?.map((file, index) => (
-                        <div key={index} className="flex items-center p-3 bg-gray-50 border border-gray-200 rounded-md">
+                      {selectedApplication.attached_files && selectedApplication.attached_files.length > 0 ? (
+                        selectedApplication.attached_files.map((file, index) => (
+                          <div key={index} className="flex items-center p-3 bg-gray-50 border border-gray-200 rounded-md">
+                            <FileTextIcon className="w-4 h-4 text-gray-500 mr-2" />
+                            <span className="text-gray-700">{file}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex items-center p-3 bg-gray-50 border border-gray-200 rounded-md">
                           <FileTextIcon className="w-4 h-4 text-gray-500 mr-2" />
-                          <span className="text-gray-700">{file}</span>
+                          <span className="text-gray-500">No files attached</span>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
 
@@ -636,36 +659,38 @@ export default function ApplicationsManagement() {
                     >
                       {'<'} Previous
                     </Button>
-                    <div className="space-x-2">
-                      <Button 
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => {
-                          setConfirmAction({
-                            type: "accept",
-                            applicationId: selectedApplication.application_id.toString(),
-                            applicantName: `${selectedApplication.first_name} ${selectedApplication.last_name}`,
-                          })
-                          setShowConfirmDialog(true)
-                        }}
-                      >
-                        <Check className="w-4 h-4 mr-2" />
-                        Accept
-                      </Button>
-                      <Button 
-                        className="bg-red-600 hover:bg-red-700 text-white"
-                        onClick={() => {
-                          setConfirmAction({
-                            type: "reject",
-                            applicationId: selectedApplication.application_id.toString(),
-                            applicantName: `${selectedApplication.first_name} ${selectedApplication.last_name}`,
-                          })
-                          setShowConfirmDialog(true)
-                        }}
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        Reject
-                      </Button>
-                    </div>
+                    {selectedApplication.status === 'Pending' && (
+                      <div className="space-x-2">
+                        <Button 
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => {
+                            setConfirmAction({
+                              type: "accept",
+                              applicationId: selectedApplication.application_id.toString(),
+                              applicantName: `${selectedApplication.first_name} ${selectedApplication.last_name}`,
+                            })
+                            setShowConfirmDialog(true)
+                          }}
+                        >
+                          <Check className="w-4 h-4 mr-2" />
+                          Accept
+                        </Button>
+                        <Button 
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          onClick={() => {
+                            setConfirmAction({
+                              type: "reject",
+                              applicationId: selectedApplication.application_id.toString(),
+                              applicantName: `${selectedApplication.first_name} ${selectedApplication.last_name}`,
+                            })
+                            setShowConfirmDialog(true)
+                          }}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Reject
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -796,11 +821,11 @@ export default function ApplicationsManagement() {
                       pendingApplications.map((application) => (
                         <TableRow key={application.application_id} className="hover:bg-gray-50 transition-colors">
                           <TableCell className="font-medium text-gray-900">#{application.application_id}</TableCell>
-                          <TableCell className="text-gray-900">{application.first_name}</TableCell>
-                          <TableCell className="text-gray-900">{application.last_name}</TableCell>
-                          <TableCell className="text-gray-600">{application.email}</TableCell>
-                          <TableCell className="text-gray-600">{formatDate(application.date_submitted)}</TableCell>
-                          <TableCell className="text-gray-600">{application.files_submitted}</TableCell>
+                          <TableCell className="text-gray-900">{application.first_name || 'N/A'}</TableCell>
+                          <TableCell className="text-gray-900">{application.last_name || 'N/A'}</TableCell>
+                          <TableCell className="text-gray-600">{application.email || 'N/A'}</TableCell>
+                          <TableCell className="text-gray-600">{formatDate(application.submission_date)}</TableCell>
+                          <TableCell className="text-gray-600">{application.files_submitted || 0}</TableCell>
                           <TableCell>
                             <div className="flex items-center justify-center space-x-2">
                               <Button 
@@ -886,13 +911,13 @@ export default function ApplicationsManagement() {
                       pastApplications.map((application) => (
                         <TableRow key={application.application_id} className="hover:bg-gray-50 transition-colors">
                           <TableCell className="font-medium text-gray-900">#{application.application_id}</TableCell>
-                          <TableCell className="text-gray-900">{application.first_name}</TableCell>
-                          <TableCell className="text-gray-900">{application.last_name}</TableCell>
-                          <TableCell className="text-gray-600">{application.email}</TableCell>
-                          <TableCell className="text-gray-600">{formatDate(application.date_submitted)}</TableCell>
-                          <TableCell className="text-gray-600">{application.files_submitted}</TableCell>
+                          <TableCell className="text-gray-900">{application.first_name || 'N/A'}</TableCell>
+                          <TableCell className="text-gray-900">{application.last_name || 'N/A'}</TableCell>
+                          <TableCell className="text-gray-600">{application.email || 'N/A'}</TableCell>
+                          <TableCell className="text-gray-600">{formatDate(application.submission_date)}</TableCell>
+                          <TableCell className="text-gray-600">{application.files_submitted || 0}</TableCell>
                           <TableCell>{getStatusBadge(application.status)}</TableCell>
-                          <TableCell className="text-gray-600">{formatDate(application.date_processed || application.date_submitted)}</TableCell>
+                          <TableCell className="text-gray-600">{formatDate(application.date_processed || application.submission_date)}</TableCell>
                           <TableCell className="text-gray-600">{application.admin_id || 'N/A'}</TableCell>
                         </TableRow>
                       ))

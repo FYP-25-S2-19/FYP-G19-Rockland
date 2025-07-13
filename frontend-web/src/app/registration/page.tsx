@@ -82,7 +82,10 @@ export default function RegistrationPage() {
     if (interests.includes(interest)) {
       setInterests(interests.filter((i) => i !== interest))
     } else {
-      setInterests([...interests, interest])
+      // Only allow selecting if less than 3 interests are selected
+      if (interests.length < 3) {
+        setInterests([...interests, interest])
+      }
     }
   }
 
@@ -411,7 +414,13 @@ export default function RegistrationPage() {
                 </div>
 
                 <div>
-                  <Label className="text-sm text-gray-600">Interests (Optional)</Label>
+                  <Label className="text-sm text-gray-600">
+                    Interests (Optional) - Select up to 3
+                  </Label>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {interests.length}/3 selected
+                  </div>
+                  
                   {interestsLoading ? (
                     <div className="mt-2 flex items-center justify-center p-4">
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
@@ -427,27 +436,38 @@ export default function RegistrationPage() {
                   
                   <div className="mt-2 max-h-32 overflow-y-auto">
                     <div className="grid grid-cols-2 gap-2">
-                      {availableInterests.map((interest) => (
-                        <div key={interest.interest_id} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`interest-${interest.interest_id}`}
-                            checked={interests.includes(interest.title)}
-                            onChange={() => toggleInterest(interest.title)}
-                            className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
-                            disabled={interestsLoading}
-                          />
-                          <Label 
-                            htmlFor={`interest-${interest.interest_id}`} 
-                            className="text-sm cursor-pointer"
-                            title={interest.description || interest.title}
-                          >
-                            {interest.title}
-                          </Label>
-                        </div>
-                      ))}
+                      {availableInterests.map((interest) => {
+                        const isSelected = interests.includes(interest.title)
+                        const canSelect = interests.length < 3 || isSelected
+                        
+                        return (
+                          <div key={interest.interest_id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`interest-${interest.interest_id}`}
+                              checked={isSelected}
+                              onChange={() => toggleInterest(interest.title)}
+                              className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 disabled:opacity-50"
+                              disabled={interestsLoading || !canSelect}
+                            />
+                            <Label 
+                              htmlFor={`interest-${interest.interest_id}`} 
+                              className={`text-sm cursor-pointer ${!canSelect ? 'opacity-50' : ''}`}
+                              title={interest.description || interest.title}
+                            >
+                              {interest.title}
+                            </Label>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
+                  
+                  {interests.length === 3 && (
+                    <div className="mt-2 text-xs text-emerald-600">
+                      Maximum interests selected. Uncheck an interest to select a different one.
+                    </div>
+                  )}
                 </div>
 
                 <div>

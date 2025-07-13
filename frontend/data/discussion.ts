@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 export type Comment = {
   id: number;
   user: string;
@@ -15,6 +16,8 @@ export type Discussion = {
   isNew: boolean;
 };
 
+=======
+>>>>>>> origin/kenneth-final
 export const sampleDiscussions: Discussion[] = [
   {
     id: 1,

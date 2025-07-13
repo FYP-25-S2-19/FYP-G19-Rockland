@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import AdminSidebar from "@/components/ui/AdminSidebar"
 
@@ -17,12 +18,6 @@ interface AdminInfo {
   initials: string
 }
 
-const adminInfo: AdminInfo = {
-  name: "Admin",
-  email: "admin@main.com",
-  initials: "A"
-}
-
 export default function AdminLayout({ 
   children, 
   activeMenuItem, 
@@ -30,6 +25,46 @@ export default function AdminLayout({
   subtitle,
   onNavigate 
 }: AdminLayoutProps) {
+  const [adminInfo, setAdminInfo] = useState<AdminInfo | null>(null)
+
+  // Load admin info from localStorage on component mount
+  useEffect(() => {
+    try {
+      const storedEmail = localStorage.getItem('adminEmail')
+      const storedName = localStorage.getItem('adminName')
+      
+      if (storedEmail) {
+        let displayName = ""
+        let initials = ""
+        
+        if (storedName) {
+          displayName = storedName
+          initials = storedName.split(' ')
+            .map(word => word.charAt(0).toUpperCase())
+            .join('')
+            .substring(0, 2)
+        } else {
+          // Extract name from email if no separate name stored
+          const nameFromEmail = storedEmail.split('@')[0]
+          displayName = nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1)
+          initials = displayName.charAt(0).toUpperCase()
+        }
+        
+        setAdminInfo({
+          name: displayName,
+          email: storedEmail,
+          initials: initials
+        })
+      } else {
+        // No admin info available
+        setAdminInfo(null)
+      }
+    } catch (error) {
+      console.error('Error loading admin info from localStorage:', error)
+      setAdminInfo(null)
+    }
+  }, [])
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -45,15 +80,24 @@ export default function AdminLayout({
               {subtitle && <p className="text-gray-600 mt-1">{subtitle}</p>}
             </div>
             <div className="flex items-center space-x-3">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{adminInfo.name}</p>
-                <p className="text-xs text-gray-500">{adminInfo.email}</p>
-              </div>
-              <Avatar className="ring-2 ring-green-100">
-                <AvatarFallback className="bg-green-100 text-green-600 font-semibold">
-                  {adminInfo.initials}
-                </AvatarFallback>
-              </Avatar>
+              {adminInfo ? (
+                <>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">{adminInfo.name}</p>
+                    <p className="text-xs text-gray-500">{adminInfo.email}</p>
+                  </div>
+                  <Avatar className="ring-2 ring-green-100">
+                    <AvatarFallback className="bg-green-100 text-green-600 font-semibold">
+                      {adminInfo.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </>
+              ) : (
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-400">Not logged in</p>
+                  <p className="text-xs text-gray-400">Please log in</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
