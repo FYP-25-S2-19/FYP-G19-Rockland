@@ -19,7 +19,7 @@ class Video(db.Model):
     
     # File attachment fields
     file_path = db.Column(db.String(500), nullable=False)  # Cloud storage path
-    file_url = db.Column(db.String(500), nullable=False)   # Public GCS URL
+    file_url = db.Column(db.Text, nullable=False)
     file_name = db.Column(db.String(255), nullable=False)  # Original filename
     file_size = db.Column(db.BigInteger, nullable=True)    # File size in bytes
     file_type = db.Column(db.String(50), nullable=True)    # MIME type (video/mp4, etc.)

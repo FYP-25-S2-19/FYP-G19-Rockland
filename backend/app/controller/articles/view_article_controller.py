@@ -206,3 +206,35 @@ class ViewArticleController:
                 'success': False,
                 'message': f'Error fetching articles: {str(e)}'
             }), 500
+        
+    @staticmethod
+    @view_article_blueprint.route('/api/articles/public', methods=['GET'])
+    def get_articles_public():
+        """Get maximum 3 articles for public view (landing page) - no authentication required"""
+        try:
+            # Use the entity method to get articles for landing page
+            articles_data, status_code, message = Article.getArticlesForLandingPage()
+            
+            if articles_data is not None:
+                return jsonify({
+                    'success': True,
+                    'message': message,
+                    'articles': articles_data,
+                    'total_count': len(articles_data)
+                }), status_code
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': message,
+                    'articles': [],
+                    'total_count': 0
+                }), status_code
+                
+        except Exception as e:
+            print(f"Error in get_articles_public controller: {e}")
+            return jsonify({
+                'success': False,
+                'message': f'Error fetching articles: {str(e)}',
+                'articles': [],
+                'total_count': 0
+            }), 500
