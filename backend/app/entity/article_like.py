@@ -116,3 +116,19 @@ class ArticleLike(db.Model):
         except Exception as e:
             print(f"Error fetching article likes: {e}")
             return None, 500, f"Error fetching likes: {str(e)}"
+        
+    @classmethod
+    def unlikeArticle(cls, user_id: int, article_id: int):
+        """Unlike an article if it was previously liked"""
+        try:
+            like = cls.query.filter_by(user_id=user_id, article_id=article_id).first()
+            if like:
+                db.session.delete(like)
+                db.session.commit()
+                return True, 200, "Article unliked successfully"
+            else:
+                return False, 400, "You have not liked this article yet"
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error unliking article: {e}")
+            return False, 500, f"Error unliking article: {str(e)}"
