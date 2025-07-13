@@ -295,7 +295,6 @@ class User(db.Model):
                         total_points: int = 0,
                         interests: list = None):  # Added interests parameter
         """Create a new user account"""
-
         # Check if user already exists
         if cls.queryUserAccount(email):
             return False, 409, "User with this email already exists", None
