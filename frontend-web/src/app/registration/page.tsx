@@ -266,7 +266,7 @@ export default function RegistrationPage() {
                     id="firstName"
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="mt-1"
+                    className="mt-1 text-black"
                     placeholder="Enter your first name"
                   />
                 </div>
@@ -279,7 +279,7 @@ export default function RegistrationPage() {
                     id="lastName"
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="mt-1"
+                    className="mt-1 text-black"
                     placeholder="Enter your last name"
                   />
                 </div>
@@ -293,7 +293,7 @@ export default function RegistrationPage() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="mt-1"
+                    className="mt-1 text-black"
                     placeholder="your.email@example.com"
                   />
                 </div>
@@ -308,7 +308,7 @@ export default function RegistrationPage() {
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="pr-10"
+                      className="pr-10 text-black"
                       placeholder="At least 6 characters"
                     />
                     <Button
@@ -318,7 +318,7 @@ export default function RegistrationPage() {
                       className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="h-6 w-6 text-gray-600"/> : <Eye className="h-6 w-6 text-gray-600" />}
                     </Button>
                   </div>
                 </div>
@@ -333,7 +333,7 @@ export default function RegistrationPage() {
                       type={showConfirmPassword ? "text" : "password"}
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      className="pr-10"
+                      className="pr-10 text-black"
                       placeholder="Re-enter your password"
                     />
                     <Button
@@ -343,7 +343,7 @@ export default function RegistrationPage() {
                       className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showConfirmPassword ? <EyeOff className="h-6 w-6 text-gray-600"/> : <Eye className="h-6 w-6 text-gray-600" />}
                     </Button>
                   </div>
                 </div>
@@ -372,7 +372,7 @@ export default function RegistrationPage() {
                     id="dateOfBirth"
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                    className="mt-1"
+                    className="mt-1 text-black"
                     placeholder="DD/MM/YYYY"
                   />
                 </div>
@@ -385,7 +385,7 @@ export default function RegistrationPage() {
                     id="contactNumber"
                     value={formData.contactNumber}
                     onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
-                    className="mt-1"
+                    className="mt-1 text-black"
                     placeholder="+65 1234 5678"
                   />
                 </div>
@@ -398,17 +398,15 @@ export default function RegistrationPage() {
                     value={formData.region}
                     onValueChange={(value) => setFormData({ ...formData, region: value })}
                   >
-                    <SelectTrigger className="mt-1">
+                    <SelectTrigger className="mt-1 text-black">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Singapore">Singapore</SelectItem>
-                      <SelectItem value="Malaysia">Malaysia</SelectItem>
-                      <SelectItem value="Thailand">Thailand</SelectItem>
-                      <SelectItem value="Indonesia">Indonesia</SelectItem>
-                      <SelectItem value="Philippines">Philippines</SelectItem>
-                      <SelectItem value="Vietnam">Vietnam</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      {["Singapore", "Malaysia", "Thailand", "Indonesia", "Philippines", "Vietnam", "Other"].map((region) => (
+                        <SelectItem key={region} value={region} className="text-black">
+                          {region}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -435,7 +433,7 @@ export default function RegistrationPage() {
                   ) : null}
                   
                   <div className="mt-2 max-h-32 overflow-y-auto">
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 text-black">
                       {availableInterests.map((interest) => {
                         const isSelected = interests.includes(interest.title)
                         const canSelect = interests.length < 3 || isSelected
@@ -472,45 +470,57 @@ export default function RegistrationPage() {
 
                 <div>
                   <Label className="text-sm text-gray-600">What's your gender?</Label>
-                  <div className="mt-2 space-y-2">
-                    {["Female", "Male", "Rather not say"].map((option) => (
-                      <div key={option} className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id={option.toLowerCase().replace(/\s+/g, '-')}
-                          name="gender"
-                          value={option}
-                          checked={formData.gender === option}
-                          onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                          className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
-                        />
-                        <Label htmlFor={option.toLowerCase().replace(/\s+/g, '-')} className="text-sm cursor-pointer">
-                          {option}
-                        </Label>
-                      </div>
-                    ))}
+                  <div className="mt-2 space-y-2 text-black">
+                    {["Female", "Male", "Rather not say"].map((option) => {
+                      const isSelected = formData.gender === option;
+                      return (
+                        <div key={option} className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id={option.toLowerCase().replace(/\s+/g, '-')}
+                            name="gender"
+                            value={option}
+                            checked={isSelected}
+                            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                            className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                          />
+                          <Label
+                            htmlFor={option.toLowerCase().replace(/\s+/g, '-')}
+                            className={`text-sm cursor-pointer ${isSelected ? 'text-emerald-600 font-medium' : 'text-gray-700'}`}
+                          >
+                            {option}
+                          </Label>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
                 <div>
                   <Label className="text-sm text-gray-600">Select Plan</Label>
                   <div className="mt-2 space-y-2">
-                    {["Free Plan", "Premium Plan"].map((plan) => (
-                      <div key={plan} className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          id={plan.toLowerCase().replace(/\s+/g, '-')}
-                          name="plan"
-                          value={plan}
-                          checked={formData.plan === plan}
-                          onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                          className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
-                        />
-                        <Label htmlFor={plan.toLowerCase().replace(/\s+/g, '-')} className="text-sm cursor-pointer">
-                          {plan}
-                        </Label>
-                      </div>
-                    ))}
+                    {["Free Plan", "Premium Plan"].map((plan) => {
+                      const isSelected = formData.plan === plan;
+                      return (
+                        <div key={plan} className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id={plan.toLowerCase().replace(/\s+/g, '-')}
+                            name="plan"
+                            value={plan}
+                            checked={isSelected}
+                            onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
+                            className="w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500"
+                          />
+                          <Label
+                            htmlFor={plan.toLowerCase().replace(/\s+/g, '-')}
+                            className={`text-sm cursor-pointer ${isSelected ? 'text-emerald-600 font-medium' : 'text-gray-700'}`}
+                          >
+                            {plan}
+                          </Label>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
