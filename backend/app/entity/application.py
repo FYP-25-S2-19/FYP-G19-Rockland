@@ -199,7 +199,7 @@ class Application(db.Model):
 
     @classmethod
     def acceptApplication(cls, application_id, admin_id):
-        """Accept an application"""
+        """Accept an application and upgrade user to Expert"""
         try:
             application = cls.query.get(application_id)
             
@@ -212,12 +212,34 @@ class Application(db.Model):
             # Update status to Approved
             application.status = 'Approved'
             
+            # IMPORTANT: Upgrade the user to Expert when application is accepted
+            user = application.user
+            if user:
+                # Import User class to use upgradeUserType method
+                from app.entity.user import User
+                
+                # Upgrade user to Expert (assuming Expert type exists)
+                success, status_code, upgrade_message, updated_user = User.upgradeUserType(
+                    user.user_id, 
+                    'Expert'  # Target user type
+                )
+                
+                if success:
+                    print(f"✅ User {user.email} upgraded to Expert successfully")
+                    success_message = "Application accepted successfully and user upgraded to Expert"
+                else:
+                    # If upgrade fails, still accept application but log the issue
+                    print(f"⚠️ Warning: Application accepted but user upgrade failed: {upgrade_message}")
+                    success_message = f"Application accepted but user upgrade failed: {upgrade_message}"
+            else:
+                success_message = "Application accepted but user not found"
+            
             # You can add admin tracking here if needed
             # application.processed_by = admin_id
             # application.processed_date = datetime.utcnow()
             
             db.session.commit()
-            return True, 200, "Application accepted successfully"
+            return True, 200, success_message
             
         except Exception as e:
             db.session.rollback()
@@ -280,9 +302,8 @@ class Application(db.Model):
             db.session.rollback()
             print(f"Error updating application status: {e}")
             return False, 500, f"Error updating application status: {str(e)}"
-
+        
     def to_dict_detailed(self):
-        """Enhanced to_dict with user info for admin views"""
         user = self.user
         return {
             'application_id': self.application_id,
@@ -290,11 +311,11 @@ class Application(db.Model):
             'first_name': user.first_name if user else "Unknown",
             'last_name': user.last_name if user else "Unknown", 
             'email': user.email if user else "Unknown",
-            'date_submitted': self.submission_date.strftime('%d/%m/%Y') if self.submission_date else None,
+            'submission_date': self.submission_date.isoformat() if self.submission_date else None,
             'files_submitted': len(self.files) if self.files else 0,
             'status': self.status,
             'answers_count': len(self.answers) if self.answers else 0,
             # For past applications
-            'date_processed': self.submission_date.strftime('%d/%m/%Y') if self.submission_date else None,
-            'admin_id': 100  # You can add this field later to track who processed it
+            'date_processed': self.submission_date.isoformat() if self.submission_date else None,
+            'admin_id': 'N/A'  # You can add this field later to track who processed it
         }
