@@ -6,7 +6,7 @@ from app.controller.authentication.permission_required import permission_require
 view_achievement_blueprint = Blueprint('view_achievement', __name__)
 
 @view_achievement_blueprint.route('/api/achievements', methods=['GET'])
-@permission_required('has_freeuser_permission')
+@permission_required('has_premium_permission')
 def view_achievements(current_user):
     records = AchievementsRecord.query.filter_by(user_id=current_user.user_id).all()
     return jsonify({
@@ -15,7 +15,7 @@ def view_achievements(current_user):
     }), 200
 
 @view_achievement_blueprint.route('/api/achievements/full', methods=['GET'])
-@permission_required('has_freeuser_permission')
+@permission_required('has_premium_permission')
 def view_all_achievements_with_status(current_user):
     from app.entity.achievement import AchievementsList, AchievementsRecord
     from app.entity.user_activity import UserActivity

@@ -6,7 +6,7 @@ from app.controller.authentication.permission_required import permission_require
 comment_discussion_blueprint = Blueprint('comment_discussion', __name__)
 
 @comment_discussion_blueprint.route('/api/discussions/<int:discussion_id>/comment', methods=['POST'])
-@permission_required('has_freeuser_permission')
+@permission_required('has_premium_permission', 'has_expert_permissioni')
 def add_comment(discussion_id, current_user):
     data = request.get_json()
     text = data.get('text')
