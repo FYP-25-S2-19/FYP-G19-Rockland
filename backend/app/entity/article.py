@@ -438,3 +438,13 @@ class Article(db.Model):
         except Exception as e:
             print(f"Error fetching articles for landing page: {e}")
             return None, 500, f"Error fetching articles: {str(e)}"
+    
+    @classmethod
+    def getTotalArticleCount(cls):
+        """Get total count of all articles"""
+        try:
+            total_articles = cls.query.count()
+            return total_articles, 200, "Article count fetched successfully"
+        except Exception as e:
+            print(f"Error fetching article count: {e}")
+            return 0, 500, f"Error: {str(e)}"
