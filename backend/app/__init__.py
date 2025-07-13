@@ -272,5 +272,10 @@ def create_app():
     app.register_blueprint(search_my_trade_offer_bp)
 
 
+    ## Dashboard
+    from .controller.dashboard.dashboard_controller import dashboard_blueprint
+    app.register_blueprint(dashboard_blueprint)
+
+
     
     return app

@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge"
 import { Check, Play, Plus, Minus, Loader2 } from "lucide-react"
 
 interface FAQItem {
+  faq_id: number
   question: string
   answer: string
+  user_id: number
 }
 
 interface Video {
@@ -24,38 +26,156 @@ interface Video {
   date_created: string
 }
 
+interface Testimonial {
+  testimonials_id: number
+  name: string
+  testimony: string
+  date_created: string
+  user_id: number
+}
+
+interface Article {
+  article_id: number
+  title: string
+  content: string
+  photo: string
+  photo_url: string
+  signed_photo_url: string
+  date_created: string
+  is_free: boolean
+  categories_id: number
+  category_title: string
+  user_id: number
+  author_name: string
+  author_email: string
+  total_likes: number
+}
+
 export default function RocklandLanding(): JSX.Element {
   const [openFAQIndex, setOpenFAQIndex] = useState<number | null>(null)
   const [demoVideo, setDemoVideo] = useState<Video | null>(null)
   const [videoLoading, setVideoLoading] = useState(true)
   const [videoError, setVideoError] = useState<string | null>(null)
+  
+  // New states for dynamic FAQ
+  const [faqData, setFaqData] = useState<FAQItem[]>([])
+  const [faqLoading, setFaqLoading] = useState(true)
+  const [faqError, setFaqError] = useState<string | null>(null)
 
-  const faqData: FAQItem[] = [
-    {
-      question: "How do I scan a rock?",
-      answer: "Simply open the Rockland app, tap the camera icon, and point your camera at the rock. The AI will automatically identify the rock type and provide detailed information."
-    },
-    {
-      question: "How do I save a rock scan?",
-      answer: "After scanning a rock, tap the 'Save' button to add it to your personal collection. You can access saved rocks in the 'My Collection' section of the app."
-    },
-    {
-      question: "How do I upgrade my account?",
-      answer: "Go to Settings > Subscription in the app, or visit our website's pricing page. Choose the Premium plan for unlimited scans and advanced features."
-    },
-    {
-      question: "How do I earn points?",
-      answer: "Earn points by completing daily quizzes, scanning new rocks, sharing discoveries with the community, and participating in challenges."
-    },
-    {
-      question: "How many free scans do I get?",
-      answer: "Free users get 5 rock scans per day. Premium subscribers enjoy unlimited scans along with access to advanced identification features."
-    },
-    {
-      question: "What if no rock information is found?",
-      answer: "If our AI can't identify a rock, you can submit it to our expert geologists for manual identification. Premium users get priority support for unknown specimens."
+  // New states for dynamic testimonials
+  const [testimonialsData, setTestimonialsData] = useState<Testimonial[]>([])
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true)
+  const [testimonialsError, setTestimonialsError] = useState<string | null>(null)
+
+  // New states for dynamic articles
+  const [articlesData, setArticlesData] = useState<Article[]>([])
+  const [articlesLoading, setArticlesLoading] = useState(true)
+  const [articlesError, setArticlesError] = useState<string | null>(null)
+
+  // Fetch FAQs from database
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        setFaqLoading(true)
+        setFaqError(null)
+        
+        const response = await fetch('http://localhost:5000/api/faqs/public')
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        console.log('📋 Received FAQ data:', data)
+        
+        if (data.success && data.faqs) {
+          // Take only the first 5 FAQs for landing page
+          const limitedFaqs = data.faqs.slice(0, 5)
+          setFaqData(limitedFaqs)
+          console.log(`✅ Loaded ${limitedFaqs.length} FAQs for landing page`)
+        } else {
+          setFaqError("No FAQs available")
+        }
+      } catch (error) {
+        console.error('❌ Error fetching FAQs:', error)
+        setFaqError("Failed to load FAQs")
+      } finally {
+        setFaqLoading(false)
+      }
     }
-  ]
+
+    fetchFaqs()
+  }, [])
+
+  // Fetch testimonials from database
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        setTestimonialsLoading(true)
+        setTestimonialsError(null)
+        
+        const response = await fetch('http://localhost:5000/api/testimonials/public')
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        console.log('🎤 Received testimonials data:', data)
+        
+        if (data.success && data.testimonials) {
+          // Take only the first 3 testimonials for landing page
+          const limitedTestimonials = data.testimonials.slice(0, 3)
+          setTestimonialsData(limitedTestimonials)
+          console.log(`✅ Loaded ${limitedTestimonials.length} testimonials for landing page`)
+        } else {
+          setTestimonialsError("No testimonials available")
+        }
+      } catch (error) {
+        console.error('❌ Error fetching testimonials:', error)
+        setTestimonialsError("Failed to load testimonials")
+      } finally {
+        setTestimonialsLoading(false)
+      }
+    }
+
+    fetchTestimonials()
+  }, [])
+
+  // Fetch articles from database
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        setArticlesLoading(true)
+        setArticlesError(null)
+        
+        const response = await fetch('http://localhost:5000/api/articles/public')
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        console.log('📰 Received articles data:', data)
+        
+        if (data.success && data.articles) {
+          // Take only the first 3 articles for landing page
+          const limitedArticles = data.articles.slice(0, 3)
+          setArticlesData(limitedArticles)
+          console.log(`✅ Loaded ${limitedArticles.length} articles for landing page`)
+        } else {
+          setArticlesError("No articles available")
+        }
+      } catch (error) {
+        console.error('❌ Error fetching articles:', error)
+        setArticlesError("Failed to load articles")
+      } finally {
+        setArticlesLoading(false)
+      }
+    }
+
+    fetchArticles()
+  }, [])
 
   // Fetch the most recent video for landing page
   useEffect(() => {
@@ -117,6 +237,16 @@ export default function RocklandLanding(): JSX.Element {
   const formatFileSize = (bytes: number): string => {
     const mb = bytes / (1024 * 1024)
     return `${mb.toFixed(1)} MB`
+  }
+
+  const truncateContent = (content: string, maxLength: number = 120): string => {
+    if (content.length <= maxLength) return content
+    return content.substring(0, maxLength) + '...'
+  }
+
+  const getAuthorInitials = (authorName: string): string => {
+    if (!authorName) return 'UN'
+    return authorName.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
   }
 
   return (
@@ -331,107 +461,194 @@ export default function RocklandLanding(): JSX.Element {
           <h2 className="text-4xl font-bold text-white text-center mb-12">Our Articles</h2>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Featured Article */}
-            <Card className="overflow-hidden bg-white">
-              <div className="relative">
-                <div className="w-full h-48 relative overflow-hidden">
-                  <Image
-                    src="/1.png"
-                    alt="Igneous Rock Sample"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                    <span className="text-white font-semibold text-sm">Igneous Rock Sample</span>
-                  </div>
+            {articlesLoading ? (
+              <div className="col-span-3 flex items-center justify-center py-8">
+                <div className="text-center text-white">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                  <p>Loading articles...</p>
                 </div>
-                <Badge className="absolute top-4 right-4 bg-green-600">Free</Badge>
               </div>
-              <CardContent className="p-4 bg-white">
-                <div className="flex items-center mb-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mr-3 flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">SK</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">Dr. Sarah Kim</div>
-                    <div className="text-xs text-gray-500">2 days ago</div>
-                  </div>
-                </div>
-                <h3 className="font-bold mb-2">Understanding the Three Types of Geological Rocks</h3>
-                <p className="text-sm text-gray-600 mb-3">Explore igneous, sedimentary, and metamorphic rocks and learn how they form through Earth's geological processes.</p>
-                <div className="flex items-center mt-4">
-                  <div className="text-sm text-gray-500">1.5k likes</div>
-                </div>
-              </CardContent>
-            </Card>
+            ) : articlesError && articlesData.length === 0 ? (
+              <div className="col-span-3 text-center py-8">
+                <div className="text-yellow-300 mb-2">⚠️</div>
+                <p className="text-white">{articlesError}</p>
+                <p className="text-sm text-gray-300 mt-2">Please check back later</p>
+              </div>
+            ) : articlesData.length > 0 ? (
+              articlesData.map((article: Article, index: number) => {
+                // Generate author initials
+                const authorInitials = getAuthorInitials(article.author_name)
+                
+                // Generate consistent colors for author avatars
+                const authorColors = [
+                  'from-blue-400 to-blue-600',
+                  'from-green-400 to-green-600',
+                  'from-purple-400 to-purple-600'
+                ]
+                const authorColorClass = authorColors[index % 3]
 
-            {/* Rock Identification Guide */}
-            <Card className="overflow-hidden bg-white">
-              <div className="relative">
-                <div className="w-full h-48 relative overflow-hidden">
-                  <Image
-                    src="/2.jpg"
-                    alt="Sedimentary Layers"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                    <span className="text-white font-semibold text-sm">Sedimentary Layers</span>
+                return (
+                  <Card key={article.article_id} className="overflow-hidden bg-white">
+                    <div className="relative">
+                      <div className="w-full h-48 relative overflow-hidden">
+                        {article.signed_photo_url || article.photo_url ? (
+                          <Image
+                            src={article.signed_photo_url || article.photo_url}
+                            alt={article.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                            <span className="text-gray-400 text-sm">No Image</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                          <span className="text-white font-semibold text-sm text-center px-2">
+                            {article.title}
+                          </span>
+                        </div>
+                      </div>
+                      <Badge className={`absolute top-4 right-4 ${article.is_free ? 'bg-green-600' : 'bg-blue-600'}`}>
+                        {article.is_free ? 'Free' : 'Premium'}
+                      </Badge>
+                    </div>
+                    <CardContent className="p-4 bg-white">
+                      <div className="flex items-center mb-3">
+                        <div className={`w-8 h-8 bg-gradient-to-br ${authorColorClass} rounded-full mr-3 flex items-center justify-center`}>
+                          <span className="text-white text-xs font-bold">{authorInitials}</span>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium">{article.author_name || 'Unknown Author'}</div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(article.date_created).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <h3 className="font-bold mb-2">{article.title}</h3>
+                      <p className="text-sm text-gray-600 mb-3">
+                        {truncateContent(article.content)}
+                      </p>
+                      <div className="flex items-center mt-4">
+                        <div className="text-sm text-gray-500">{article.total_likes} likes</div>
+                        {article.category_title && (
+                          <div className="ml-auto">
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                              {article.category_title}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            ) : (
+              // Fallback static articles when no articles are available
+              <>
+                {/* Featured Article */}
+                <Card className="overflow-hidden bg-white">
+                  <div className="relative">
+                    <div className="w-full h-48 relative overflow-hidden">
+                      <Image
+                        src="/1.png"
+                        alt="Igneous Rock Sample"
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                        <span className="text-white font-semibold text-sm">Igneous Rock Sample</span>
+                      </div>
+                    </div>
+                    <Badge className="absolute top-4 right-4 bg-green-600">Free</Badge>
                   </div>
-                </div>
-                <Badge className="absolute top-4 right-4 bg-blue-600">Premium</Badge>
-              </div>
-              <CardContent className="p-4 bg-white">
-                <div className="flex items-center mb-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full mr-3 flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">MJ</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">Prof. Michael Johnson</div>
-                    <div className="text-xs text-gray-500">1 week ago</div>
-                  </div>
-                </div>
-                <h3 className="font-bold mb-2">Complete Rock Identification Field Guide</h3>
-                <p className="text-sm text-gray-600 mb-3">Master the art of identifying rocks in the field using texture, color, crystal structure, and formation clues.</p>
-                <div className="flex items-center mt-4">
-                  <div className="text-sm text-gray-500">1.5k likes</div>
-                </div>
-              </CardContent>
-            </Card>
+                  <CardContent className="p-4 bg-white">
+                    <div className="flex items-center mb-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mr-3 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">SK</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">Dr. Sarah Kim</div>
+                        <div className="text-xs text-gray-500">2 days ago</div>
+                      </div>
+                    </div>
+                    <h3 className="font-bold mb-2">Understanding the Three Types of Geological Rocks</h3>
+                    <p className="text-sm text-gray-600 mb-3">Explore igneous, sedimentary, and metamorphic rocks and learn how they form through Earth's geological processes.</p>
+                    <div className="flex items-center mt-4">
+                      <div className="text-sm text-gray-500">1.5k likes</div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* Crystal Formation Article */}
-            <Card className="overflow-hidden bg-white">
-              <div className="relative">
-                <div className="w-full h-48 relative overflow-hidden">
-                  <Image
-                    src="/3.png"
-                    alt="Crystal Structure"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                    <span className="text-white font-semibold text-sm">Crystal Structure</span>
+                {/* Rock Identification Guide */}
+                <Card className="overflow-hidden bg-white">
+                  <div className="relative">
+                    <div className="w-full h-48 relative overflow-hidden">
+                      <Image
+                        src="/2.jpg"
+                        alt="Sedimentary Layers"
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                        <span className="text-white font-semibold text-sm">Sedimentary Layers</span>
+                      </div>
+                    </div>
+                    <Badge className="absolute top-4 right-4 bg-blue-600">Premium</Badge>
                   </div>
-                </div>
-                <Badge className="absolute top-4 right-4 bg-blue-600">Premium</Badge>
-              </div>
-              <CardContent className="p-4 bg-white">
-                <div className="flex items-center mb-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mr-3 flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">AL</span>
+                  <CardContent className="p-4 bg-white">
+                    <div className="flex items-center mb-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full mr-3 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">MJ</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">Prof. Michael Johnson</div>
+                        <div className="text-xs text-gray-500">1 week ago</div>
+                      </div>
+                    </div>
+                    <h3 className="font-bold mb-2">Complete Rock Identification Field Guide</h3>
+                    <p className="text-sm text-gray-600 mb-3">Master the art of identifying rocks in the field using texture, color, crystal structure, and formation clues.</p>
+                    <div className="flex items-center mt-4">
+                      <div className="text-sm text-gray-500">1.5k likes</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Crystal Formation Article */}
+                <Card className="overflow-hidden bg-white">
+                  <div className="relative">
+                    <div className="w-full h-48 relative overflow-hidden">
+                      <Image
+                        src="/3.png"
+                        alt="Crystal Structure"
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                        <span className="text-white font-semibold text-sm">Crystal Structure</span>
+                      </div>
+                    </div>
+                    <Badge className="absolute top-4 right-4 bg-blue-600">Premium</Badge>
                   </div>
-                  <div>
-                    <div className="text-sm font-medium">Dr. Anna Lee</div>
-                    <div className="text-xs text-gray-500">3 days ago</div>
-                  </div>
-                </div>
-                <h3 className="font-bold mb-2">The Science of Crystal Formation and Growth</h3>
-                <p className="text-sm text-gray-600 mb-3">Dive deep into crystallography and understand how temperature, pressure, and chemical composition create stunning crystal formations.</p>
-                <div className="flex items-center mt-4">
-                  <div className="text-sm text-gray-500">1.5k likes</div>
-                </div>
-              </CardContent>
-            </Card>
+                  <CardContent className="p-4 bg-white">
+                    <div className="flex items-center mb-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mr-3 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">AL</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">Dr. Anna Lee</div>
+                        <div className="text-xs text-gray-500">3 days ago</div>
+                      </div>
+                    </div>
+                    <h3 className="font-bold mb-2">The Science of Crystal Formation and Growth</h3>
+                    <p className="text-sm text-gray-600 mb-3">Dive deep into crystallography and understand how temperature, pressure, and chemical composition create stunning crystal formations.</p>
+                    <div className="flex items-center mt-4">
+                      <div className="text-sm text-gray-500">1.5k likes</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -445,68 +662,62 @@ export default function RocklandLanding(): JSX.Element {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Testimonial 1 */}
-            <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mr-4 flex items-center justify-center">
-                  <span className="text-white font-bold">JM</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Jessica Martinez</h4>
+            {testimonialsLoading ? (
+              <div className="col-span-3 flex items-center justify-center py-8">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
+                  <p className="text-gray-600">Loading testimonials...</p>
                 </div>
               </div>
-              <div className="flex mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
+            ) : testimonialsError && testimonialsData.length === 0 ? (
+              <div className="col-span-3 text-center py-8">
+                <div className="text-yellow-600 mb-2">⚠️</div>
+                <p className="text-gray-600">{testimonialsError}</p>
+                <p className="text-sm text-gray-400 mt-2">Please check back later</p>
               </div>
-              <p className="text-gray-600 italic">"Rockland has revolutionized my field studies! The AI identification is incredibly accurate, and I love how I can track all my discoveries in one place. The quiz feature keeps me engaged and learning."</p>
-            </Card>
+            ) : testimonialsData.length > 0 ? (
+              testimonialsData.map((testimonial: Testimonial, index: number) => {
+                // Generate initials from name
+                const initials = testimonial.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
+                
+                // Generate consistent color based on index
+                const colors = [
+                  'from-blue-400 to-blue-600',
+                  'from-green-400 to-green-600', 
+                  'from-purple-400 to-purple-600'
+                ]
+                const colorClass = colors[index % 3]
 
-            {/* Testimonial 2 */}
-            <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full mr-4 flex items-center justify-center">
-                  <span className="text-white font-bold">DT</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900">David Thompson</h4>
-                </div>
+                return (
+                  <Card key={testimonial.testimonials_id} className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <div className="flex items-center mb-4">
+                      <div className={`w-12 h-12 bg-gradient-to-br ${colorClass} rounded-full mr-4 flex items-center justify-center`}>
+                        <span className="text-white font-bold">{initials}</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
+                        <p className="text-xs text-gray-500">
+                          {new Date(testimonial.date_created).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex mb-3">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-gray-600 italic">"{testimonial.testimony}"</p>
+                  </Card>
+                )
+              })
+            ) : (
+              // Fallback content when no testimonials are available
+              <div className="col-span-3 text-center py-8">
+                <p className="text-gray-600">No testimonials available at the moment.</p>
               </div>
-              <div className="flex mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-              <p className="text-gray-600 italic">"As a hobbyist collector for 15 years, I've never seen anything like this. The interactive maps help me discover new locations, and the community features let me connect with fellow enthusiasts worldwide."</p>
-            </Card>
-
-            {/* Testimonial 3 */}
-            <Card className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mr-4 flex items-center justify-center">
-                  <span className="text-white font-bold">LW</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900">Lisa Wong</h4>
-                </div>
-              </div>
-              <div className="flex mb-3">
-                {[...Array(4)].map((_, i) => (
-                  <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-                <svg className="w-4 h-4 text-gray-300 fill-current" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              </div>
-              <p className="text-gray-600 italic">"My earth science students absolutely love using Rockland for their field trips! It makes learning interactive and fun. The educational content is top-notch and perfectly aligned with our curriculum."</p>
-            </Card>
+            )}
           </div>
 
           {/* Stats Section */}
@@ -713,27 +924,51 @@ export default function RocklandLanding(): JSX.Element {
             </div>
 
             <div className="space-y-4">
-              {faqData.map((faq: FAQItem, index: number) => (
-                <div key={index} className="border-b border-gray-200">
-                  <button
-                    onClick={() => toggleFAQ(index)}
-                    className="w-full flex items-center justify-between py-4 text-left hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:bg-gray-50 rounded-lg px-2"
-                  >
-                    <span className="text-gray-700 font-medium pr-4">{faq.question}</span>
-                    {openFAQIndex === index ? (
-                      <Minus className="w-5 h-5 text-green-600 flex-shrink-0" />
-                    ) : (
-                      <Plus className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                    )}
-                  </button>
-                  
-                  {openFAQIndex === index && (
-                    <div className="pb-4 pr-8 animate-in slide-in-from-top-2 duration-200">
-                      <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
-                    </div>
-                  )}
+              {faqLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
+                    <p className="text-gray-600">Loading FAQs...</p>
+                  </div>
                 </div>
-              ))}
+              ) : faqError && faqData.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-yellow-600 mb-2">⚠️</div>
+                  <p className="text-gray-600">{faqError}</p>
+                  <p className="text-sm text-gray-400 mt-2">Please check back later</p>
+                </div>
+              ) : (
+                faqData.map((faq: FAQItem, index: number) => (
+                  <div key={faq.faq_id || index} className="border-b border-gray-200">
+                    <button
+                      onClick={() => toggleFAQ(index)}
+                      className="w-full flex items-center justify-between py-4 text-left hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:bg-gray-50 rounded-lg px-2"
+                    >
+                      <span className="text-gray-700 font-medium pr-4">{faq.question}</span>
+                      {openFAQIndex === index ? (
+                        <Minus className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      ) : (
+                        <Plus className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      )}
+                    </button>
+                    
+                    {openFAQIndex === index && (
+                      <div className="pb-4 pr-8 animate-in slide-in-from-top-2 duration-200">
+                        <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+              
+              {/* Link to full FAQ page */}
+              {faqData.length > 0 && (
+                <div className="mt-6 text-center">
+                  <Link href="/faq" className="text-green-600 hover:text-green-700 font-medium text-sm">
+                    View all FAQs →
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
