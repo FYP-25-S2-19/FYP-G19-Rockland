@@ -110,6 +110,9 @@ def create_app():
     from .controller.discussion.comment_discussion_controller import comment_discussion_blueprint
     app.register_blueprint(comment_discussion_blueprint)
     
+    from .controller.discussion.delete_discussion_controller import delete_discussion_blueprint
+    app.register_blueprint(delete_discussion_blueprint)
+    
     ###############  QUIZ
     from app.controller.quiz.create_quizattempt_controller import create_quizattempt_blueprint
     app.register_blueprint(create_quizattempt_blueprint)
