@@ -6,4 +6,6 @@ psycopg2-binary
 bcrypt
 flask-bcrypt
 PyJWT
-stripe==<latest_version>
+stripe
+torch
+torchvision
