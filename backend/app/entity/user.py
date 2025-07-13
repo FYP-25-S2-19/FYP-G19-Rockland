@@ -519,3 +519,8 @@ class User(db.Model):
             db.session.rollback()
             print(f"Error suspending user account: {e}")
             return False, 500, f"An error occurred while suspending user: {str(e)}", None
+        
+# Relationships for subscriptions and payments
+subscriptions = db.relationship('UserSubscription', back_populates='user', cascade='all, delete-orphan')
+payments = db.relationship('Payment', back_populates='user', cascade='all, delete-orphan')
+created_plans = db.relationship('SubscriptionPlan', back_populates='users')

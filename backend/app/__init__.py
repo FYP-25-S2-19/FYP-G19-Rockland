@@ -59,8 +59,8 @@ def create_app():
     app.register_blueprint(delete_categories_blueprint)
     
     ############### UPGRADE USER
-    from app.controller.user.upgrade_user_controller import upgrade_user_blueprint
-    app.register_blueprint(upgrade_user_blueprint)
+    from .controller.upgrade_user.self_upgrade_account import self_upgrade_blueprint
+    app.register_blueprint(self_upgrade_blueprint)
 
     ############### INTEREST
     from .controller.interest.view_interest_controller import view_interest_blueprint
