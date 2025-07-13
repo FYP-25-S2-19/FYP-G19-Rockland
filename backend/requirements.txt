@@ -4,4 +4,8 @@ Flask-SQLAlchemy
 python-dotenv
 psycopg2-binary
 bcrypt
+flask-bcrypt
 PyJWT
+stripe
+torch
+torchvision
