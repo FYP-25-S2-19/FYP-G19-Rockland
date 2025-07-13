@@ -10,12 +10,13 @@ export const sampleArticles = [
     authorImage: profilePicture,
     isPremium: false,
     thumbnail: article1,
-    title: "What are the type of geological rocks?",
+    title: "What are the type of geological rocks that appear in singapore?",
     category: "Beginner",
     preview:
-      "Geological rocks are classified into three main types based on their formation process. Igneous rocks are formed from cooled molten lava or magma, resulting in solid, crystalline structures. Sedimentary rocks are created from accumulated particles like sand, silt, and organic material, compacted over millions of years. Metamorphic rocks originate when existing rocks undergo extreme heat and pressure, altering their physical and chemical properties, producing entirely new rock formations.",
+      "Geological rocks are classified into three main types based on their formation process...",
     likes: 999,
     liked: false,
+    date: "2025-06-15T10:30:00Z", // <-- Add proper date
   },
   {
     id: 2,
@@ -26,9 +27,10 @@ export const sampleArticles = [
     title: "Advanced Mineral Identification",
     category: "Advanced",
     preview:
-      "Advanced mineral identification involves a combination of physical observation and specialized testing. Experts examine crystal form, hardness, luster, streak, and cleavage to differentiate minerals. In modern laboratories, X-ray diffraction and electron microprobe analysis provide detailed compositional data. Proper identification ensures accurate classification, valuable for academic research, industrial applications, and geological surveys essential for resource exploration.",
+      "Advanced mineral identification involves a combination of physical observation and specialized testing...",
     likes: 892,
     liked: false,
+    date: "2025-06-28T14:45:00Z", // <-- Add proper date
   },
   {
     id: 3,
@@ -39,8 +41,37 @@ export const sampleArticles = [
     title: "Fossil Hunting Guide",
     category: "Fossils",
     preview:
-      "Fossil hunting offers a fascinating window into Earth's ancient history. Successful hunting begins with researching fossil-rich areas, often sedimentary rock formations. Essential tools include rock hammers, chisels, brushes, and protective gear. Patience is crucial as fossils are carefully extracted to prevent damage. Always respect legal regulations and preserve the natural environment. Every discovered fossil contributes valuable knowledge to science, helping paleontologists reconstruct life from millions of years ago.",
+      "Fossil hunting offers a fascinating window into Earth's ancient history...",
     likes: 2100,
     liked: false,
+    date: "2025-07-01T08:20:00Z", // <-- Add proper date
+  },
+  {
+    id: 4,
+    authorName: "Test",
+    authorImage: profilePicture,
+    isPremium: false,
+    thumbnail: article1,
+    title: "Just Tsting",
+    category: "Minerals",
+    preview:
+      "Fossil hunting offers a fascinating window into Earth's ancient history...",
+    likes: 0,
+    liked: false,
+    date: "2025-07-01T08:20:00Z", // <-- Add proper date
+  },
+  {
+    id: 5,
+    authorName: "Test1",
+    authorImage: profilePicture,
+    isPremium: false,
+    thumbnail: article2,
+    title: "Fossil Hunting Guide",
+    category: "Test",
+    preview:
+      "Fossil hunting offers a fascinating window into Earth's ancient history...",
+    likes: 0,
+    liked: false,
+    date: "2025-07-01T08:20:00Z", // <-- Add proper date
   },
 ];

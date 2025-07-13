@@ -1,0 +1,354 @@
+# Libraries
+from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
+from io import BytesIO
+
+# Local dependencies
+from app.models import db
+from app.utils.gcs import generate_signed_url, upload_file_to_gcs, delete_file_from_gcs
+
+class Article(db.Model):
+    __tablename__ = 'article'
+    
+    article_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.String(255), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    photo = db.Column(db.String(500))      # Store cloud storage path only
+    photo_url = db.Column(db.Text)  # Store public GCS URL
+    date_created = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    is_free = db.Column(db.Boolean, nullable=False, default=True)
+    
+    # Foreign keys
+    categories_id = db.Column(db.Integer, db.ForeignKey('categories.categories_id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
+    
+    # Relationships
+    category = db.relationship('Categories', backref='articles')
+    author = db.relationship('User', backref='authored_articles')
+    
+    # Relationship with ArticleLike (one-to-many)
+    likes = db.relationship('ArticleLike', backref='article', lazy='dynamic', cascade='all, delete-orphan')
+
+    # Configuration
+    ALLOWED_PHOTO_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
+    MAX_PHOTO_SIZE = 10 * 1024 * 1024  # 10MB limit for photos
+
+    def to_dict(self) -> dict:
+        """Return a dictionary representation of the article."""
+        # Generate signed URL for photo if it exists
+        signed_photo_url = None
+        if self.photo:
+            try:
+                signed_photo_url = generate_signed_url(self.photo, expiration_minutes=60)
+            except Exception as e:
+                print(f"⚠️ Failed to generate signed URL for {self.photo}: {e}")
+        
+        return {
+            'article_id': self.article_id,
+            'title': self.title,
+            'content': self.content,
+            'photo': self.photo,          # Internal cloud storage path
+            'photo_url': self.photo_url,  # Stored public URL (for backward compatibility)
+            'signed_photo_url': signed_photo_url,  # Fresh signed URL
+            'date_created': self.date_created.isoformat() if self.date_created else None,
+            'is_free': self.is_free,
+            'categories_id': self.categories_id,
+            'category_title': self.category.title if self.category else None,
+            'user_id': self.user_id,
+            'author_name': f"{self.author.first_name} {self.author.last_name}" if self.author else None,
+            'author_email': self.author.email if self.author else None,
+            'total_likes': self.likes.count() if self.likes else 0
+        }
+
+    @classmethod
+    def allowed_photo_file(cls, filename):
+        """Check if photo file extension is allowed"""
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in cls.ALLOWED_PHOTO_EXTENSIONS
+
+    @classmethod
+    def _upload_photo_to_cloud(cls, photo_file, filename):
+        """Upload photo to Google Cloud Storage using friend's gsc utilities"""
+        try:
+            # Validate file type
+            if not cls.allowed_photo_file(filename):
+                print(f"❌ Invalid file type: {filename}")
+                return None, None
+            
+            # Check file size
+            if hasattr(photo_file, 'seek'):
+                photo_file.seek(0, os.SEEK_END)
+                file_size = photo_file.tell()
+                photo_file.seek(0)
+                
+                if file_size > cls.MAX_PHOTO_SIZE:
+                    print(f"❌ Photo too large: {file_size} bytes (max: {cls.MAX_PHOTO_SIZE})")
+                    return None, None
+            
+            # Upload using friend's GCS utilities
+            blob_path = upload_file_to_gcs(
+                file_stream=photo_file,
+                filename=filename,
+                folder="articles",
+                custom_filename=None,  # Let it generate UUID-based name
+                overwrite=True
+            )
+            
+            if blob_path:
+                # Generate signed URL for the uploaded file
+                signed_url = generate_signed_url(blob_path, expiration_minutes=60)
+                print(f"✅ Photo uploaded to cloud: {blob_path}")
+                print(f"✅ Generated signed URL: {signed_url}")
+                return blob_path, signed_url
+            else:
+                print(f"❌ Failed to upload photo: {filename}")
+                return None, None
+                
+        except Exception as e:
+            print(f"❌ Error uploading photo: {e}")
+            return None, None
+
+    @classmethod
+    def createArticle(cls, title: str, content: str, categories_id: int, user_id: int, 
+                     photo: str = None, photo_file=None, is_free: bool = True):
+        """Create a new article"""
+        try:
+            # Validate required fields
+            if not title or not title.strip():
+                return False, 400, "Article title is required", None
+            
+            if not content or not content.strip():
+                return False, 400, "Article content is required", None
+            
+            if not categories_id:
+                return False, 400, "Category ID is required", None
+            
+            if not user_id:
+                return False, 400, "User ID is required", None
+            
+            # Validate title and content length
+            if len(title.strip()) < 5:
+                return False, 400, "Title must be at least 5 characters long", None
+            
+            if len(content.strip()) < 50:
+                return False, 400, "Content must be at least 50 characters long", None
+            
+            # Check if user exists and is Expert
+            from app.entity.user import User
+            user = User.queryUserById(user_id)
+            if not user:
+                return False, 404, "User not found", None
+            
+            if not user.user_type or user.user_type.name != 'Expert':
+                return False, 403, "Only Expert users can create articles", None
+            
+            if user.status != 'Active':
+                return False, 403, "User account is not active", None
+            
+            # Check if category exists
+            from app.entity.categories import Categories
+            category = Categories.query.get(categories_id)
+            if not category:
+                return False, 404, f"Category with ID {categories_id} not found", None
+            
+            # Handle photo upload if photo_file is provided
+            photo_path = None
+            photo_url = None
+            
+            if photo_file and photo_file.filename:
+                filename = secure_filename(photo_file.filename)
+                if filename:
+                    photo_path, photo_url = cls._upload_photo_to_cloud(photo_file, filename)
+                    if not photo_path:
+                        return False, 500, "Failed to upload photo", None
+            
+            # Create new article
+            new_article = cls(
+                title=title.strip(),
+                content=content.strip(),
+                photo=photo_path,     # Cloud storage path
+                photo_url=photo_url,  # Public URL
+                categories_id=categories_id,
+                user_id=user_id,
+                is_free=is_free,
+                date_created=datetime.utcnow()
+            )
+            
+            # Save to database
+            db.session.add(new_article)
+            db.session.commit()
+            
+            return True, 201, "Article created successfully", new_article
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error creating article: {e}")
+            return False, 500, f"Error creating article: {str(e)}", None
+
+    @classmethod
+    def deleteArticle(cls, article_id: int, user_id: int):
+        """Delete an article - only by admin"""
+        try:
+            # Get the article
+            article = cls.query.get(article_id)
+            if not article:
+                return False, 404, "Article not found", None
+            
+            # Get the user trying to delete
+            from app.entity.user import User
+            user = User.queryUserById(user_id)
+            if not user:
+                return False, 404, "User not found", None
+            
+            # Check permissions: only admin can delete
+            is_admin = user.user_type and user.user_type.name == 'Admin'
+            
+            if not is_admin:
+                return False, 403, "Only administrators can delete articles", None
+            
+            # Store article info for response
+            article_title = article.title
+            article_data = article.to_dict()
+            
+            # Delete photo from cloud storage if exists
+            if article.photo:
+                success = delete_file_from_gcs(article.photo)
+                if success:
+                    print(f"✅ Deleted photo from cloud storage: {article.photo}")
+                else:
+                    print(f"⚠️ Could not delete photo from cloud storage: {article.photo}")
+            
+            # Delete the article (CASCADE will handle ArticleLike deletions)
+            db.session.delete(article)
+            db.session.commit()
+            
+            return True, 200, f"Article '{article_title}' deleted successfully", article_data
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error deleting article: {e}")
+            return False, 500, f"Error deleting article: {str(e)}", None
+
+    @classmethod
+    def getAllArticlesForAdmin(cls):
+        """Get all articles for admin view"""
+        try:
+            articles = cls.query.order_by(cls.date_created.desc()).all()
+            articles_data = [article.to_dict() for article in articles]
+            return articles_data, 200
+        except Exception as e:
+            print(f"Error fetching all articles for admin: {e}")
+            return None, 500
+
+    @classmethod
+    def getArticleById(cls, article_id: int):
+        """Get a specific article by ID for detailed view"""
+        try:
+            article = cls.query.get(article_id)
+            if not article:
+                return None, 404, "Article not found"
+            return article.to_dict(), 200, "Article found"
+        except Exception as e:
+            print(f"Error fetching article by ID: {e}")
+            return None, 500, f"Error fetching article: {str(e)}"
+
+    @classmethod
+    def getArticlesForUser(cls, user_id: int):
+        """Get articles based on user type with restrictions"""
+        try:
+            # Get the user
+            from app.entity.user import User
+            user = User.queryUserById(user_id)
+            if not user:
+                return None, 404, "User not found"
+            
+            if user.status != 'Active':
+                return None, 403, "User account is not active"
+            
+            user_type_name = user.user_type.name if user.user_type else None
+            
+            # Admin can see all articles
+            if user_type_name == 'Admin':
+                articles = cls.query.order_by(cls.date_created.desc()).all()
+                articles_data = [article.to_dict() for article in articles]
+                return articles_data, 200, "All articles for admin"
+            
+            # Expert and Premium can see all articles (free + premium)
+            elif user_type_name in ['Expert', 'Premium']:
+                articles = cls.query.order_by(cls.date_created.desc()).all()
+                articles_data = [article.to_dict() for article in articles]
+                return articles_data, 200, f"All articles (free + premium) for {user_type_name} user"
+            
+            # Free users can only view free articles (unlimited)
+            elif user_type_name == 'Free':
+                articles = cls.query.order_by(cls.date_created.desc()).all()
+                articles_data = [article.to_dict() for article in articles]
+                return articles_data, 200, "Free articles only for free user"
+            
+            else:
+                return None, 403, "Invalid user type"
+                
+        except Exception as e:
+            print(f"Error fetching articles for user: {e}")
+            return None, 500, f"Error fetching articles: {str(e)}"
+
+    @classmethod
+    def searchArticles(cls, user_id: int, search_term: str = None, category_id: int = None):
+        """Search articles by title or category based on user type restrictions"""
+        try:
+            # Get the user
+            from app.entity.user import User
+            user = User.queryUserById(user_id)
+            if not user:
+                return None, 404, "User not found"
+            
+            if user.status != 'Active':
+                return None, 403, "User account is not active"
+            
+            user_type_name = user.user_type.name if user.user_type else None
+            
+            # Only Free and Premium users can search (based on requirements)
+            if user_type_name not in ['Free', 'Premium']:
+                return None, 403, "Only Free and Premium users can search articles"
+            
+            # Build base query based on user type
+            if user_type_name == 'Free':
+                # Free users can only search free articles
+                base_query = cls.query.filter_by(is_free=True)
+            elif user_type_name == 'Premium':
+                # Premium users can search all articles
+                base_query = cls.query
+            
+            # Apply search filters
+            if search_term and search_term.strip():
+                # Search by title (case-insensitive)
+                search_term_clean = search_term.strip()
+                base_query = base_query.filter(cls.title.ilike(f'%{search_term_clean}%'))
+            
+            if category_id:
+                # Search by category
+                base_query = base_query.filter_by(categories_id=category_id)
+            
+            # If no search criteria provided
+            if not search_term and not category_id:
+                return None, 400, "Please provide search term or category"
+            
+            # Execute query
+            articles = base_query.order_by(cls.date_created.desc()).all()
+            articles_data = [article.to_dict() for article in articles]
+            
+            # Build response message
+            search_info = []
+            if search_term:
+                search_info.append(f"title containing '{search_term}'")
+            if category_id:
+                search_info.append(f"category ID {category_id}")
+            
+            search_description = " and ".join(search_info)
+            message = f"Search results for {search_description} ({user_type_name} user access)"
+            
+            return articles_data, 200, message
+            
+        except Exception as e:
+            print(f"Error searching articles: {e}")
+            return None, 500, f"Error searching articles: {str(e)}"
