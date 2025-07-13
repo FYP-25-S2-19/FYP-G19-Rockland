@@ -79,4 +79,3 @@ class ViewArticleController:
                 'articles': [],
                 'total_count': 0
             }), 500
-

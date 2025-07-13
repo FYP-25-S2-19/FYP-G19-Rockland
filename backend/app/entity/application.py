@@ -348,3 +348,28 @@ class Application(db.Model):
             'date_processed': self.submission_date.isoformat() if self.submission_date else None,
             'admin_id': 'N/A'  # You can add this field later to track who processed it
         }
+
+    @classmethod
+    def getTotalApplicationCount(cls):
+        """Get total count of all applications"""
+        try:
+            total_applications = cls.query.count()
+            return total_applications, 200, "Application count fetched successfully"
+        except Exception as e:
+            print(f"Error fetching application count: {e}")
+            return 0, 500, f"Error: {str(e)}"
+
+    @classmethod
+    def getApplicationCountByStatus(cls):
+        """Get application count by status"""
+        try:
+            from sqlalchemy import func
+            app_counts = db.session.query(
+                cls.status,
+                func.count(cls.application_id).label('count')
+            ).group_by(cls.status).all()
+            
+            return app_counts, 200, "Application status counts fetched successfully"
+        except Exception as e:
+            print(f"Error fetching application status counts: {e}")
+            return [], 500, f"Error: {str(e)}"
