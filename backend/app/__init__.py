@@ -8,10 +8,7 @@ def create_app():
 
     db.init_app(app)
     CORS(app)
-<<<<<<< HEAD
     
-=======
->>>>>>> origin/kenneth-final
 
     ######## USER CONTROLLER
     from .controller.authentication.login import login_blueprint
@@ -35,15 +32,12 @@ def create_app():
     from .controller.user.suspend_user_controller import suspend_user_blueprint
     app.register_blueprint(suspend_user_blueprint)
 
-<<<<<<< HEAD
     from .controller.user.get_current_user import get_current_user_blueprint
     app.register_blueprint(get_current_user_blueprint)
 
     from .controller.user.upload_profile_picture import upload_profile_picture_blueprint
     app.register_blueprint(upload_profile_picture_blueprint)
 
-=======
->>>>>>> origin/kenneth-final
     ##################################################### USER TYPE CONTROLLERS##################################################################
     from .controller.usertype.create_usertype_controller import create_usertype_blueprint
     app.register_blueprint(create_usertype_blueprint)
@@ -66,6 +60,10 @@ def create_app():
 
     from .controller.categories.delete_categories_controller import delete_categories_blueprint
     app.register_blueprint(delete_categories_blueprint)
+    
+    ############### UPGRADE USER
+    from .controller.upgrade_user.self_upgrade_account import self_upgrade_blueprint
+    app.register_blueprint(self_upgrade_blueprint)
 
     ############### INTEREST
     from .controller.interest.view_interest_controller import view_interest_blueprint
@@ -76,7 +74,6 @@ def create_app():
 
     from .controller.interest.delete_interest_controller import delete_interest_blueprint
     app.register_blueprint(delete_interest_blueprint)
-<<<<<<< HEAD
 
     ###############  ROCK 
     from .controller.rock.create_rock_controller import create_rock_blueprint
@@ -109,6 +106,47 @@ def create_app():
     from .controller.rock.get_filter_options_controller import filter_options_blueprint
     app.register_blueprint(filter_options_blueprint)
     
+    ###############  DISCUSSION
+    from .controller.discussion.create_discussion_controller import create_discussion_blueprint
+    app.register_blueprint(create_discussion_blueprint)
+    
+    from .controller.discussion.view_discussion_controller import view_discussion_blueprint
+    app.register_blueprint(view_discussion_blueprint)
+    
+    from .controller.discussion.comment_discussion_controller import comment_discussion_blueprint
+    app.register_blueprint(comment_discussion_blueprint)
+    
+    from .controller.discussion.delete_discussion_controller import delete_discussion_blueprint
+    app.register_blueprint(delete_discussion_blueprint)
+    
+    ###############  QUIZ
+    from app.controller.quiz.create_quizattempt_controller import create_quizattempt_blueprint
+    app.register_blueprint(create_quizattempt_blueprint)
+    
+    from app.controller.quiz.view_quiz_controller import view_quiz_blueprint
+    app.register_blueprint(view_quiz_blueprint)
+    
+    from app.controller.quiz.view_quizhistory_controller import view_quizhistory_blueprint
+    app.register_blueprint(view_quizhistory_blueprint)
+    
+    ###############  ACHIEVEMENTS
+    from app.controller.achievements.collect_achievement_controller import collect_achievement_blueprint
+    app.register_blueprint(collect_achievement_blueprint)
+    
+    from app.controller.achievements.view_achievement_controller import view_achievement_blueprint
+    app.register_blueprint(view_achievement_blueprint)
+    
+    from app.controller.achievements.create_achievement_controller import create_achievement_blueprint
+    app.register_blueprint(create_achievement_blueprint)  # optional
+    
+    ###############  LEADERBOARD
+    from .controller.leaderboard.leaderboard_controller import leaderboard_blueprint
+    app.register_blueprint(leaderboard_blueprint)
+
+    ###############  MACHINE LEARNING
+    from .controller.rockrecognition.recognize_rock import rock_blueprint as rock_recognition_blueprint
+    app.register_blueprint(rock_recognition_blueprint)
+    
     ###############  ROCK SCAN
     from .controller.rock_scan.save_scan_result_controller import save_scan_result_blueprint
     app.register_blueprint(save_scan_result_blueprint)
@@ -126,7 +164,6 @@ def create_app():
     from app.controller.rock_collection.filter_user_collection_controller import filter_user_collection_blueprint
     app.register_blueprint(filter_user_collection_blueprint)
 
-
     ################ COMMENT
     from .controller.comment.rock.create_comment_controller import create_rock_comment_blueprint
     app.register_blueprint(create_rock_comment_blueprint)
@@ -135,9 +172,6 @@ def create_app():
     app.register_blueprint(toggle_like_comment_blueprint)
     
 
-=======
->>>>>>> origin/kenneth-final
-    
     ######## FAQ
     from .controller.faq.view_faq_controller import view_faq_blueprint
     app.register_blueprint(view_faq_blueprint)
@@ -210,7 +244,6 @@ def create_app():
     from .controller.articles.view_article_controller import view_article_blueprint
     app.register_blueprint(view_article_blueprint)
 
-<<<<<<< HEAD
     
     ### Articles
 
@@ -233,7 +266,6 @@ def create_app():
     app.register_blueprint(search_my_trade_offer_bp)
 
 
-=======
     ### Discussion
     from .controller.discussion.view_discussion_controller import view_discussion_blueprint
     app.register_blueprint(view_discussion_blueprint)
@@ -245,5 +277,4 @@ def create_app():
     app.register_blueprint(create_discussion_blueprint)
 
     
->>>>>>> origin/kenneth-final
     return app
