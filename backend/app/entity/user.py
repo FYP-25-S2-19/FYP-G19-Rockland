@@ -622,6 +622,31 @@ class User(db.Model):
             print(f"Error suspending user account: {e}")
             return False, 500, f"An error occurred while suspending user: {str(e)}", None
         
+    @classmethod
+    def getTotalUserCount(cls):
+        """Get total count of all users"""
+        try:
+            total_users = cls.query.count()
+            return total_users, 200, "User count fetched successfully"
+        except Exception as e:
+            print(f"Error fetching user count: {e}")
+            return 0, 500, f"Error: {str(e)}"
+
+    @classmethod
+    def getUserCountByType(cls):
+        """Get user count by user type"""
+        try:
+            from sqlalchemy import func
+            user_counts = db.session.query(
+                cls.user_type_id,
+                func.count(cls.user_id).label('count')
+            ).group_by(cls.user_type_id).all()
+            
+            return user_counts, 200, "User type counts fetched successfully"
+        except Exception as e:
+            print(f"Error fetching user type counts: {e}")
+            return [], 500, f"Error: {str(e)}"
+            
 # Relationships for subscriptions and payments
 subscriptions = db.relationship('UserSubscription', back_populates='user', cascade='all, delete-orphan')
 payments = db.relationship('Payment', back_populates='user', cascade='all, delete-orphan')
