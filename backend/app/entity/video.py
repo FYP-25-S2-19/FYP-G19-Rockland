@@ -3,6 +3,9 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 
+# Import GCS utilities (same as Article)
+from app.utils.gcs import upload_file_to_gcs, delete_file_from_gcs, generate_signed_url
+
 class Video(db.Model):
     __tablename__ = 'video'
 
@@ -15,7 +18,8 @@ class Video(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
     
     # File attachment fields
-    file_path = db.Column(db.String(500), nullable=False)  # Path to video file on server
+    file_path = db.Column(db.String(500), nullable=False)  # Cloud storage path
+    file_url = db.Column(db.String(500), nullable=False)   # Public GCS URL
     file_name = db.Column(db.String(255), nullable=False)  # Original filename
     file_size = db.Column(db.BigInteger, nullable=True)    # File size in bytes
     file_type = db.Column(db.String(50), nullable=True)    # MIME type (video/mp4, etc.)
@@ -34,14 +38,26 @@ class Video(db.Model):
         return f'<Video {self.video_id}: {self.name}>'
     
     def to_dict(self):
-        """Convert Video to dictionary for JSON serialization"""
+        """Convert Video to dictionary for JSON serialization (following Article pattern)"""
+        # Generate signed URL for video file if it exists
+        signed_video_url = None
+        if self.file_path:
+            try:
+                signed_video_url = generate_signed_url(self.file_path, expiration_minutes=120)
+            except Exception as e:
+                print(f"⚠️ Failed to generate signed URL for {self.file_path}: {e}")
+                # Fallback to stored URL
+                signed_video_url = self.file_url
+        
         return {
             'video_id': self.video_id,
             'name': self.name,
             'description': self.description,
             'date_created': self.date_created.isoformat() if self.date_created else None,
             'user_id': self.user_id,
-            'file_path': self.file_path,
+            'file_path': self.file_path,        # Internal cloud storage path
+            'file_url': self.file_url,          # Stored public URL (for backward compatibility)
+            'signed_video_url': signed_video_url,  # Fresh signed URL (main one to use)
             'file_name': self.file_name,
             'file_size': self.file_size,
             'file_type': self.file_type,
@@ -61,11 +77,20 @@ class Video(db.Model):
     
     @classmethod
     def getAllVideos(cls):
-        """Get all videos"""
+        """Get all videos ordered by creation date (newest first) - for admin use"""
         try:
-            return cls.query.all()
+            return cls.query.order_by(cls.date_created.desc()).all()
         except Exception as e:
             print(f"Error fetching all videos: {str(e)}")
+            return []
+    
+    @classmethod
+    def getLatestVideo(cls):
+        """Get the most recent video - for landing page"""
+        try:
+            return cls.query.order_by(cls.date_created.desc()).first()
+        except Exception as e:
+            print(f"Error fetching latest video: {str(e)}")
             return None
     
     @classmethod
@@ -78,7 +103,49 @@ class Video(db.Model):
             return None
     
     @classmethod
-    def createVideo(cls, name, description, user_id, file_path, file_name, file_size=None, file_type=None, remarks=None):
+    def _upload_video_to_cloud(cls, video_file, filename):
+        """Upload video to Google Cloud Storage (following Article pattern)"""
+        try:
+            # Validate file type
+            if not cls.allowed_file(filename):
+                print(f"❌ Invalid file type: {filename}")
+                return None, None
+            
+            # Check file size
+            if hasattr(video_file, 'seek'):
+                video_file.seek(0, os.SEEK_END)
+                file_size = video_file.tell()
+                video_file.seek(0)
+                
+                if file_size > cls.MAX_FILE_SIZE:
+                    print(f"❌ Video too large: {file_size} bytes (max: {cls.MAX_FILE_SIZE})")
+                    return None, None
+            
+            # Upload using GCS utilities (same as Article)
+            blob_path = upload_file_to_gcs(
+                file_stream=video_file,
+                filename=filename,
+                folder="videos",
+                custom_filename=None,  # Let it generate UUID-based name
+                overwrite=True
+            )
+            
+            if blob_path:
+                # Generate signed URL for the uploaded file
+                signed_url = generate_signed_url(blob_path, expiration_minutes=120)
+                print(f"✅ Video uploaded to cloud: {blob_path}")
+                print(f"✅ Generated signed URL: {signed_url}")
+                return blob_path, signed_url
+            else:
+                print(f"❌ Failed to upload video: {filename}")
+                return None, None
+                
+        except Exception as e:
+            print(f"❌ Error uploading video: {e}")
+            return None, None
+    
+    @classmethod
+    def createVideo(cls, name, description, user_id, file_path, file_url, file_name, file_size=None, file_type=None, remarks=None):
         """Create a new video"""
         try:
             new_video = cls(
@@ -86,6 +153,7 @@ class Video(db.Model):
                 description=description,
                 user_id=user_id,
                 file_path=file_path,
+                file_url=file_url,
                 file_name=file_name,
                 file_size=file_size,
                 file_type=file_type,
@@ -101,14 +169,25 @@ class Video(db.Model):
     
     @classmethod
     def createVideoWithFile(cls, name, description, user_id, video_file, remarks=None):
-        """Create a new video with file upload handling"""
+        """Create a new video with file upload (following Article pattern)"""
         try:
-            # Validate file
+            # Validate required fields
+            if not name or not name.strip():
+                return False, 400, "Video name is required", None
+            
             if not video_file or video_file.filename == '':
-                return False, 400, "No file selected", None
+                return False, 400, "No video file selected", None
+            
+            if not user_id:
+                return False, 400, "User ID is required", None
+            
+            # Generate secure filename
+            filename = secure_filename(video_file.filename)
+            if not filename:
+                filename = f"video_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
             
             # Check file extension
-            if not cls.allowed_file(video_file.filename):
+            if not cls.allowed_file(filename):
                 return False, 400, "Invalid file type. Allowed types: mp4, avi, mov, mkv, wmv, flv, webm", None
             
             # Check file size
@@ -119,47 +198,37 @@ class Video(db.Model):
             if file_size > cls.MAX_FILE_SIZE:
                 return False, 400, f"File too large. Maximum size is {cls.MAX_FILE_SIZE // (1024*1024)}MB", None
             
-            # Generate secure filename
-            filename = secure_filename(video_file.filename)
-            if not filename:
-                filename = f"video_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+            # Upload video to cloud using the same pattern as Article
+            video_file.seek(0)  # Reset file pointer
+            file_path, signed_url = cls._upload_video_to_cloud(video_file, filename)
             
-            # Create upload directory if it doesn't exist
-            upload_folder = os.path.join('uploads', 'videos')
-            os.makedirs(upload_folder, exist_ok=True)
-            
-            # Generate unique filename to avoid conflicts
-            file_extension = filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
-            file_path = os.path.join(upload_folder, unique_filename)
-            
-            # Save file
-            try:
-                video_file.save(file_path)
-            except Exception as save_error:
-                return False, 500, f"Failed to save file: {str(save_error)}", None
+            if not file_path:
+                return False, 500, "Failed to upload video to cloud storage", None
             
             # Get file type
+            file_extension = filename.rsplit('.', 1)[1].lower()
             file_type = f"video/{file_extension}"
             
             # Create video record in database
             success, status_code, message, new_video = cls.createVideo(
-                name=name,
-                description=description,
+                name=name.strip(),
+                description=description.strip() if description else None,
                 user_id=user_id,
-                file_path=file_path,
+                file_path=file_path,        # Cloud storage path
+                file_url=signed_url,        # Public signed URL
                 file_name=filename,
                 file_size=file_size,
                 file_type=file_type,
-                remarks=remarks
+                remarks=remarks.strip() if remarks else None
             )
             
             if not success:
-                # If database creation failed, remove the uploaded file
+                # Clean up uploaded file if database creation failed
                 try:
-                    os.remove(file_path)
-                except:
-                    pass
+                    delete_file_from_gcs(file_path)
+                    print(f"🧹 Cleaned up cloud file: {file_path}")
+                except Exception as cleanup_error:
+                    print(f"⚠️ Failed to clean up file: {cleanup_error}")
             
             return success, status_code, message, new_video
             
@@ -180,37 +249,35 @@ class Video(db.Model):
     
     @classmethod
     def deleteVideoById(cls, video_id):
-        """Delete video by ID with file cleanup"""
+        """Delete video by ID with cloud storage cleanup (following Article pattern)"""
         try:
-            # Check if video exists
             existing_video = cls.getVideoById(video_id)
             
             if not existing_video:
                 return False, 404, "Video not found"
             
-            # Store file info before deletion
             file_path = existing_video.file_path
             video_name = existing_video.name
+            
+            # Store video info for response
+            video_data = existing_video.to_dict()
+            
+            # Delete video file from cloud storage if exists
+            if file_path:
+                success = delete_file_from_gcs(file_path)
+                if success:
+                    print(f"✅ Deleted video from cloud storage: {file_path}")
+                else:
+                    print(f"⚠️ Could not delete video from cloud storage: {file_path}")
             
             # Delete the video from database
             success, status_code, message = existing_video.deleteVideo()
             
             if success:
-                # Try to delete the physical file
-                try:
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                        print(f"✅ Deleted video file: {file_path}")
-                    else:
-                        print(f"⚠️ Video file not found: {file_path}")
-                except Exception as file_error:
-                    print(f"⚠️ Failed to delete video file: {str(file_error)}")
-                    # Continue anyway - database record is deleted
-                
-                return True, status_code, f"Video '{video_name}' deleted successfully"
+                return True, status_code, f"Video '{video_name}' deleted successfully", video_data
             else:
-                return success, status_code, message
+                return success, status_code, message, None
                 
         except Exception as e:
             print(f"Error deleting video by ID: {str(e)}")
-            return False, 500, f"Error deleting video: {str(e)}"
+            return False, 500, f"Error deleting video: {str(e)}", None

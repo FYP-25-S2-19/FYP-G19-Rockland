@@ -29,11 +29,13 @@ from app.entity.application_answer import ApplicationAnswer
 from app.entity.application_file import ApplicationFile
 from app.entity.article import Article
 from app.entity.article_like import ArticleLike
+from app.entity.discussion import Discussion
+from app.entity.discussion_comment import DiscussionComment
 
 # Create app - no environment switching, always use Cloud SQL
 app = create_app()
 
-# Configure Google Cloud Storage for gsc.py
+# Configure Google Cloud Storage for gcs.py
 app.config['GCS_BUCKET_NAME'] = 'rocklandapp'
 print(f"☁️ GCS Bucket configured: {app.config['GCS_BUCKET_NAME']}")
 
@@ -71,9 +73,9 @@ with app.app_context():
             try:
                 from app.utils.gcs import generate_signed_url
                 print("✅ gsc.py utilities imported successfully!")
-            except ImportError as gsc_error:
-                print(f"⚠️ Could not import gsc.py utilities: {gsc_error}")
-                print("💡 Make sure app/utils/gsc.py exists and has the required functions")
+            except ImportError as gcs_error:
+                print(f"⚠️ Could not import gsc.py utilities: {gcs_error}")
+                print("💡 Make sure app/utils/gcs.py exists and has the required functions")
                 
         except Exception as storage_error:
             print(f"⚠️ Google Cloud Storage authentication failed: {storage_error}")

@@ -8,7 +8,10 @@ def create_app():
 
     db.init_app(app)
     CORS(app)
+<<<<<<< HEAD
     
+=======
+>>>>>>> origin/kenneth-final
 
     ######## USER CONTROLLER
     from .controller.authentication.login import login_blueprint
@@ -32,12 +35,15 @@ def create_app():
     from .controller.user.suspend_user_controller import suspend_user_blueprint
     app.register_blueprint(suspend_user_blueprint)
 
+<<<<<<< HEAD
     from .controller.user.get_current_user import get_current_user_blueprint
     app.register_blueprint(get_current_user_blueprint)
 
     from .controller.user.upload_profile_picture import upload_profile_picture_blueprint
     app.register_blueprint(upload_profile_picture_blueprint)
 
+=======
+>>>>>>> origin/kenneth-final
     ##################################################### USER TYPE CONTROLLERS##################################################################
     from .controller.usertype.create_usertype_controller import create_usertype_blueprint
     app.register_blueprint(create_usertype_blueprint)
@@ -70,6 +76,7 @@ def create_app():
 
     from .controller.interest.delete_interest_controller import delete_interest_blueprint
     app.register_blueprint(delete_interest_blueprint)
+<<<<<<< HEAD
 
     ###############  ROCK 
     from .controller.rock.create_rock_controller import create_rock_blueprint
@@ -128,6 +135,8 @@ def create_app():
     app.register_blueprint(toggle_like_comment_blueprint)
     
 
+=======
+>>>>>>> origin/kenneth-final
     
     ######## FAQ
     from .controller.faq.view_faq_controller import view_faq_blueprint
@@ -201,6 +210,7 @@ def create_app():
     from .controller.articles.view_article_controller import view_article_blueprint
     app.register_blueprint(view_article_blueprint)
 
+<<<<<<< HEAD
     
     ### Articles
 
@@ -223,4 +233,17 @@ def create_app():
     app.register_blueprint(search_my_trade_offer_bp)
 
 
+=======
+    ### Discussion
+    from .controller.discussion.view_discussion_controller import view_discussion_blueprint
+    app.register_blueprint(view_discussion_blueprint)
+
+    from .controller.discussion.delete_discussion_controller import delete_discussion_blueprint
+    app.register_blueprint(delete_discussion_blueprint)
+
+    from.controller.discussion.create_discussion_controller import create_discussion_blueprint
+    app.register_blueprint(create_discussion_blueprint)
+
+    
+>>>>>>> origin/kenneth-final
     return app
