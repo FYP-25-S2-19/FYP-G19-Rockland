@@ -244,6 +244,12 @@ def create_app():
     from .controller.articles.view_article_controller import view_article_blueprint
     app.register_blueprint(view_article_blueprint)
 
+    from .controller.articles.get_all_article_controller import get_all_articles_blueprint
+    app.register_blueprint(get_all_articles_blueprint)
+
+    from .controller.articles.get_article_by_id_controller import get_article_by_id_blueprint
+    app.register_blueprint(get_article_by_id_blueprint)
+
     
     ### Articles
 
