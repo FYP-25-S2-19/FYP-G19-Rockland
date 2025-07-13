@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -8,39 +8,44 @@ import {
   Text,
 } from "react-native";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchIcon from "../../assets/images/search.svg";
 import FilterIcon from "../../assets/images/filter.svg";
 import DiscussionCard, { Discussion } from "../../components/DiscussionCard";
 import FilterModal from "../../components/FilterModalFeed";
 
-type DiscussionScreenProps = {
-  discussions: Discussion[];
-};
-
 export default function DiscussionScreen() {
   const router = useRouter();
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
   const [searchText, setSearchText] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [discussions, setDiscussions] = useState<Discussion[]>([]);
 
-  // Ideally, you would fetch this or pass from props/context.
-  const [discussions, setDiscussions] = useState<Discussion[]>([
-    {
-      id: 1,
-      user: "UserOne",
-      timestamp: "10 mins ago",
-      text: "I am new to geology and want to learn about igneous rocks...",
-      comments: [],
-      isNew: true,
-    },
-    {
-      id: 2,
-      user: "GeoExpert",
-      timestamp: "1 hour ago",
-      text: "Can someone explain the main differences between sedimentary and metamorphic rocks?",
-      comments: [],
-      isNew: false,
-    },
-  ]);
+  useEffect(() => {
+    const fetchDiscussions = async () => {
+      try {
+        const token = await AsyncStorage.getItem("accessToken");
+
+        const res = await fetch(`${API_URL}/api/discussions`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          setDiscussions(data.discussions || []);
+        } else {
+          console.error("Failed to load discussions:", data.message);
+        }
+      } catch (err) {
+        console.error("Discussion fetch error:", err);
+      }
+    };
+
+    fetchDiscussions();
+  }, []);
 
   const filteredDiscussions = useMemo(() => {
     const keyword = searchText.toLowerCase();

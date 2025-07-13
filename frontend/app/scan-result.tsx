@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-// Function to randomize rarity
 const getRandomRarity = () => {
   const rarities = [
     { label: "Common", color: "#9CA3AF", width: 100 },
@@ -16,11 +15,12 @@ const getRandomRarity = () => {
 
 export default function ScanResult() {
   const params = useLocalSearchParams();
-  const image = typeof params.image === "string" ? params.image : undefined;
   const router = useRouter();
 
+  const image = typeof params.image === "string" ? params.image : undefined;
+  const rockName = typeof params.rockName === "string" ? params.rockName : "Unknown";
+  const rockType = typeof params.rockType === "string" ? params.rockType : "Unknown";
   const rarity = getRandomRarity();
-  const displayImage = image ?? "https://via.placeholder.com/200";
 
   return (
     <View className="flex-1 bg-white pt-[50px] items-center">
@@ -35,7 +35,7 @@ export default function ScanResult() {
 
       {/* Image */}
       <Image
-        source={{ uri: displayImage }}
+        source={{ uri: image ?? "https://via.placeholder.com/200" }}
         style={{ width: 200, height: 200, borderRadius: 12 }}
         contentFit="cover"
       />
@@ -48,18 +48,19 @@ export default function ScanResult() {
         <Text className="text-white text-[12px] font-semibold">Rarity: {rarity.label}</Text>
       </View>
 
-      {/* Input Fields */}
+      {/* Result Fields */}
       <View className="mt-8">
         <Text className="text-[12px] text-[#374151] mb-1.5">Rock Name</Text>
         <View className="w-[295px] h-[46px] border border-[#D1D5DB] rounded-lg px-3 flex-row items-center">
-          <Text className="text-[14px] text-[#111827]">Granite</Text>
+          <Text className="text-[14px] text-[#111827]">{rockName}</Text>
         </View>
 
         <Text className="text-[12px] text-[#374151] mt-4 mb-1.5">Rock Type</Text>
         <View className="w-[295px] h-[46px] border border-[#D1D5DB] rounded-lg px-3 flex-row items-center">
-          <Text className="text-[14px] text-[#111827]">Igneous</Text>
+          <Text className="text-[14px] text-[#111827]">{rockType}</Text>
         </View>
       </View>
+
       <View className="mt-8 w-[295px] space-y-4">
         <TouchableOpacity className="bg-green-600 py-3 rounded-lg items-center mb-4" activeOpacity={0.8}>
           <Text className="text-white font-semibold text-[14px]">Save to Collection</Text>

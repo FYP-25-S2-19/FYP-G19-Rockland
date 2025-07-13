@@ -4,6 +4,8 @@ from app.entity.quiz import QuizOption, QuizResult
 from app.entity.user import User
 from app.controller.authentication.permission_required import permission_required
 from datetime import datetime, timedelta
+from app.utils.user_activity_tracking_engine import update_user_quiz_count
+from app.utils.achievement_tracking_engine import check_and_award_thresholds
 
 create_quizattempt_blueprint = Blueprint('create_quizattempt', __name__)
 
@@ -53,6 +55,8 @@ def submit_quiz(quiz_id, current_user):
 
     user = User.query.get(current_user.user_id)
     user.total_points += points
+    update_user_quiz_count(user.user_id)
+    check_and_award_thresholds(user.user_id)
     db.session.commit()
 
     return jsonify({"success": True, "score": correct_count, "points_earned": points}), 200
