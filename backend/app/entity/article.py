@@ -276,6 +276,35 @@ class Article(db.Model):
         except Exception as e:
             print(f"Error fetching all articles for admin: {e}")
             return None, 500
+        
+    @classmethod
+    def getArticlesByAuthor(cls, author_id: int, limit: int = 6):
+        try:
+            articles = (
+                cls.query.filter_by(user_id=author_id)
+                .order_by(cls.date_created.desc())
+                .limit(limit)
+                .all()
+            )
+            articles_data = [article.to_dict() for article in articles]
+            return articles_data, 200, f"Top {limit} articles by author"
+        except Exception as e:
+            print(f"Error fetching articles by author: {e}")
+            return None, 500, f"Error: {str(e)}"
+        
+    @classmethod
+    def getAllArticlesByAuthor(cls, author_id: int):
+        try:
+            articles = (
+                cls.query.filter_by(user_id=author_id)
+                .order_by(cls.date_created.desc())
+                .all()
+            )
+            articles_data = [article.to_dict() for article in articles]
+            return articles_data, 200, f"All articles by author {author_id}"
+        except Exception as e:
+            print(f"❌ Error fetching all articles by author: {e}")
+            return None, 500, f"Error: {str(e)}"
 
     @classmethod
     def getArticleById(cls, article_id: int):
@@ -334,65 +363,46 @@ class Article(db.Model):
             return None, 500, f"Error fetching articles: {str(e)}"
 
     @classmethod
-    def searchArticles(cls, user_id: int, search_term: str = None, category_id: int = None):
-        """Search articles by title or category based on user type restrictions"""
+    def searchArticles(cls, user_id: int, search_term: str = None, category_ids: list = None, sort_by: str = "newest"):
         try:
-            # Get the user
             from app.entity.user import User
             user = User.queryUserById(user_id)
             if not user:
                 return None, 404, "User not found"
-            
+
             if user.status != 'Active':
                 return None, 403, "User account is not active"
-            
-            user_type_name = user.user_type.name if user.user_type else None
-            
-            # Only Free and Premium users can search (based on requirements)
-            if user_type_name not in ['Free', 'Premium']:
-                return None, 403, "Only Free and Premium users can search articles"
-            
-            # Build base query based on user type
-            if user_type_name == 'Free':
-                # Free users can only search free articles
-                base_query = cls.query.filter_by(is_free=True)
-            elif user_type_name == 'Premium':
-                # Premium users can search all articles
-                base_query = cls.query
-            
-            # Apply search filters
-            if search_term and search_term.strip():
-                # Search by title (case-insensitive)
-                search_term_clean = search_term.strip()
-                base_query = base_query.filter(cls.title.ilike(f'%{search_term_clean}%'))
-            
-            if category_id:
-                # Search by category
-                base_query = base_query.filter_by(categories_id=category_id)
-            
-            # If no search criteria provided
-            if not search_term and not category_id:
-                return None, 400, "Please provide search term or category"
-            
-            # Execute query
-            articles = base_query.order_by(cls.date_created.desc()).all()
-            articles_data = [article.to_dict() for article in articles]
-            
-            # Build response message
-            search_info = []
+
+            user_type = user.user_type.name if user.user_type else None
+
+            if user_type not in ['Free', 'Premium', 'Expert', 'Admin']:
+                return None, 403, "Invalid user type"
+
+            # Build base query
+            query = cls.query
+            if user_type == 'Free':
+                query = query.filter_by(is_free=True)
+
             if search_term:
-                search_info.append(f"title containing '{search_term}'")
-            if category_id:
-                search_info.append(f"category ID {category_id}")
-            
-            search_description = " and ".join(search_info)
-            message = f"Search results for {search_description} ({user_type_name} user access)"
-            
-            return articles_data, 200, message
-            
+                query = query.filter(cls.title.ilike(f'%{search_term.strip()}%'))
+
+            if category_ids and isinstance(category_ids, list) and category_ids:
+                query = query.filter(cls.categories_id.in_(category_ids))
+
+            # Sorting
+            if sort_by == "oldest":
+                query = query.order_by(cls.date_created.asc())
+            elif sort_by == "most_liked":
+                query = query.outerjoin(ArticleLike).group_by(cls.article_id).order_by(func.count(ArticleLike.article_like_id).desc())
+            else:  # default to newest
+                query = query.order_by(cls.date_created.desc())
+
+            articles = query.all()
+            articles_data = [a.to_dict(user.user_id if user_type in ['Free', 'Premium'] else None) for a in articles]
+            return articles_data, 200, "Search results returned"
         except Exception as e:
             print(f"Error searching articles: {e}")
-            return None, 500, f"Error searching articles: {str(e)}"
+            return None, 500, f"Internal error: {str(e)}"
         
     @classmethod
     def getArticleByIdForUser(cls, article_id: int, user_id: int):
