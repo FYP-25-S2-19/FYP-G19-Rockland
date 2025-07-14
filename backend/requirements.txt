@@ -9,3 +9,5 @@ PyJWT
 stripe
 torch
 torchvision
+google.cloud
+google-cloud-storage

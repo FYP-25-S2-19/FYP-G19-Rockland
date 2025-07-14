@@ -10,7 +10,7 @@ from app.utils.achievement_tracking_engine import check_and_award_thresholds
 create_quizattempt_blueprint = Blueprint('create_quizattempt', __name__)
 
 @create_quizattempt_blueprint.route('/api/quizzes/<int:quiz_id>/submit', methods=['POST'])
-@permission_required('has_freeuser_permission')
+@permission_required('has_premium_permission', 'has_freeuser_permission')
 def submit_quiz(quiz_id, current_user):
     # Count today's attempts
     today = datetime.utcnow().date()
@@ -62,7 +62,7 @@ def submit_quiz(quiz_id, current_user):
     return jsonify({"success": True, "score": correct_count, "points_earned": points}), 200
 
 @create_quizattempt_blueprint.route('/api/quizzes/<int:quiz_id>/check-eligibility', methods=['GET'])
-@permission_required('has_freeuser_permission')
+@permission_required('has_freeuser_permission', 'has_premium_permission')
 def check_quiz_eligibility(quiz_id, current_user):
     try:
         today = datetime.utcnow().date()
