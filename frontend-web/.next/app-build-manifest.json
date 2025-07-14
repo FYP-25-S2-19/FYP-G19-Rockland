@@ -12,11 +12,23 @@
       "static/chunks/app/layout.js"
     ],
 <<<<<<< HEAD
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
+    ],
+=======
+<<<<<<< HEAD
+>>>>>>> 5d51d1aca905e49b80619968a73578e5c60c17b3
     "/registration/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/registration/page.js"
+<<<<<<< HEAD
+    ],
 =======
+=======
+>>>>>>> 5d51d1aca905e49b80619968a73578e5c60c17b3
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -61,7 +73,25 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/landingpagemanagement/page.js"
+<<<<<<< HEAD
+    ],
+    "/faqmanagement/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/faqmanagement/page.js"
+    ],
+    "/adminprofile/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/adminprofile/page.js"
+    ],
+    "/_not-found/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/_not-found/page.js"
+=======
 >>>>>>> origin/main
+>>>>>>> 5d51d1aca905e49b80619968a73578e5c60c17b3
     ]
   }
 }
