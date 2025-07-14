@@ -261,6 +261,9 @@ def create_app():
     from .controller.articles.unlike_article_controller import unlike_article_blueprint
     app.register_blueprint(unlike_article_blueprint)
 
+    from .controller.articles.get_top_liked_articles_controller import get_top_liked_articles_blueprint
+    app.register_blueprint(get_top_liked_articles_blueprint)
+
     
     ### trade offer
 

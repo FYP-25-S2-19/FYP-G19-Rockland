@@ -4,7 +4,7 @@ import os
 import humanize
 from werkzeug.utils import secure_filename
 from io import BytesIO
-
+from sqlalchemy import func
 # Local dependencies
 from app.models import db
 from app.utils.gcs import generate_signed_url, upload_file_to_gcs, delete_file_from_gcs
@@ -468,4 +468,29 @@ class Article(db.Model):
         except Exception as e:
             print(f"Error fetching article count: {e}")
             return 0, 500, f"Error: {str(e)}"
+        
+    @classmethod
+    def getTopLikedArticles(cls, limit=3):
+        try:
+            from app.entity.article_like import ArticleLike
+            from sqlalchemy import func
 
+            top_articles = (
+                db.session.query(cls, func.count(ArticleLike.article_like_id).label("like_count"))
+                .join(ArticleLike, cls.article_id == ArticleLike.article_id)
+                .group_by(cls.article_id)
+                .order_by(func.count(ArticleLike.article_like_id).desc())
+                .limit(limit)
+                .all()
+            )
+
+            articles_data = [
+                {**article.to_preview_dict(), "like_count": count}
+                for article, count in top_articles
+            ]
+
+            return articles_data, 200, f"Top {limit} most liked articles"
+        
+        except Exception as e:
+            print(f"❌ Error fetching top liked articles: {e}")
+            return None, 500, f"Internal error: {str(e)}"
