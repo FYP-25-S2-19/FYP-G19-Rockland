@@ -16,88 +16,62 @@ export default function FreePremiumFeed() {
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
   useEffect(() => {
-    const initializeUserRole = async () => {
+    const initialize = async () => {
+      setLoading(true);
       try {
+        // Load role
         const role = await AsyncStorage.getItem("userRole");
-        if (role === "premium") {
-          setUserRole("premium");
-        } else {
-          setUserRole("free");
-        }
-      } catch (e) {
-        console.error("⚠️ Failed to load user role:", e);
-      }
-    };
+        setUserRole(role === "premium" ? "premium" : "free");
 
-    const fetchArticles = async () => {
-      const endpoint = getArticleEndpoint(userRole);
-      if (!endpoint) return;
-
-      try {
         const token = await AsyncStorage.getItem("accessToken");
-        const response = await axios.get(`${API_URL}${endpoint}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Fetch articles
+        const articleRes = await axios.get(`${API_URL}/api/articles/all`, {
+          headers,
         });
 
-        if (response.data.success) {
-          const fetchedArticles = response.data.articles.map((article: any) => ({
+        if (articleRes.data.success) {
+          const fetchedArticles = articleRes.data.articles.map((article: any) => ({
             id: article.article_id,
             title: article.title,
             preview: article.content?.slice(0, 100),
             category: article.category_title,
             authorName: article.author_name,
-            authorImage: require("../../assets/images/profilepicture.png"),
+            authorImage: article.author_profile_picture
+              ? { uri: article.author_profile_picture }
+              : require("../../assets/images/profilepicture.png"),
             isPremium: !article.is_free,
             thumbnail: { uri: article.signed_photo_url || article.photo_url },
             likes: article.total_likes,
             liked: false,
+            timeAgo: article.date_created, // ✅ add this
           }));
           setArticles(fetchedArticles);
         } else {
-          Alert.alert("Error", response.data.message || "Failed to load articles");
+          Alert.alert("Error", articleRes.data.message || "Failed to load articles");
         }
-      } catch (err: any) {
-        console.error("❌ Failed to fetch articles:", err.message);
-        Alert.alert("Error", "Failed to fetch articles");
-      }
-    };
 
-    const fetchDiscussions = async () => {
-      try {
-        const token = await AsyncStorage.getItem("accessToken");
-        console.log("📡 Fetching discussions from:", `${API_URL}/api/discussions`);
-        const res = await fetch(`${API_URL}/api/discussions`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
-        if (json.success) {
-          setDiscussions(json.discussions);
+        // Fetch discussions
+        const discussionRes = await fetch(`${API_URL}/api/discussions`, { headers });
+        const discussionJson = await discussionRes.json();
+
+        if (discussionJson.success) {
+          setDiscussions(discussionJson.discussions);
         } else {
-          console.warn("⚠️ Failed to load discussions:", json.message);
+          console.warn("⚠️ Failed to load discussions:", discussionJson.message);
         }
-      } catch (e) {
-        console.error("❌ Failed to fetch discussions", e);
-      }
-    };
 
-    const initialize = async () => {
-      setLoading(true);
-      await initializeUserRole();
-      await Promise.all([fetchArticles(), fetchDiscussions()]);
-      setLoading(false);
+      } catch (e) {
+        console.error("❌ Error initializing feed:", e);
+        Alert.alert("Error", "Something went wrong while loading content.");
+      } finally {
+        setLoading(false);
+      }
     };
 
     initialize();
-  }, [userRole]);
-
-  const getArticleEndpoint = (role: string) => {
-    if (role === "free" || role === "premium") {
-      return "/api/articles/premium/view";
-    }
-    return "";
-  };
+  }, []);
 
   const onLikeToggle = (articleId: number) => {
     setArticles((prev) =>
