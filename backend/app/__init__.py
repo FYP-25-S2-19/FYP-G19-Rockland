@@ -9,8 +9,6 @@ def create_app():
     db.init_app(app)
     CORS(app)
         
-
-
     ######## USER CONTROLLER
     from .controller.authentication.login import login_blueprint
     app.register_blueprint(login_blueprint)
@@ -32,12 +30,6 @@ def create_app():
 
     from .controller.user.suspend_user_controller import suspend_user_blueprint
     app.register_blueprint(suspend_user_blueprint)
-
-    from .controller.user.get_current_user import get_current_user_blueprint
-    app.register_blueprint(get_current_user_blueprint)
-
-    from .controller.user.upload_profile_picture import upload_profile_picture_blueprint
-    app.register_blueprint(upload_profile_picture_blueprint)
 
     from .controller.user.get_current_user import get_current_user_blueprint
     app.register_blueprint(get_current_user_blueprint)
@@ -187,7 +179,6 @@ def create_app():
     from .controller.comment.rock.toggle_like_comment_controller import toggle_like_comment_blueprint
     app.register_blueprint(toggle_like_comment_blueprint)
     
-
     ######## FAQ
     from .controller.faq.view_faq_controller import view_faq_blueprint
     app.register_blueprint(view_faq_blueprint)
@@ -222,7 +213,6 @@ def create_app():
     app.register_blueprint(delete_applink_blueprint)
 
     ### Testimonials
-
     from .controller.testimonials.create_testimonials_controller import create_testimonials_blueprint
     app.register_blueprint(create_testimonials_blueprint)
 
@@ -233,7 +223,6 @@ def create_app():
     app.register_blueprint(view_testimonials_blueprint)
 
     #### Application
-
     from .controller.application.create_application_controller import create_application_blueprint
     app.register_blueprint(create_application_blueprint)
 
@@ -244,7 +233,6 @@ def create_app():
     app.register_blueprint(accept_decline_application_blueprint)
 
     ### Articles
-
     from .controller.articles.delete_article_controller import delete_article_blueprint
     app.register_blueprint(delete_article_blueprint)
 
@@ -266,32 +254,7 @@ def create_app():
     from .controller.articles.get_article_by_id_controller import get_article_by_id_blueprint
     app.register_blueprint(get_article_by_id_blueprint)
 
-    
-    ### Articles
-
-    from .controller.trade_offer.accept_trade_offer_controller import accept_trade_offer_bp
-    app.register_blueprint(accept_trade_offer_bp)
-
-    from .controller.trade_offer.create_trade_offer_controller import create_trade_offer_bp
-    app.register_blueprint(create_trade_offer_bp)
-
-    from .controller.trade_offer.delete_trade_offer_controller import delete_trade_offer_bp
-    app.register_blueprint(delete_trade_offer_bp)
-
-    from .controller.trade_offer.reject_trade_offer_controller import reject_trade_offer_bp
-    app.register_blueprint(reject_trade_offer_bp)
-
-    from .controller.trade_offer.search_trade_offer_controller import search_trade_offer_bp
-    app.register_blueprint(search_trade_offer_bp)
-    from .controller.articles.get_all_article_controller import get_all_articles_blueprint
-    app.register_blueprint(get_all_articles_blueprint)
-
-    from .controller.articles.get_article_by_id_controller import get_article_by_id_blueprint
-    app.register_blueprint(get_article_by_id_blueprint)
-
-    
-    ### Articles
-
+    ### Trade Offers
     from .controller.trade_offer.accept_trade_offer_controller import accept_trade_offer_bp
     app.register_blueprint(accept_trade_offer_bp)
 
@@ -310,19 +273,18 @@ def create_app():
     from .controller.trade_offer.search_my_trade_offer_controller import search_my_trade_offer_bp
     app.register_blueprint(search_my_trade_offer_bp)
 
-
     ## Dashboard
     from .controller.dashboard.dashboard_controller import dashboard_blueprint
     app.register_blueprint(dashboard_blueprint)
 
-    from .controller.trade_offer.search_my_trade_offer_controller import search_my_trade_offer_bp
-    app.register_blueprint(search_my_trade_offer_bp)
+    #### Subscription Plan
+    from .controller.subscriptionplan.view_subscription_plan_controller import view_subscription_plan_blueprint
+    app.register_blueprint(view_subscription_plan_blueprint)
 
+    from .controller.subscriptionplan.create_subscription_plan_controller import create_subscription_plan_blueprint
+    app.register_blueprint(create_subscription_plan_blueprint)
 
-    ## Dashboard
-    from .controller.dashboard.dashboard_controller import dashboard_blueprint
-    app.register_blueprint(dashboard_blueprint)
+    from .controller.subscriptionplan.delete_subscription_controller import delete_subscription_plan_blueprint
+    app.register_blueprint(delete_subscription_plan_blueprint)
 
-
-    
     return app
