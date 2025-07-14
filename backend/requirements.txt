@@ -8,6 +8,10 @@ flask-bcrypt
 PyJWT
 stripe
 torch
+<<<<<<< HEAD
 torchvision
 google.cloud
 google-cloud-storage
+=======
+torchvision
+>>>>>>> 1223b9947bd9db37f55bd8206c5073f9e53c4201
