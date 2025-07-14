@@ -141,7 +141,7 @@ export default function ArticleCard({
                 width={24}
                 height={24}
                 style={{ marginRight: 6 }}
-                fill="red"
+                
               />
             )}
             <Text className="text-sm font-medium text-gray-500">
