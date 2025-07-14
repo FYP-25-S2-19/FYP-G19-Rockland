@@ -62,8 +62,14 @@ def create_app():
     app.register_blueprint(delete_categories_blueprint)
     
     ############### UPGRADE USER
-    from .controller.upgrade_user.self_upgrade_account import self_upgrade_blueprint
-    app.register_blueprint(self_upgrade_blueprint)
+    from app.controller.payment.create_checkout_session_controller import create_checkout_session
+    from app.controller.payment.stripe_webhook_controller import stripe_webhook
+
+    app.add_url_rule('/api/create-checkout-session', view_func=create_checkout_session, methods=["POST"])
+    app.add_url_rule('/api/stripe-webhook', view_func=stripe_webhook, methods=["POST"])
+    
+    from app.controller.payment.get_subscription_plan_controller import get_subscription_plans
+    app.add_url_rule("/api/subscription-plans", view_func=get_subscription_plans, methods=["GET"])
 
     ############### INTEREST
     from .controller.interest.view_interest_controller import view_interest_blueprint
@@ -128,6 +134,9 @@ def create_app():
     
     from app.controller.quiz.view_quizhistory_controller import view_quizhistory_blueprint
     app.register_blueprint(view_quizhistory_blueprint)
+    
+    from app.controller.quiz.manage_quiz_controller import manage_quiz_blueprint
+    app.register_blueprint(manage_quiz_blueprint)
     
     ###############  ACHIEVEMENTS
     from app.controller.achievements.collect_achievement_controller import collect_achievement_blueprint
