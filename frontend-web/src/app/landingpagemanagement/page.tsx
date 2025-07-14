@@ -46,12 +46,15 @@ interface AppLink {
 }
 
 interface SubscriptionPlan {
-  id: string
+  subscription_plan_id: number
   name: string
   description: string
   currency: string
   price: number
-  userId: string
+  feature_a?: string
+  feature_b?: string
+  feature_c?: string
+  feature_d?: string
 }
 
 interface Testimonial {
@@ -74,6 +77,17 @@ interface VideoFormData {
 interface AppLinkFormData {
   name: string
   link_attached: string
+}
+
+interface SubscriptionPlanFormData {
+  name: string
+  description: string
+  price: string
+  currency: string
+  feature_a: string
+  feature_b: string
+  feature_c: string
+  feature_d: string
 }
 
 interface TestimonialFormData {
@@ -132,24 +146,25 @@ export default function LandingPageManagement() {
     link_attached: ''
   })
 
+  // Subscription Plan-specific state
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([])
+  const [subscriptionPlanFormData, setSubscriptionPlanFormData] = useState<SubscriptionPlanFormData>({
+    name: '',
+    description: '',
+    price: '',
+    currency: '',
+    feature_a: '',
+    feature_b: '',
+    feature_c: '',
+    feature_d: ''
+  })
+
   // Testimonials-specific state
   const [testimonials, setTestimonials] = useState<Testimonial[]>([])
   const [testimonialFormData, setTestimonialFormData] = useState<TestimonialFormData>({
     name: '',
     testimony: ''
   })
-
-  // Sample data for other content types (unchanged)
-  const subscriptionPlans: SubscriptionPlan[] = [
-    {
-      id: "1",
-      name: "January Plan",
-      description: "Premium Users",
-      currency: "$USD",
-      price: 100,
-      userId: "7894",
-    },
-  ]
 
   // Fetch videos from API
   const fetchVideos = async () => {
@@ -187,6 +202,47 @@ export default function LandingPageManagement() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while fetching videos')
       console.error('Error fetching videos:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch subscription plans from API
+  const fetchSubscriptionPlans = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/subscription-plans/all`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setSubscriptionPlans(data.subscription_plans)
+      } else {
+        setError(data.error || 'Failed to fetch subscription plans')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching subscription plans')
+      console.error('Error fetching subscription plans:', err)
     } finally {
       setLoading(false)
     }
@@ -232,6 +288,7 @@ export default function LandingPageManagement() {
       setLoading(false)
     }
   }
+
   const fetchAppLinks = async () => {
     try {
       setLoading(true)
@@ -269,6 +326,96 @@ export default function LandingPageManagement() {
       console.error('Error fetching app links:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Create subscription plan
+  const createSubscriptionPlan = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      // Validation
+      if (!subscriptionPlanFormData.name.trim()) {
+        setError('Name is required')
+        return
+      }
+
+      if (!subscriptionPlanFormData.price.trim()) {
+        setError('Price is required')
+        return
+      }
+
+      if (!subscriptionPlanFormData.currency.trim()) {
+        setError('Currency is required')
+        return
+      }
+
+      const price = parseFloat(subscriptionPlanFormData.price)
+      if (isNaN(price) || price < 0) {
+        setError('Please enter a valid price')
+        return
+      }
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/subscription-plans/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: subscriptionPlanFormData.name.trim(),
+          description: subscriptionPlanFormData.description.trim() || null,
+          price: price,
+          currency: subscriptionPlanFormData.currency.trim(),
+          feature_a: subscriptionPlanFormData.feature_a.trim() || null,
+          feature_b: subscriptionPlanFormData.feature_b.trim() || null,
+          feature_c: subscriptionPlanFormData.feature_c.trim() || null,
+          feature_d: subscriptionPlanFormData.feature_d.trim() || null
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setSuccessMessage(data.message || 'Subscription plan created successfully')
+        setShowSuccessDialog(true)
+        
+        // Reset form
+        setSubscriptionPlanFormData({
+          name: '',
+          description: '',
+          price: '',
+          currency: '',
+          feature_a: '',
+          feature_b: '',
+          feature_c: '',
+          feature_d: ''
+        })
+        
+        // Refresh subscription plans list
+        await fetchSubscriptionPlans()
+      } else {
+        setError(data.message || 'Failed to create subscription plan')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while creating subscription plan')
+      console.error('Error creating subscription plan:', err)
+    } finally {
+      setIsLoading(false)
+      setShowAddDialog(false)
     }
   }
 
@@ -338,6 +485,7 @@ export default function LandingPageManagement() {
       setShowAddDialog(false)
     }
   }
+
   const uploadVideo = async () => {
     try {
       setIsLoading(true)
@@ -518,6 +666,53 @@ export default function LandingPageManagement() {
     }
   }
 
+  // Delete subscription plan
+  const deleteSubscriptionPlan = async (planId: string) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/subscription-plans/delete/${planId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setSuccessMessage(data.message || 'Subscription plan deleted successfully')
+        setShowSuccessDialog(true)
+        
+        // Refresh subscription plans list
+        await fetchSubscriptionPlans()
+      } else {
+        setError(data.message || 'Failed to delete subscription plan')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while deleting subscription plan')
+      console.error('Error deleting subscription plan:', err)
+    } finally {
+      setIsLoading(false)
+      setShowConfirmDialog(false)
+      setConfirmAction(null)
+    }
+  }
+
   // Delete testimonial
   const deleteTestimonial = async (testimonialId: string) => {
     try {
@@ -567,6 +762,7 @@ export default function LandingPageManagement() {
       setConfirmAction(null)
     }
   }
+
   const deleteAppLink = async (appLinkId: string) => {
     try {
       setIsLoading(true)
@@ -622,6 +818,8 @@ export default function LandingPageManagement() {
       fetchVideos()
     } else if (contentType === "App Links") {
       fetchAppLinks()
+    } else if (contentType === "Subscription Plan") {
+      fetchSubscriptionPlans()
     } else if (contentType === "Testimonials") {
       fetchTestimonials()
     }
@@ -682,15 +880,10 @@ export default function LandingPageManagement() {
       await deleteVideo(itemId)
     } else if (contentType === "App Links") {
       await deleteAppLink(itemId)
+    } else if (contentType === "Subscription Plan") {
+      await deleteSubscriptionPlan(itemId)
     } else if (contentType === "Testimonials") {
       await deleteTestimonial(itemId)
-    } else {
-      // Handle other content types deletion (existing logic)
-      setIsLoading(true)
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      setIsLoading(false)
-      setShowConfirmDialog(false)
-      setConfirmAction(null)
     }
   }
 
@@ -699,14 +892,10 @@ export default function LandingPageManagement() {
       await uploadVideo()
     } else if (contentType === "App Links") {
       await createAppLink()
+    } else if (contentType === "Subscription Plan") {
+      await createSubscriptionPlan()
     } else if (contentType === "Testimonials") {
       await createTestimonial()
-    } else {
-      // Handle other content types addition (existing logic)
-      setIsLoading(true)
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      setIsLoading(false)
-      setShowAddDialog(false)
     }
   }
 
@@ -780,12 +969,12 @@ export default function LandingPageManagement() {
       case "Subscription Plan":
         return (
           <>
-            <TableHead className="font-semibold">Subscription Plan ID</TableHead>
+            <TableHead className="font-semibold">Plan ID</TableHead>
             <TableHead className="font-semibold">Name</TableHead>
             <TableHead className="font-semibold">Description</TableHead>
-            <TableHead className="font-semibold">Currency</TableHead>
             <TableHead className="font-semibold">Price</TableHead>
-            <TableHead className="font-semibold">UserID (Admin)</TableHead>
+            <TableHead className="font-semibold">Currency</TableHead>
+            <TableHead className="font-semibold">Features</TableHead>
             <TableHead className="font-semibold text-center">Action</TableHead>
           </>
         )
@@ -806,7 +995,7 @@ export default function LandingPageManagement() {
   const renderTableRows = () => {
     const data = getCurrentData()
 
-    if ((contentType === "Video" || contentType === "App Links" || contentType === "Testimonials") && loading) {
+    if (loading) {
       return (
         <TableRow>
           <TableCell colSpan={7} className="text-center py-8">
@@ -823,8 +1012,9 @@ export default function LandingPageManagement() {
           <TableCell colSpan={7} className="text-center py-8 text-gray-500">
             {contentType === "Video" ? "No videos found" : 
              contentType === "App Links" ? "No app links found" :
+             contentType === "Subscription Plan" ? "No subscription plans found" :
              contentType === "Testimonials" ? "No testimonials found" :
-             `No ${contentType.toLowerCase()} found`}
+             "No items found"}
           </TableCell>
         </TableRow>
       )
@@ -834,12 +1024,14 @@ export default function LandingPageManagement() {
       <TableRow key={
         contentType === "Video" ? (item as VideoPost).video_id : 
         contentType === "App Links" ? (item as AppLink).app_link_id :
+        contentType === "Subscription Plan" ? (item as SubscriptionPlan).subscription_plan_id :
         contentType === "Testimonials" ? (item as Testimonial).testimonials_id :
         (item as any).id
       } className="hover:bg-gray-50 transition-colors">
         <TableCell className="font-medium text-gray-900">
           {contentType === "Video" ? (item as VideoPost).video_id :
            contentType === "App Links" ? (item as AppLink).app_link_id :
+           contentType === "Subscription Plan" ? (item as SubscriptionPlan).subscription_plan_id :
            contentType === "Testimonials" ? (item as Testimonial).testimonials_id :
            (item as any).id}
         </TableCell>
@@ -871,21 +1063,28 @@ export default function LandingPageManagement() {
             <TableCell className="text-gray-600">{(item as AppLink).user_id}</TableCell>
           </>
         )}
+        {contentType === "Subscription Plan" && (
+          <>
+            <TableCell className="font-medium text-gray-900">{(item as SubscriptionPlan).name}</TableCell>
+            <TableCell className="text-gray-600 max-w-xs truncate">{(item as SubscriptionPlan).description}</TableCell>
+            <TableCell className="text-gray-600">{(item as SubscriptionPlan).price}</TableCell>
+            <TableCell className="text-gray-600">{(item as SubscriptionPlan).currency}</TableCell>
+            <TableCell className="text-gray-600 max-w-xs">
+              <div className="space-y-1 text-xs">
+                {(item as SubscriptionPlan).feature_a && <div>• {(item as SubscriptionPlan).feature_a}</div>}
+                {(item as SubscriptionPlan).feature_b && <div>• {(item as SubscriptionPlan).feature_b}</div>}
+                {(item as SubscriptionPlan).feature_c && <div>• {(item as SubscriptionPlan).feature_c}</div>}
+                {(item as SubscriptionPlan).feature_d && <div>• {(item as SubscriptionPlan).feature_d}</div>}
+              </div>
+            </TableCell>
+          </>
+        )}
         {contentType === "Testimonials" && (
           <>
             <TableCell className="font-medium text-gray-900">{(item as Testimonial).name}</TableCell>
             <TableCell className="text-gray-600 max-w-xs truncate">{(item as Testimonial).testimony}</TableCell>
             <TableCell className="text-gray-600">{formatDate((item as Testimonial).date_created)}</TableCell>
             <TableCell className="text-gray-600">{(item as Testimonial).user_id}</TableCell>
-          </>
-        )}
-        {contentType === "Subscription Plan" && (
-          <>
-            <TableCell className="font-medium text-gray-900">{(item as SubscriptionPlan).name}</TableCell>
-            <TableCell className="text-gray-600">{(item as SubscriptionPlan).description}</TableCell>
-            <TableCell className="text-gray-600">{(item as SubscriptionPlan).currency}</TableCell>
-            <TableCell className="text-gray-600">{(item as SubscriptionPlan).price}</TableCell>
-            <TableCell className="text-gray-600">{(item as SubscriptionPlan).userId}</TableCell>
           </>
         )}
         <TableCell className="text-center">
@@ -899,17 +1098,19 @@ export default function LandingPageManagement() {
                   ? (item as VideoPost).video_id.toString() 
                   : contentType === "App Links"
                     ? (item as AppLink).app_link_id.toString()
-                    : contentType === "Testimonials"
-                      ? (item as Testimonial).testimonials_id.toString()
-                      : (item as any).id,
+                    : contentType === "Subscription Plan"
+                      ? (item as SubscriptionPlan).subscription_plan_id.toString()
+                      : contentType === "Testimonials"
+                        ? (item as Testimonial).testimonials_id.toString()
+                        : (item as any).id,
                 itemTitle: contentType === "Video"
                   ? (item as VideoPost).name
                   : contentType === "App Links"
                     ? (item as AppLink).name
-                    : contentType === "Testimonials"
-                      ? (item as Testimonial).name
-                      : contentType === "Subscription Plan"
-                        ? (item as SubscriptionPlan).name
+                    : contentType === "Subscription Plan"
+                      ? (item as SubscriptionPlan).name
+                      : contentType === "Testimonials"
+                        ? (item as Testimonial).name
                         : (item as any).title,
                 contentType,
               })
@@ -1050,53 +1251,89 @@ export default function LandingPageManagement() {
         return (
           <div className="space-y-6 py-4">
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Subscription Plan</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Add New Subscription Plan</h3>
             </div>
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Name:</label>
-                  <Input placeholder="Premium" />
+                  <Input 
+                    placeholder="Premium" 
+                    value={subscriptionPlanFormData.name}
+                    onChange={(e) => setSubscriptionPlanFormData(prev => ({ ...prev, name: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Function A:</label>
-                  <Input placeholder="Function A" />
+                  <label className="text-sm font-medium">Price:</label>
+                  <Input 
+                    placeholder="10.00" 
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={subscriptionPlanFormData.price}
+                    onChange={(e) => setSubscriptionPlanFormData(prev => ({ ...prev, price: e.target.value }))}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Description:</label>
-                  <Textarea placeholder="Premium Functionalities" rows={3} />
+                  <Textarea 
+                    placeholder="Premium Functionalities" 
+                    rows={3} 
+                    value={subscriptionPlanFormData.description}
+                    onChange={(e) => setSubscriptionPlanFormData(prev => ({ ...prev, description: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Function B:</label>
-                    <Input placeholder="Function A" />
+                    <label className="text-sm font-medium">Currency:</label>
+                    <Input 
+                      placeholder="USD" 
+                      value={subscriptionPlanFormData.currency}
+                      onChange={(e) => setSubscriptionPlanFormData(prev => ({ ...prev, currency: e.target.value }))}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Function C:</label>
-                    <Input placeholder="Function A" />
+                    <label className="text-sm font-medium">Feature A:</label>
+                    <Input 
+                      placeholder="Premium Support" 
+                      value={subscriptionPlanFormData.feature_a}
+                      onChange={(e) => setSubscriptionPlanFormData(prev => ({ ...prev, feature_a: e.target.value }))}
+                    />
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Price:</label>
-                  <Input placeholder="10" />
+                  <label className="text-sm font-medium">Feature B:</label>
+                  <Input 
+                    placeholder="Advanced Analytics" 
+                    value={subscriptionPlanFormData.feature_b}
+                    onChange={(e) => setSubscriptionPlanFormData(prev => ({ ...prev, feature_b: e.target.value }))}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Function D:</label>
-                  <Input placeholder="Function A" />
+                  <label className="text-sm font-medium">Feature C:</label>
+                  <Input 
+                    placeholder="Custom Integrations" 
+                    value={subscriptionPlanFormData.feature_c}
+                    onChange={(e) => setSubscriptionPlanFormData(prev => ({ ...prev, feature_c: e.target.value }))}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Currency:</label>
-                  <Input placeholder="USD" />
+                  <label className="text-sm font-medium">Feature D:</label>
+                  <Input 
+                    placeholder="Priority Access" 
+                    value={subscriptionPlanFormData.feature_d}
+                    onChange={(e) => setSubscriptionPlanFormData(prev => ({ ...prev, feature_d: e.target.value }))}
+                  />
                 </div>
                 <div></div>
               </div>
@@ -1174,6 +1411,8 @@ export default function LandingPageManagement() {
                     fetchVideos()
                   } else if (contentType === "App Links") {
                     fetchAppLinks()
+                  } else if (contentType === "Subscription Plan") {
+                    fetchSubscriptionPlans()
                   } else if (contentType === "Testimonials") {
                     fetchTestimonials()
                   }
@@ -1224,17 +1463,25 @@ export default function LandingPageManagement() {
                   <SelectItem value="Testimonials">Testimonials</SelectItem>
                 </SelectContent>
               </Select>
-              {(contentType === "Video" || contentType === "App Links" || contentType === "Testimonials") && (
-                <Button
-                  variant="outline"
-                  onClick={contentType === "Video" ? fetchVideos : contentType === "App Links" ? fetchAppLinks : fetchTestimonials}
-                  disabled={loading}
-                  className="flex items-center space-x-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                  <span>Refresh</span>
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (contentType === "Video") {
+                    fetchVideos()
+                  } else if (contentType === "App Links") {
+                    fetchAppLinks()
+                  } else if (contentType === "Subscription Plan") {
+                    fetchSubscriptionPlans()
+                  } else if (contentType === "Testimonials") {
+                    fetchTestimonials()
+                  }
+                }}
+                disabled={loading}
+                className="flex items-center space-x-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </Button>
             </div>
           </div>
 
@@ -1278,7 +1525,7 @@ export default function LandingPageManagement() {
               {isLoading && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
               {contentType === "Video" && "Post New Video"}
               {contentType === "App Links" && "Create App Link"}
-              {contentType === "Subscription Plan" && "Post New Subscription"}
+              {contentType === "Subscription Plan" && "Create Subscription Plan"}
               {contentType === "Testimonials" && "Create Testimonial"}
             </Button>
             <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={isLoading} className="w-full">
