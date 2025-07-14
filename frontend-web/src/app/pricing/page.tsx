@@ -1,12 +1,99 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Check, X, ArrowLeft, Star, Users, Crown, Camera, MapPin, MessageCircle, Trophy, Archive } from "lucide-react"
+import { Check, X, ArrowLeft, Star, Users, Crown, Camera, MapPin, MessageCircle, Trophy, Archive, Loader2 } from "lucide-react"
+
+// Interface for subscription plan data
+interface SubscriptionPlan {
+  subscription_plan_id: number
+  name: string
+  description: string
+  price: number
+  currency: string
+  feature_a: string
+  feature_b: string
+  feature_c: string
+  feature_d: string
+}
 
 export default function PricingPage() {
-  const features = {
+  // Dynamic subscription plans state
+  const [subscriptionPlans, setSubscriptionPlans] = useState({
+    free: null as SubscriptionPlan | null,
+    premium: null as SubscriptionPlan | null
+  })
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true)
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
+
+  // Fetch subscription plans from database
+  useEffect(() => {
+    const fetchSubscriptionPlans = async () => {
+      try {
+        setSubscriptionLoading(true)
+        setSubscriptionError(null)
+        
+        const response = await fetch('http://localhost:5000/api/subscription-plans/public')
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        console.log('💳 Received subscription plans data:', data)
+        
+        if (data.success && data.subscription_plans) {
+          // Process the plans to identify free and premium
+          const processedPlans = {
+            free: null as SubscriptionPlan | null,
+            premium: null as SubscriptionPlan | null
+          }
+          
+          data.subscription_plans.forEach((plan: SubscriptionPlan) => {
+            const planName = plan.name.toLowerCase()
+            
+            // Check for free plan keywords
+            if (planName.includes('free') || planName.includes('basic') || plan.price === 0) {
+              processedPlans.free = plan
+            }
+            // Check for premium plan keywords
+            else if (planName.includes('premium') || planName.includes('pro') || planName.includes('paid') || plan.price > 0) {
+              processedPlans.premium = plan
+            }
+          })
+          
+          setSubscriptionPlans(processedPlans)
+          console.log('✅ Processed subscription plans:', processedPlans)
+        } else {
+          setSubscriptionError("No subscription plans available")
+        }
+      } catch (error) {
+        console.error('❌ Error fetching subscription plans:', error)
+        setSubscriptionError("Failed to load subscription plans")
+      } finally {
+        setSubscriptionLoading(false)
+      }
+    }
+
+    fetchSubscriptionPlans()
+  }, [])
+
+  // Function to parse features from database fields
+  const parseFeatures = (plan: SubscriptionPlan): string[] => {
+    const features: string[] = []
+    
+    if (plan.feature_a && plan.feature_a.trim()) features.push(plan.feature_a.trim())
+    if (plan.feature_b && plan.feature_b.trim()) features.push(plan.feature_b.trim())
+    if (plan.feature_c && plan.feature_c.trim()) features.push(plan.feature_c.trim())
+    if (plan.feature_d && plan.feature_d.trim()) features.push(plan.feature_d.trim())
+    
+    return features
+  }
+
+  // Fallback features for when database is unavailable
+  const fallbackFeatures = {
     basic: [
       { name: "Photo-based rock identification", included: true, icon: Camera },
       { name: "5 scans per day", included: true },
@@ -113,9 +200,29 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Pricing Cards */}
+      {/* Pricing Cards Section */}
       <section className="py-8">
         <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-4">Subscription Plans</h2>
+            <p className="text-gray-600">Choose the perfect plan for your rock exploration journey</p>
+          </div>
+
+          {subscriptionLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-green-600" />
+                <p className="text-gray-600">Loading subscription plans...</p>
+              </div>
+            </div>
+          ) : subscriptionError ? (
+            <div className="text-center py-8 mb-8">
+              <div className="text-yellow-600 mb-2">⚠️</div>
+              <p className="text-gray-600">{subscriptionError}</p>
+              <p className="text-sm text-gray-400 mt-2">Showing default plans</p>
+            </div>
+          ) : null}
+
           <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Basic Plan */}
             <Card className="relative overflow-hidden">
@@ -123,34 +230,47 @@ export default function PricingPage() {
                 <div className="text-center">
                   <div className="flex items-center justify-center mb-4">
                     <Users className="w-6 h-6 text-gray-600 mr-2" />
-                    <h3 className="text-lg font-bold text-gray-600">BASIC</h3>
+                    <h3 className="text-lg font-bold text-gray-600">
+                      {subscriptionPlans.free?.name?.toUpperCase() || 'BASIC'}
+                    </h3>
                   </div>
                   <div className="mb-6">
-                    <span className="text-5xl font-bold">$0</span>
+                    <span className="text-5xl font-bold">
+                      {subscriptionPlans.free?.currency || '$'}{subscriptionPlans.free?.price || 0}
+                    </span>
                     <span className="text-gray-500">/month</span>
                   </div>
-                  <p className="text-gray-600 mb-8">Perfect for casual rock enthusiasts</p>
+                  <p className="text-gray-600 mb-8">
+                    {subscriptionPlans.free?.description || 'Perfect for casual rock enthusiasts'}
+                  </p>
 
                   <Link href="/registration">
-                    <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white mb-8">Get Started Free</Button>
+                    <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white mb-8">
+                      Get Started Free
+                    </Button>
                   </Link>
 
                   <div className="space-y-4 text-left">
-                    {features.basic.map((feature, index) => (
-                      <div key={index} className="flex items-center">
-                        {feature.included ? (
+                    {subscriptionPlans.free ? (
+                      parseFeatures(subscriptionPlans.free).map((feature, index) => (
+                        <div key={index} className="flex items-center">
                           <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                        ) : (
-                          <X className="w-5 h-5 text-gray-300 mr-3 flex-shrink-0" />
-                        )}
-                        <div className="flex items-center">
-                          {feature.icon && (
-                            <feature.icon className={`w-4 h-4 mr-2 ${feature.included ? 'text-green-500' : 'text-gray-300'}`} />
-                          )}
-                          <span className={feature.included ? "text-gray-700" : "text-gray-400"}>{feature.name}</span>
+                          <span className="text-gray-700">{feature}</span>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      fallbackFeatures.basic.map((feature, index) => (
+                        <div key={index} className="flex items-center">
+                          <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                          <div className="flex items-center">
+                            {feature.icon && (
+                              <feature.icon className="w-4 h-4 mr-2 text-green-500" />
+                            )}
+                            <span className="text-gray-700">{feature.name}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -166,13 +286,19 @@ export default function PricingPage() {
                 <div className="text-center">
                   <div className="flex items-center justify-center mb-4">
                     <Star className="w-6 h-6 text-green-600 mr-2" />
-                    <h3 className="text-lg font-bold text-green-600">PREMIUM</h3>
+                    <h3 className="text-lg font-bold text-green-600">
+                      {subscriptionPlans.premium?.name?.toUpperCase() || 'PREMIUM'}
+                    </h3>
                   </div>
                   <div className="mb-6">
-                    <span className="text-5xl font-bold">$5</span>
+                    <span className="text-5xl font-bold">
+                      {subscriptionPlans.premium?.currency || '$'}{subscriptionPlans.premium?.price || 5}
+                    </span>
                     <span className="text-gray-500">/month</span>
                   </div>
-                  <p className="text-gray-600 mb-8">For serious rock collectors and students</p>
+                  <p className="text-gray-600 mb-8">
+                    {subscriptionPlans.premium?.description || 'For serious rock collectors and students'}
+                  </p>
 
                   <Link href="/registration">
                     <Button className="w-full bg-green-600 hover:bg-green-700 text-white mb-8">
@@ -181,17 +307,26 @@ export default function PricingPage() {
                   </Link>
 
                   <div className="space-y-4 text-left">
-                    {features.premium.map((feature, index) => (
-                      <div key={index} className="flex items-center">
-                        <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                        <div className="flex items-center">
-                          {feature.icon && (
-                            <feature.icon className="w-4 h-4 mr-2 text-green-500" />
-                          )}
-                          <span className="text-gray-700">{feature.name}</span>
+                    {subscriptionPlans.premium ? (
+                      parseFeatures(subscriptionPlans.premium).map((feature, index) => (
+                        <div key={index} className="flex items-center">
+                          <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                          <span className="text-gray-700">{feature}</span>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      fallbackFeatures.premium.map((feature, index) => (
+                        <div key={index} className="flex items-center">
+                          <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                          <div className="flex items-center">
+                            {feature.icon && (
+                              <feature.icon className="w-4 h-4 mr-2 text-green-500" />
+                            )}
+                            <span className="text-gray-700">{feature.name}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -210,8 +345,12 @@ export default function PricingPage() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-4 font-semibold">Features</th>
-                  <th className="text-center p-4 font-semibold">Basic</th>
-                  <th className="text-center p-4 font-semibold text-green-600">Premium</th>
+                  <th className="text-center p-4 font-semibold">
+                    {subscriptionPlans.free?.name || 'Basic'}
+                  </th>
+                  <th className="text-center p-4 font-semibold text-green-600">
+                    {subscriptionPlans.premium?.name || 'Premium'}
+                  </th>
                 </tr>
               </thead>
               <tbody>
