@@ -11,12 +11,6 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-<<<<<<< HEAD
-    "/registration/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/registration/page.js"
-=======
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -27,10 +21,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/page.js"
     ],
-    "/useraccount/page": [
+    "/registration/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/useraccount/page.js"
+      "static/chunks/app/registration/page.js"
     ],
     "/applications/page": [
       "static/chunks/webpack.js",
@@ -52,16 +46,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/forummanagement/page.js"
     ],
-    "/faq/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/faq/page.js"
-    ],
     "/landingpagemanagement/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/landingpagemanagement/page.js"
->>>>>>> origin/main
+    ],
+    "/faqmanagement/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/faqmanagement/page.js"
+    ],
+    "/adminprofile/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/adminprofile/page.js"
     ]
   }
 }
