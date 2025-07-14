@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   TextInput,
@@ -6,6 +6,7 @@ import {
   FlatList,
   SafeAreaView,
   Text,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -14,36 +15,40 @@ import FilterIcon from "../../assets/images/filter.svg";
 import DiscussionCard, { Discussion } from "../../components/DiscussionCard";
 import FilterModal from "../../components/FilterModalFeed";
 
-export default function DiscussionScreen() {
+export default function ExpertDiscussionScreen() {
   const router = useRouter();
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
   const [searchText, setSearchText] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchDiscussions = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("accessToken");
+
+      const res = await fetch(`${API_URL}/api/discussions`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setDiscussions(data.discussions || []);
+      } else {
+        console.warn("⚠️ Failed to load discussions:", data.message);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching discussions:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDiscussions = async () => {
-      try {
-        const token = await AsyncStorage.getItem("accessToken");
-
-        const res = await fetch(`${API_URL}/api/discussions`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          setDiscussions(data.discussions || []);
-        } else {
-          console.error("Failed to load discussions:", data.message);
-        }
-      } catch (err) {
-        console.error("Discussion fetch error:", err);
-      }
-    };
-
     fetchDiscussions();
   }, []);
 
@@ -82,24 +87,42 @@ export default function DiscussionScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Discussions List */}
-      <FlatList
-        data={filteredDiscussions}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <DiscussionCard
-            discussion={item}
-            onPress={() => handleDiscussionPress(item)}
-          />
-        )}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#459B6C" />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredDiscussions}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <DiscussionCard
+              discussion={item}
+              onPress={() => handleDiscussionPress(item)}
+            />
+          )}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View className="items-center mt-20">
+              <Text className="text-gray-600 text-lg">No discussions found.</Text>
+            </View>
+          }
+        />
+      )}
 
       {/* Filter Modal */}
       <FilterModal
         visible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
+        onApply={(filters) => {
+          // You can add filter handling here if needed
+          console.log("Applied filters:", filters);
+        }}
+        defaultValues={{
+          selectedCategories: [],
+          sortBy: "Newest",
+        }}
       />
     </SafeAreaView>
   );

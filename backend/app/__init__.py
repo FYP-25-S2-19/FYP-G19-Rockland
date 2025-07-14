@@ -257,6 +257,9 @@ def create_app():
     from .controller.articles.get_article_by_id_controller import get_article_by_id_blueprint
     app.register_blueprint(get_article_by_id_blueprint)
 
+    from app.controller.articles.get_articles_by_author_controller import get_articles_by_author_blueprint
+    app.register_blueprint(get_articles_by_author_blueprint)
+
     
     from .controller.articles.unlike_article_controller import unlike_article_blueprint
     app.register_blueprint(unlike_article_blueprint)

@@ -48,8 +48,8 @@ class ArticleLike(db.Model):
             user_type_name = user.user_type.name if user.user_type else None
             
             # Only Free and Premium users can like articles
-            if user_type_name not in ['Free', 'Premium']:
-                return False, 403, "Only Free and Premium users can like articles", None
+            if user_type_name not in ['Free', 'Premium', 'Expert']:
+                return False, 403, "Only Free Premium Expert users can like articles", None
             
             # Check if article exists
             from app.entity.article import Article
