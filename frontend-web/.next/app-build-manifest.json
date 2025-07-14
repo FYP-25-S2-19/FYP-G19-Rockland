@@ -11,24 +11,6 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-<<<<<<< HEAD
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
-=======
-<<<<<<< HEAD
->>>>>>> 5d51d1aca905e49b80619968a73578e5c60c17b3
-    "/registration/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/registration/page.js"
-<<<<<<< HEAD
-    ],
-=======
-=======
->>>>>>> 5d51d1aca905e49b80619968a73578e5c60c17b3
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -39,20 +21,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/page.js"
     ],
-    "/useraccount/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/useraccount/page.js"
-    ],
     "/applications/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/applications/page.js"
     ],
-    "/usertype/page": [
+    "/useraccount/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/usertype/page.js"
+      "static/chunks/app/useraccount/page.js"
     ],
     "/userprofiling/page": [
       "static/chunks/webpack.js",
@@ -64,34 +41,35 @@
       "static/chunks/main-app.js",
       "static/chunks/app/forummanagement/page.js"
     ],
-    "/faq/page": [
+    "/usertype/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/faq/page.js"
-    ],
-    "/landingpagemanagement/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/landingpagemanagement/page.js"
-<<<<<<< HEAD
-    ],
-    "/faqmanagement/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/faqmanagement/page.js"
+      "static/chunks/app/usertype/page.js"
     ],
     "/adminprofile/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/adminprofile/page.js"
     ],
+    "/landingpagemanagement/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/landingpagemanagement/page.js"
+    ],
+    "/faqmanagement/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/faqmanagement/page.js"
+    ],
+    "/faq/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/faq/page.js"
+    ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/_not-found/page.js"
-=======
->>>>>>> origin/main
->>>>>>> 5d51d1aca905e49b80619968a73578e5c60c17b3
     ]
   }
 }

@@ -63,37 +63,18 @@ class DashboardController:
             if not current_user:
                 return jsonify({'success': False, 'message': 'Admin authentication required'}), 401
             
-            # Get rock type counts for demand analysis
-            rock_type_counts, _, _ = Rock.getRockCountByType()
-            total_rocks = sum(item[1] for item in rock_type_counts)
+            # Get category demand data from entity
+            category_demand_data, status_code, message = Categories.getCategoryDemandStatistics()
             
-            # Calculate percentages and categorize
-            least_demand = []
-            on_demand = []
-            
-            for rock_type, count in rock_type_counts:
-                percentage = (count / total_rocks * 100) if total_rocks > 0 else 0
-                
-                category_data = {
-                    'name': rock_type,
-                    'percentage': round(percentage, 1),
-                    'count': count
-                }
-                
-                # Categorize based on percentage (you can adjust these thresholds)
-                if percentage < 60:
-                    least_demand.append(category_data)
-                else:
-                    on_demand.append(category_data)
-            
-            # Sort by percentage
-            least_demand.sort(key=lambda x: x['percentage'])
-            on_demand.sort(key=lambda x: x['percentage'], reverse=True)
+            if status_code != 200:
+                return jsonify({
+                    'success': False,
+                    'message': message
+                }), status_code
             
             return jsonify({
                 'success': True,
-                'least_demand': least_demand[:3],  # Top 3 least demand
-                'on_demand': on_demand[:3]  # Top 3 on demand
+                **category_demand_data
             }), 200
             
         except Exception as e:

@@ -62,6 +62,10 @@ class AppLink(db.Model):
     @classmethod
     def createAppLink(cls, name, user_id, link_attached=None):
         try:
+            # Simple URL normalization - just add https:// if no protocol
+            if link_attached and not link_attached.startswith(('http://', 'https://')):
+                link_attached = 'https://' + link_attached
+            
             new_applink = cls(
                 name=name,
                 user_id=user_id,
