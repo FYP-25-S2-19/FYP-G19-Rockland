@@ -153,6 +153,20 @@ class Rock(db.Model):
         return cls.query.filter_by(user_id=user_id).order_by(cls.created_at.desc()).all()
 
     @classmethod
+    def get_recent_rocks_by_user(cls, user_id: int, limit: int = 6) -> List['Rock']:
+        try:
+            return (
+                cls.query
+                .filter_by(user_id=user_id)
+                .order_by(cls.created_at.desc())
+                .limit(limit)
+                .all()
+            )
+        except Exception as e:
+            print(f"❌ Error fetching recent rocks: {e}")
+            return []
+
+    @classmethod
     def search_rocks(cls, filters: dict) -> List['Rock']:
         query = cls.query
 

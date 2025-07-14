@@ -1,65 +1,101 @@
-import React, { useState } from 'react';
-import {
-  ScrollView,
-  Image,
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { sampleArticles } from '../../data/article'; // centralized articles data
-import { rockData } from '../../data/rocks';    // centralized rocks data
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { rockData } from '../../data/rocks';
 
 function Card({ image, title, type }: { image: any; title: string; type?: string }) {
   return (
-    <View style={homeStyles.card}>
-      <View style={homeStyles.cardImageContainer}>
-        <Image source={image} style={homeStyles.cardImage} />
-      </View>
-      <View style={homeStyles.cardTitleContainer}>
-        <Text style={homeStyles.cardTitle}>{title}</Text>
-        {type && <Text style={homeStyles.cardType}>Type: {type}</Text>}
+    <View className="w-[180px] h-[180px] rounded-xl border border-black bg-[#f8f8f8] overflow-hidden mb-5">
+      <Image source={image} className="w-full h-[100px]" resizeMode="cover" />
+      <View className="flex-1 justify-between bg-white p-2">
+        <Text numberOfLines={2} className="text-base font-bold text-black">{title}</Text>
+        {type && <Text className="text-sm text-[#333] mt-1">Type: {type}</Text>}
       </View>
     </View>
   );
 }
 
 export default function HomeScreen() {
-  const [isExpanded, setIsExpanded] = useState(false);
   const router = useRouter();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [articles, setArticles] = useState<any[]>([]);
+  const [rocks, setRocks] = useState<any[]>([]);
+  const [loadingArticles, setLoadingArticles] = useState(true);
+  const [loadingRocks, setLoadingRocks] = useState(true);
 
-  // Use centralized rocks data here
-  
-  const rockEntries = rockData.map(rock => ({
-    id: rock.id,
-    image: rock.image,
-    title: rock.name,
-    type: rock.type,
-    rarity: rock.rarity,
-  }));
+  const fetchRecentArticles = async () => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/articles/my_recent`, { headers });
 
-  const toggleFloatingMenu = () => {
-    setIsExpanded((prev) => !prev);
+      if (res.data.success) {
+        const formattedArticles = res.data.articles.map((article: any) => ({
+          image: article.signed_photo_url,
+          title: article.title,
+          type: article.category_title,
+          id: article.article_id,
+        }));
+        setArticles(formattedArticles);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching articles:", err);
+    } finally {
+      setLoadingArticles(false);
+    }
   };
 
-  const articles = sampleArticles; // Use centralized articles
+  const fetchRecentRocks = async () => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/rocks/user/me`, { headers });
+
+      if (res.data.success) {
+        const formattedRocks = res.data.rocks.map((rock: any) => ({
+          id: rock.rock_id,
+          image: rock.signed_photo_url,
+          title: rock.rock_name,
+          type: rock.rock_type,
+        }));
+        setRocks(formattedRocks);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching rocks:", err);
+    } finally {
+      setLoadingRocks(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentArticles();
+    fetchRecentRocks();
+  }, []);
+
+  const toggleFloatingMenu = () => {
+    setIsExpanded(prev => !prev);
+  };
 
   const renderHorizontalGrid = (
     items: { image: any; title: string; type?: string; rarity?: string; id?: string | number }[],
     isArticle = false
   ) => {
+    if (!items.length) {
+      return (
+        <View className="items-center justify-center mb-4">
+          <Text className="text-[#666] italic">You don’t have any {isArticle ? 'articles' : 'rock entries'} yet.</Text>
+        </View>
+      );
+    }
+
     const columnCount = Math.ceil(items.length / 2);
     return (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={homeStyles.horizontalScroll}
-      >
-        <View style={{ flexDirection: 'row' }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
+        <View className="flex-row">
           {Array.from({ length: columnCount }).map((_, colIndex) => (
-            <View key={colIndex} style={homeStyles.column}>
+            <View key={colIndex} className="flex-col mx-[10px]">
               {items.slice(colIndex * 2, colIndex * 2 + 2).map((item, rowIndex) => {
                 const key = colIndex * 2 + rowIndex;
                 return (
@@ -67,20 +103,23 @@ export default function HomeScreen() {
                     key={key}
                     activeOpacity={0.8}
                     onPress={() => {
-                      if (isArticle) {
+                      if (item.id !== undefined && item.id !== null) {
                         router.push({
-                          pathname: "/expert/article/[id]",
-                          params: { id: item.id?.toString() ?? '' },
-                        });
-                      } else {
-                        router.push({
-                          pathname: "/expert/viewrock/[id]",
-                          params: { id: item.id?.toString() ?? '' },
+                          pathname: isArticle ? "/expert/article/[id]" : "/expert/viewrock/[id]",
+                          params: { id: String(item.id) },
                         });
                       }
                     }}
                   >
-                    <Card image={item.image} title={item.title} type={item.type} />
+                    <Card
+                      image={
+                        typeof item.image === "string" && item.image.startsWith("http")
+                          ? { uri: item.image }
+                          : item.image ?? require("../../assets/images/article1.png")
+                      }
+                      title={item.title}
+                      type={item.type}
+                    />
                   </TouchableOpacity>
                 );
               })}
@@ -92,193 +131,69 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView style={homeStyles.container}>
-        <View style={homeStyles.header}>
-          <Text style={homeStyles.mainTitle}>ROCKLAND</Text>
-          <Text style={homeStyles.subTitle}>#1 Download App Store</Text>
+    <View className="flex-1">
+      <ScrollView className="flex-1 px-3 py-4 bg-white">
+        <View className="items-center mb-5">
+          <Text className="text-[33px] font-extrabold text-black mt-[30px]">ROCKLAND</Text>
+          <Text className="text-[16px] font-bold text-black">#1 Download App Store</Text>
         </View>
 
-        <View style={homeStyles.sectionHeader}>
-          <Text style={homeStyles.sectionTitle}>My Articles</Text>
+        <View className="flex-row justify-between items-center mx-5 mt-2 mb-5">
+          <Text className="text-[23px] font-bold text-black">My Articles</Text>
           <TouchableOpacity onPress={() => router.push('/expert/AllArticleScreen')}>
-            <Text style={homeStyles.seeMore}>See More</Text>
+            <Text className="text-sm text-[#505050] underline font-medium">See More</Text>
           </TouchableOpacity>
         </View>
-        {renderHorizontalGrid(
-          articles.map(article => ({
-            image: article.thumbnail,  // map thumbnail to image
-            title: article.title,
-            type: article.category,
-            id: article.id,
-          })),
-          true
-        )}
 
-        <View style={homeStyles.sectionHeader}>
-          <Text style={homeStyles.sectionTitle}>My Rock Entries</Text>
+        {loadingArticles ? (
+          <ActivityIndicator size="large" color="#459B6C" />
+        ) : renderHorizontalGrid(articles, true)}
+
+        <View className="flex-row justify-between items-center mx-5 mt-2 mb-5">
+          <Text className="text-[23px] font-bold text-black">My Rock Entries</Text>
           <TouchableOpacity onPress={() => router.push('/expert/AllRockScreen')}>
-            <Text style={homeStyles.seeMore}>See More</Text>
+            <Text className="text-sm text-[#505050] underline font-medium">See More</Text>
           </TouchableOpacity>
         </View>
-        {renderHorizontalGrid(rockEntries)}
+
+        {loadingRocks ? (
+          <ActivityIndicator size="large" color="#459B6C" />
+        ) : renderHorizontalGrid(rocks)}
+        <View className="h-[80px]" />
       </ScrollView>
 
-      <View style={homeStyles.floatingContainer}>
+      <View className="absolute right-5 bottom-5 items-center z-10">
         {isExpanded && (
           <>
             <TouchableOpacity
-              style={homeStyles.miniButton}
+              className="w-[55px] h-[55px] rounded-full border border-[#459B6C] bg-white justify-center items-center mb-2"
               onPress={() => router.push('/expert/AddArticleScreen')}
             >
               <Image
                 source={require('../../assets/icons/article.png')}
-                style={homeStyles.miniButtonImage}
+                className="w-[30px] h-[30px]"
                 resizeMode="contain"
               />
             </TouchableOpacity>
             <TouchableOpacity
-              style={homeStyles.miniButton}
+              className="w-[55px] h-[55px] rounded-full border border-[#459B6C] bg-white justify-center items-center mb-2"
               onPress={() => router.push('/expert/AddRockScreen')}
             >
               <Image
                 source={require('../../assets/icons/rock.png')}
-                style={homeStyles.miniButtonImage}
+                className="w-[30px] h-[30px]"
                 resizeMode="contain"
               />
             </TouchableOpacity>
           </>
         )}
-        <TouchableOpacity style={homeStyles.floatingButton} onPress={toggleFloatingMenu}>
-          <Text style={homeStyles.plusIcon}>{isExpanded ? '×' : '+'}</Text>
+        <TouchableOpacity
+          className="w-[55px] h-[55px] rounded-full bg-[#459B6C] justify-center items-center shadow shadow-black"
+          onPress={toggleFloatingMenu}
+        >
+          <Text className="text-white text-[40px] leading-[55px] text-center">{isExpanded ? '×' : '+'}</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-const homeStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    backgroundColor: '#ffffff',
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  mainTitle: {
-    fontSize: 33,
-    fontWeight: '800',
-    color: '#000000',
-    marginTop: 30,
-  },
-  subTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 23,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  seeMore: {
-    fontSize: 14,
-    color: '#505050',
-    textDecorationLine: 'underline',
-    fontWeight: '500',
-  },
-  horizontalScroll: {
-    marginBottom: 12,
-  },
-  column: {
-    marginLeft: 10,
-    marginRight: 15,
-    flexDirection: 'column',
-  },
-  card: {
-    width: 180,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#000000',
-    backgroundColor: '#f8f8f8',
-    overflow: 'hidden',
-    marginBottom: 20,
-  },
-  cardImageContainer: {
-    height: 100,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    overflow: 'hidden',
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  cardTitleContainer: {
-    padding: 8,
-    backgroundColor: '#fff',
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  cardType: {
-    fontSize: 14,
-    color: '#333',
-    marginTop: 4,
-  },
-  floatingContainer: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  floatingButton: {
-    width: 55,
-    height: 55,
-    borderRadius: 30,
-    backgroundColor: '#459B6C',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
-  },
-  plusIcon: {
-    color: '#ffffff',
-    fontSize: 40,
-    textAlign: 'center',
-    lineHeight: Platform.OS === 'android' ? 55 : 50,
-  },
-  miniButton: {
-    width: 55,
-    height: 55,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: '#459B6C',
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  miniButtonImage: {
-    width: 30,
-    height: 30,
-  },
-});

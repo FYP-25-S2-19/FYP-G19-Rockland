@@ -44,6 +44,9 @@ export default function LoginScreen() {
           await AsyncStorage.setItem("accessToken", result.access_token);
           await AsyncStorage.setItem("userRole", role);
           await AsyncStorage.setItem("userData", JSON.stringify(user));
+          await AsyncStorage.setItem("userId", user.user_id.toString());
+          const testId = await AsyncStorage.getItem("userId");
+console.log("🔍 Stored userId in AsyncStorage:", testId);
 
           // ✅ Navigate based on role
           if (role === "expert") {
