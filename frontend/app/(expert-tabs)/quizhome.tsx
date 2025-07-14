@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,48 +9,47 @@ import {
   ScrollView,
   Modal,
   TextInput,
-  Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import BackIcon from "../../assets/images/back.svg";
 import PlusIcon from "../../assets/images/addicon.svg";
 import EditIcon from "../../assets/images/edit-line.svg";
 import TrashIcon from "../../assets/images/trash.svg";
 import SearchIcon from "../../assets/images/search.svg";
-import { quizData } from "../../data/quizData";
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 const getQuizImage = (id: string) => {
-  switch (id) {
-    case "basic":
-    case "intermediate":
-    case "trivella":
-      return require("../../assets/images/rock_background.jpg");
-    default:
-      return require("../../assets/images/rock_background.jpg");
-  }
+  return require("../../assets/images/rock_background.jpg");
 };
 
 export default function ExpertQuizHome() {
   const router = useRouter();
-  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [quizzes, setQuizzes] = useState<any[]>([]);
   const [searchText, setSearchText] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [quizToDelete, setQuizToDelete] = useState<any>(null);
 
-  const handleDeleteConfirmed = (quizId: string) => {
-    console.log("Deleting quiz ID:", quizId);
+  const fetchQuizzes = async () => {
+    const token = await AsyncStorage.getItem("accessToken");
+    const res = await fetch(`${API_URL}/api/quizzes`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (data.success) setQuizzes(data.quizzes || []);
+  };
+
+  useEffect(() => {
+    fetchQuizzes();
+  }, []);
+
+  const handleDeleteConfirmed = (quizId: number) => {
+    console.log("TODO: connect to delete API for quiz ID:", quizId);
     setShowDeleteModal(false);
   };
 
-  const handleStartQuiz = () => {
-    if (selectedQuizId) {
-      router.push(`/quiz/${selectedQuizId}`);
-      setModalVisible(false);
-    }
-  };
-
-  const filteredQuizzes = quizData.filter((quiz) =>
+  const filteredQuizzes = quizzes.filter((quiz) =>
     quiz.title.toLowerCase().includes(searchText.toLowerCase())
   );
 
@@ -81,11 +81,11 @@ export default function ExpertQuizHome() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}>
         {filteredQuizzes.map((quiz) => (
           <View
-            key={quiz.id}
+            key={quiz.quiz_id}
             className="mb-4 rounded-[12px] overflow-hidden border border-black relative"
           >
             <ImageBackground
-              source={getQuizImage(quiz.id)}
+              source={getQuizImage(quiz.quiz_id)}
               resizeMode="cover"
               className="h-28 justify-center items-center"
             >
@@ -93,12 +93,12 @@ export default function ExpertQuizHome() {
 
               <Text className="text-lg font-bold text-white z-10">{quiz.title}</Text>
               <Text className="text-sm text-white z-10">
-                {quiz.points} pts ({quiz.questions.length} Questions)
+                {quiz.total_points || 0} pts ({quiz.question_count || 0} Questions)
               </Text>
 
               {/* Edit/Delete Icons */}
               <View className="absolute top-2 right-2 flex-row gap-2 z-20">
-                <TouchableOpacity onPress={() => router.push(`/expert/quiz/edit/${quiz.id}`)}>
+                <TouchableOpacity onPress={() => router.push(`/expert/quiz/edit/${quiz.quiz_id}`)}>
                   <EditIcon width={24} height={24} fill="white"/>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -107,7 +107,7 @@ export default function ExpertQuizHome() {
                     setShowDeleteModal(true);
                   }}
                 >
-                  <TrashIcon width={24} height={24}fill="white" />
+                  <TrashIcon width={24} height={24} fill="white" />
                 </TouchableOpacity>
               </View>
             </ImageBackground>
@@ -139,7 +139,7 @@ export default function ExpertQuizHome() {
               <Text className="font-semibold text-black"> {quizToDelete?.title}</Text>?
             </Text>
             <Text className="text-xs text-center text-gray-400 mb-6">
-              {quizToDelete?.questions.length} questions • {quizToDelete?.points} pts
+              {quizToDelete?.question_count || 0} questions • {quizToDelete?.total_points || 0} pts
             </Text>
 
             <View className="flex-row w-full justify-between">
@@ -152,7 +152,7 @@ export default function ExpertQuizHome() {
               <TouchableOpacity
                 className="flex-1 py-3 bg-red-600 rounded-lg ml-3"
                 onPress={() => {
-                  if (quizToDelete) handleDeleteConfirmed(quizToDelete.id);
+                  if (quizToDelete) handleDeleteConfirmed(quizToDelete.quiz_id);
                 }}
               >
                 <Text className="text-center text-white font-medium">Delete</Text>
