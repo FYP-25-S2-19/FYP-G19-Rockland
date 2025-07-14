@@ -1,6 +1,7 @@
 # Libraries
 from datetime import datetime
 import os
+import humanize
 from werkzeug.utils import secure_filename
 from io import BytesIO
 
@@ -51,14 +52,37 @@ class Article(db.Model):
             'photo': self.photo,          # Internal cloud storage path
             'photo_url': self.photo_url,  # Stored public URL (for backward compatibility)
             'signed_photo_url': signed_photo_url,  # Fresh signed URL
-            'date_created': self.date_created.isoformat() if self.date_created else None,
+            "date_created": humanize.naturaltime(datetime.utcnow() - self.date_created) if self.date_created else None,
             'is_free': self.is_free,
             'categories_id': self.categories_id,
             'category_title': self.category.title if self.category else None,
             'user_id': self.user_id,
             'author_name': f"{self.author.first_name} {self.author.last_name}" if self.author else None,
             'author_email': self.author.email if self.author else None,
+            'author_profile_picture': generate_signed_url(self.author.profile_picture) if self.author and self.author.profile_picture else None,
             'total_likes': self.likes.count() if self.likes else 0
+        }
+    
+    def to_preview_dict(self):
+        signed_url = None
+        if self.photo:
+            try:
+                signed_url = generate_signed_url(self.photo, expiration_minutes=60)
+            except Exception as e:
+                print(f"⚠️ Failed to generate signed URL for preview: {e}")
+        
+        return {
+            "article_id": self.article_id,
+            "title": self.title,
+            "content": self.content.replace("\n", " ")[:100] if self.content else "",
+            "category_title": self.category.title if self.category else "",
+            "author_name": f"{self.author.first_name} {self.author.last_name}" if self.author else "Unknown",
+            'author_profile_picture': generate_signed_url(self.author.profile_picture) if self.author and self.author.profile_picture else None,
+            "date_created": humanize.naturaltime(datetime.utcnow() - self.date_created) if self.date_created else None,
+            "is_free": self.is_free,
+            "photo_url": self.photo_url,
+            "signed_photo_url": signed_url,  # ✅ Correct variable
+            "total_likes": self.likes.count() if self.likes else 0
         }
 
     @classmethod
@@ -352,3 +376,75 @@ class Article(db.Model):
         except Exception as e:
             print(f"Error searching articles: {e}")
             return None, 500, f"Error searching articles: {str(e)}"
+        
+    @classmethod
+    def getArticleByIdForUser(cls, article_id: int, user_id: int):
+        """Get specific article by ID with user role-based access control"""
+        try:
+            from app.entity.user import User
+            user = User.queryUserById(user_id)
+            if not user:
+                return None, 404, "User not found"
+            
+            if user.status != 'Active':
+                return None, 403, "User is not active"
+
+            user_type = user.user_type.name if user.user_type else None
+
+            # Get the article
+            article = cls.query.get(article_id)
+            if not article:
+                return None, 404, "Article not found"
+
+            # Access rules
+            if user_type == "Admin":
+                return article.to_dict(), 200, "Admin access granted"
+            
+            elif user_type in ["Premium", "Expert"]:
+                return article.to_dict(), 200, f"{user_type} access granted"
+            
+            elif user_type == "Free":
+                if article.is_free:
+                    return article.to_dict(), 200, "Free user can view free article"
+                else:
+                    return None, 403, "Access denied: Premium content"
+            
+            return None, 403, "Access denied: Invalid user type"
+
+        except Exception as e:
+            print(f"Error fetching article by ID for user: {e}")
+            return None, 500, f"Internal error: {str(e)}"
+        
+
+    @classmethod
+    def query_all_preview_only(cls):
+        try:
+            articles = cls.query.all()
+            return articles
+        except Exception as e:
+            print("❌ Error in query_all_preview_only:", e)
+            return []
+        
+    @classmethod
+    def getArticlesForLandingPage(cls):
+        """Get maximum 3 articles for landing page (public access)"""
+        try:
+            # Get the 3 most recent articles for landing page
+            articles = cls.query.order_by(cls.date_created.desc()).limit(3).all()
+            articles_data = [article.to_dict() for article in articles]
+            
+            return articles_data, 200, f"Retrieved {len(articles_data)} articles for landing page"
+            
+        except Exception as e:
+            print(f"Error fetching articles for landing page: {e}")
+            return None, 500, f"Error fetching articles: {str(e)}"
+    
+    @classmethod
+    def getTotalArticleCount(cls):
+        """Get total count of all articles"""
+        try:
+            total_articles = cls.query.count()
+            return total_articles, 200, "Article count fetched successfully"
+        except Exception as e:
+            print(f"Error fetching article count: {e}")
+            return 0, 500, f"Error: {str(e)}"
