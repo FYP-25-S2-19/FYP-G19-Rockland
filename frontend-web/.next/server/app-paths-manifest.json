@@ -1,11 +1,15 @@
 {
-<<<<<<< HEAD
-  "/registration/page": "app/registration/page.js"
-=======
   "/dashboard/page": "app/dashboard/page.js",
   "/forummanagement/page": "app/forummanagement/page.js",
   "/useraccount/page": "app/useraccount/page.js",
   "/landingpagemanagement/page": "app/landingpagemanagement/page.js",
   "/page": "app/page.js"
->>>>>>> origin/main
+}
+{
+  "/dashboard/page": "app/dashboard/page.js",
+  "/applications/page": "app/applications/page.js",
+  "/page": "app/page.js",
+  "/landingpagemanagement/page": "app/landingpagemanagement/page.js",
+  "/useraccount/page": "app/useraccount/page.js",
+  "/usertype/page": "app/usertype/page.js"
 }
