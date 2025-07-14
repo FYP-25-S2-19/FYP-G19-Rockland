@@ -15,4 +15,4 @@ def delete_from_collection(current_user, collection_id):
         collection_id=collection_id,
         user_id=current_user.user_id
     )
-    return jsonify({"message": message}), code
+    return jsonify({"success": success, "message": message}), code

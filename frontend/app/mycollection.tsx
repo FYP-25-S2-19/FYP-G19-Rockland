@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,10 +15,18 @@ import SearchIcon from "../assets/images/search.svg";
 import FilterIcon from "../assets/images/filter.svg";
 import SavedRockCard from "../components/SavedRockCard";
 import FilterModalMyCollection from "../components/FilterModalCollection";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
-// Types
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
 type Rarity = "Common" | "Rare" | "Legendary";
 type Method = "Scanned" | "Discovered";
+
+const capitalize = (str: string) => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
 
 type Rock = {
   id: number;
@@ -31,65 +39,12 @@ type Rock = {
   image: any;
 };
 
-const sampleRocks: Rock[] = [
-  {
-    id: 1,
-    image: require("../assets/images/granite.png"),
-    name: "Gabbro",
-    type: "Igneous Rock",
-    rarity: "Rare",
-    method: "Scanned",
-    location: "Not Available",
-    collectedDate: "12/12/2025",
-  },
-  {
-    id: 2,
-    image: require("../assets/images/basalt.png"),
-    name: "Basalt",
-    type: "Igneous Rock",
-    rarity: "Common",
-    method: "Discovered",
-    location: "Mount Fuji",
-    collectedDate: "05/06/2025",
-  },
-  {
-    id: 3,
-    image: require("../assets/images/basalt.png"),
-    name: "Obsidian",
-    type: "Igneous Rock",
-    rarity: "Legendary",
-    method: "Discovered",
-    location: "Iceland",
-    collectedDate: "09/01/2025",
-  },
-  {
-    id: 4,
-    image: require("../assets/images/quartzite.png"),
-    name: "Quartzite",
-    type: "Metamorphic Rock",
-    rarity: "Rare",
-    method: "Scanned",
-    location: "Unknown",
-    collectedDate: "04/02/2025",
-  },
-  {
-    id: 5,
-    image: require("../assets/images/basalt.png"),
-    name: "Sandstone",
-    type: "Sedimentary Rock",
-    rarity: "Common",
-    method: "Discovered",
-    location: "Grand Canyon",
-    collectedDate: "03/03/2025",
-  },
-];
-
 export default function MyCollectionScreen() {
   const router = useRouter();
   const [searchText, setSearchText] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"All" | "Scanned" | "Discovered">("All");
-  const [rocks, setRocks] = useState<Rock[]>(sampleRocks);
+  const [rocks, setRocks] = useState<Rock[]>([]);
   const [selectedRockId, setSelectedRockId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -114,6 +69,37 @@ export default function MyCollectionScreen() {
   const totalSpacing = gap * (numColumns - 1) + horizontalMargin * 2;
   const cardWidth = (screenWidth - totalSpacing) / numColumns;
 
+  const fetchCollection = async () => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      const res = await axios.get(`${API_URL}/api/collection/my`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.data.success) {
+        const mapped = res.data.collection.map((item: any) => ({
+          id: item.collection_id,
+          image: { uri: item.signed_url },
+          name: item.rock_name,
+          type: item.rock_type,
+          rarity: capitalize(item.rock_rarity),
+          method: capitalize(item.source), 
+          location: item.location_name || "Unknown",
+          collectedDate: item.collected_date?.split("T")[0],
+        }));
+        setRocks(mapped);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching collection", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCollection();
+  }, []);
+
   const handleTabPress = (tab: "All" | "Scanned" | "Discovered") => {
     setActiveTab(tab);
   };
@@ -123,9 +109,21 @@ export default function MyCollectionScreen() {
     setShowDeleteModal(true);
   };
 
-  const handleDeleteConfirmed = () => {
+  const handleDeleteConfirmed = async () => {
     if (selectedRockId !== null) {
-      setRocks((prev) => prev.filter((rock) => rock.id !== selectedRockId));
+      try {
+        const token = await AsyncStorage.getItem("accessToken");
+        await axios.delete(`${API_URL}/api/collection/delete/${selectedRockId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setRocks((prev) => prev.filter((rock) => rock.id !== selectedRockId));
+      } catch (error) {
+        console.error("❌ Failed to delete rock", error);
+      }
+
       setSelectedRockId(null);
       setShowDeleteModal(false);
     }
@@ -139,20 +137,16 @@ export default function MyCollectionScreen() {
 
     const matchesTab = activeTab === "All" || rock.method === activeTab;
     const matchesRarity =
-      selectedFilters.rarities.length === 0 ||
-      selectedFilters.rarities.includes(rock.rarity);
+      selectedFilters.rarities.length === 0 || selectedFilters.rarities.includes(rock.rarity);
 
     const matchesLocation =
-      selectedFilters.locations.length === 0 ||
-      selectedFilters.locations.includes(rock.location);
+      selectedFilters.locations.length === 0 || selectedFilters.locations.includes(rock.location);
 
     const rockDate = new Date(rock.collectedDate);
     const matchesStartDate =
-      !selectedFilters.startDate ||
-      rockDate >= new Date(selectedFilters.startDate);
+      !selectedFilters.startDate || rockDate >= new Date(selectedFilters.startDate);
     const matchesEndDate =
-      !selectedFilters.endDate ||
-      rockDate <= new Date(selectedFilters.endDate);
+      !selectedFilters.endDate || rockDate <= new Date(selectedFilters.endDate);
 
     return (
       matchesSearch &&
@@ -198,7 +192,7 @@ export default function MyCollectionScreen() {
           <SearchIcon width={20} height={20} style={{ marginRight: 10 }} />
           <TextInput
             className="flex-1 text-base text-gray-800"
-            style={{ height: 48, paddingVertical: 12, paddingHorizontal: 0, lineHeight: 20 }}
+            style={{ height: 48, paddingVertical: 12 }}
             value={searchText}
             onChangeText={setSearchText}
             placeholder="Search..."
