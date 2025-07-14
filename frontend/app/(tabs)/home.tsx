@@ -230,7 +230,6 @@ export default function HomeScreen() {
                       <Text className="text-sm text-gray-500">{article.category_title}</Text>
                     </View>
                     <View className="flex-row justify-end items-center space-x-4">
-                      <LikeIcon width={12} height={12} />
                       <Text className="text-xs text-gray-500">
                         {article.like_count ?? 0} Likes
                       </Text>
