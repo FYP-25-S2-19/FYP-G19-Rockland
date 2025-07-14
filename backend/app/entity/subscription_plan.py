@@ -15,8 +15,5 @@ class SubscriptionPlan(db.Model):
     feature_c = db.Column(db.String(100))
     feature_d = db.Column(db.String(100))
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=True)
-
-    users = db.relationship('User', back_populates='created_plans', foreign_keys=[user_id])
-    subscriptions = db.relationship('UserSubscription', back_populates='plan', cascade='all, delete-orphan')
-    payments = db.relationship('Payment', back_populates='plan', cascade='all, delete-orphan')
+    # Clean one-way relationship
+    # No back_populates to avoid issues with UserSubscription/Payment

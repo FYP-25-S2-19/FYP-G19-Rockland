@@ -1,6 +1,7 @@
 from app.models import db
 from datetime import datetime
 
+
 class Quiz(db.Model):
     __tablename__ = 'quiz'
 
@@ -79,4 +80,4 @@ class QuizResult(db.Model):
     points_earned = db.Column(db.Integer)
     completed_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # ❌ Don't add db.relationship('Quiz') here again — it's already accessible via backref in Quiz
+    # ✅ No need for a relationship here — already linked via Quiz.results
