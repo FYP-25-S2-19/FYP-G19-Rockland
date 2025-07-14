@@ -13,7 +13,6 @@ class CommentRock(db.Model):
     like_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships
     user = db.relationship("User", backref="rock_comments")
     replies = db.relationship(
         "CommentRock",
@@ -22,18 +21,42 @@ class CommentRock(db.Model):
         cascade="all, delete-orphan"
     )
 
-    def to_dict(self, include_replies=True):
+    def to_dict(self, include_replies: bool = True, user_id: Optional[int] = None) -> dict:
+        from app.entity.like_comment_rock import LikeCommentRock
+
+        username = "Unknown"
+        if self.user:
+            first = self.user.first_name or ""
+            last = self.user.last_name or ""
+            username = f"{first.strip()} {last.strip()}".strip()
+
         data = {
             "comment_rock_id": self.comment_rock_id,
             "user_id": self.user_id,
-            "username": self.user.username if self.user else "Unknown",
+            "username": username,
             "rock_id": self.rock_id,
             "content": self.content,
             "like_count": self.like_count,
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+        if user_id is not None:
+            try:
+                is_liked = LikeCommentRock.has_liked(self.comment_rock_id, user_id)
+                print(f"✅ is_liked check → comment_id={self.comment_rock_id}, user_id={user_id} → {is_liked}")
+                data["is_liked"] = is_liked
+            except Exception as e:
+                print(f"❌ Error checking like status for comment {self.comment_rock_id}: {e}")
+                data["is_liked"] = False
+        else:
+            data["is_liked"] = False
+
         if include_replies:
-            data["replies"] = [reply.to_dict(include_replies=False) for reply in self.replies]
+            data["replies"] = [
+                reply.to_dict(include_replies=False, user_id=user_id)
+                for reply in self.replies
+            ]
+
         return data
 
     @classmethod
@@ -49,27 +72,30 @@ class CommentRock(db.Model):
             return False, 500, f"Error creating comment: {str(e)}", None
 
     @classmethod
-    def get_parent_comments_by_rock(cls, rock_id: int) -> List["CommentRock"]:
-        return cls.query.filter_by(rock_id=rock_id, parent_comment_rock_id=None)\
-            .order_by(cls.created_at.desc()).all()
-
-    @classmethod
-    def get_comment_by_id(cls, comment_id: int) -> Optional['CommentRock']:
-        return cls.query.get(comment_id)
-
-    @classmethod
-    def delete_comment(cls, comment_id: int) -> Tuple[bool, int, str]:
+    def get_comments_with_like_status(cls, rock_id: int, user_id: int) -> Tuple[bool, int, str, List[dict]]:
         try:
-            comment = cls.query.get(comment_id)
-            if not comment:
-                return False, 404, "Comment not found"
-            db.session.delete(comment)
-            db.session.commit()
-            return True, 200, "Comment deleted successfully"
+            parent_comments = (
+                cls.query
+                .filter_by(rock_id=rock_id, parent_comment_rock_id=None)
+                .order_by(cls.created_at.desc())
+                .all()
+            )
+
+            result = []
+            for parent in parent_comments:
+                parent_dict = parent.to_dict(include_replies=True, user_id=user_id)
+                result.append(parent_dict)
+
+            return True, 200, "Comments retrieved successfully", result
         except Exception as e:
-            db.session.rollback()
-            print(f"Error deleting comment: {e}")
-            return False, 500, f"Error deleting comment: {str(e)}"
+            print("Error in get_comments_with_like_status:", e)
+            return False, 500, str(e), []
         
-
-
+    @classmethod
+    def get_parent_comments_by_rock(cls, rock_id: int):
+        try:
+            parent_comments = cls.query.filter_by(rock_id=rock_id, parent_comment_rock_id=None).all()
+            return parent_comments
+        except Exception as e:
+            print("❌ Failed to get parent comments:", e)
+            return []

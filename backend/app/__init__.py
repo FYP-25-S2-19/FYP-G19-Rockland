@@ -164,11 +164,18 @@ def create_app():
     from app.controller.rock_collection.filter_user_collection_controller import filter_user_collection_blueprint
     app.register_blueprint(filter_user_collection_blueprint)
 
-    ################ COMMENT
-    from .controller.comment.rock.create_comment_controller import create_rock_comment_blueprint
-    app.register_blueprint(create_rock_comment_blueprint)
+    ################ COMMENT ROCK
+    from .controller.comment.rock.comment_create_controller import create_comment_blueprint
+    app.register_blueprint(create_comment_blueprint)
 
-    from .controller.comment.rock.toggle_like_comment_controller import toggle_like_comment_blueprint
+    from .controller.comment.rock.comment_get_by_rock_controller import get_comments_blueprint
+    app.register_blueprint(get_comments_blueprint)
+
+    from .controller.comment.rock.comment_delete_controller import delete_comment_blueprint
+    app.register_blueprint(delete_comment_blueprint)
+
+
+    from .controller.comment.rock.like_comment_toggle_controller import toggle_like_comment_blueprint
     app.register_blueprint(toggle_like_comment_blueprint)
     
 
