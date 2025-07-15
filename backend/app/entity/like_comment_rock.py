@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Tuple
 from app.models import db
 
 class LikeCommentRock(db.Model):
@@ -47,6 +47,7 @@ class LikeCommentRock(db.Model):
             print(f"Error toggling like: {e}")
             return False, 500, f"Error toggling like: {str(e)}"
 
-    @classmethod 
-    def has_liked(cls, comment_rock_id: int, user_id: int) -> bool:
-        return cls.query.filter_by(comment_rock_id=comment_rock_id, user_id=user_id).first() is not None
+    @classmethod
+    def has_liked(cls, comment_id: int, user_id: int) -> bool:
+        print(f"🔍 Checking has_liked → user_id={user_id}, comment_id={comment_id}")
+        return db.session.query(cls).filter_by(comment_rock_id=comment_id, user_id=user_id).first() is not None

@@ -59,15 +59,38 @@ export default function SavedRockCard({
 
       {/* Labels */}
       <View className="flex-row space-x-2 mb-1">
-        <Text className={`px-2 py-1 rounded-[6px] text-xs font-semibold ${rarityColor[rarity]}`}
-         style={{ marginRight: 6 }}>
-          {rarity}
-        </Text>
-        <Text
-        className={`px-2 py-1 rounded-[6px] text-xs font-semibold ${methodColor[method]}`}
-        >
-        {method}
-        </Text>
+      <Text
+        style={{
+          marginRight: 6,
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+          borderRadius: 6,
+          fontSize: 12,
+          fontWeight: "600",
+          backgroundColor:
+            rarity === "Common"
+              ? "#D1D5DB" // gray-300
+              : rarity === "Rare"
+              ? "#16A34A" // green-600
+              : "#EF9E1C", // legendary
+          color: rarity === "Common" ? "#000000" : "#FFFFFF",
+        }}
+      >
+        {rarity}
+      </Text>
+      <Text
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        fontSize: 12,
+        fontWeight: "600",
+        backgroundColor: method === "Scanned" ? "#3B82F6" : "#8B5CF6", // blue/purple
+        color: "#FFFFFF",
+      }}
+    >
+      {method}
+    </Text>
       </View>
 
       {/* Details */}

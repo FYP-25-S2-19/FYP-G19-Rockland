@@ -1,122 +1,153 @@
+// RockMapScreen.tsx
+
 import React, { useEffect, useState, useRef } from "react";
-import { View, StyleSheet, Dimensions, ActivityIndicator, TouchableOpacity, Image, Modal, Text } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Dimensions,
+  ActivityIndicator,
+  TouchableOpacity,
+  Image,
+  Alert,
+} from "react-native";
 import MapView, { Marker, Region } from "react-native-maps";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import BackIcon from "../assets/images/back.svg";
 import BackpackIcon from "../assets/images/backpack.svg";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import RockMarkerModal from "../components/RockMarkerModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
+import * as Haptics from "expo-haptics";
 
-const INITIAL_RADIUS = 300; 
-const MAX_MARKERS = 5;
 const rockIcon = require("../assets/images/rock.png");
 
-// Odds based rarity generator
-const generateRarity = () => {
-  const rand = Math.random();
-  if (rand < 0.1) return "Legendary";  // 10%
-  if (rand < 0.4) return "Rare";       // 30%
-  return "Common";                     // 60%
-};
-
-const getLifetime = (rarity: string) => {
-  switch (rarity) {
-    case "Legendary": return 30; // seconds
-    case "Rare": return 60;
-    default: return 120;
-  }
-};
+interface RockSpawn {
+  rock_spawn_id: number;
+  latitude: number;
+  longitude: number;
+  location_name: string;
+  expires_at: string;
+  rock: {
+    rock_id: number;
+    rock_name: string;
+    rock_type: string;
+    rarity?: string;
+    description: string;
+    signed_url?: string;
+    photo_url?: string;
+  };
+}
 
 export default function RockMapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [rockMarkers, setRockMarkers] = useState<any[]>([]);
-  const [selectedRock, setSelectedRock] = useState<any | null>(null);
+  const [rockMarkers, setRockMarkers] = useState<RockSpawn[]>([]);
+  const [selectedRock, setSelectedRock] = useState<RockSpawn | null>(null);
   const mapRef = useRef<MapView | null>(null);
   const router = useRouter();
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        console.log("Permission denied");
+        Alert.alert("Permission Denied", "Location permission is required to use this feature.");
         return;
       }
       let loc = await Location.getCurrentPositionAsync({});
       setLocation(loc);
-      generateRandomRocks(loc.coords.latitude, loc.coords.longitude);
+      fetchMarkers(loc.coords.latitude, loc.coords.longitude);
     })();
   }, []);
 
-  // Handle lifetime expiration
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRockMarkers(prev =>
-        prev
-          .map(marker => ({
-            ...marker,
-            remaining: marker.remaining - 1
-          }))
-          .filter(marker => marker.remaining > 0)
+  const fetchMarkers = async (lat: number, lng: number) => {
+    try {
+      const radius = 10000;
+      const token = await AsyncStorage.getItem("accessToken");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/api/spawns/nearby?lat=${lat}&lng=${lng}&radius=${radius}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-    }, 1000);
 
-    return () => clearInterval(interval);
-  }, []);
+      if (!response.ok) {
+        if (response.status === 401) {
+          Alert.alert("Session Expired", "Please log in again.", [
+            { text: "OK", onPress: () => router.push("/login") },
+          ]);
+        }
+        return;
+      }
 
-  const generateRandomRocks = (lat: number, lon: number) => {
-    const markers = [];
-    for (let i = 0; i < MAX_MARKERS; i++) {
-      const random = generateRandomOffset(INITIAL_RADIUS);
-      const rarity = generateRarity();
-      markers.push({
-        id: Date.now() + i,
-        latitude: lat + random.lat,
-        longitude: lon + random.lon,
-        name: randomName(),
-        type: randomType(),
-        rarity,
-        remaining: getLifetime(rarity),
-      });
+      const data = await response.json();
+      if (data.success) {
+        setRockMarkers(data.spawns);
+      }
+    } catch (error) {
+      console.error("Failed to fetch spawns", error);
     }
-    setRockMarkers(markers);
   };
 
-  const generateRandomOffset = (radiusInMeters: number) => {
-    const radiusInDegrees = radiusInMeters / 111320;
-    const u = Math.random();
-    const v = Math.random();
-    const w = radiusInDegrees * Math.sqrt(u);
-    const t = 2 * Math.PI * v;
-    return {
-      lat: w * Math.cos(t),
-      lon: w * Math.sin(t),
-    };
-  };
-
-  const randomName = () => {
-    const names = ["Granite", "Basalt", "Limestone", "Quartz", "Obsidian"];
-    return names[Math.floor(Math.random() * names.length)];
-  };
-
-  const randomType = () => {
-    const types = ["Igneous", "Sedimentary", "Metamorphic"];
-    return types[Math.floor(Math.random() * types.length)];
+  const handleSaveToCollection = async (spawn: RockSpawn) => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+  
+      const payload = {
+        rock_id: spawn.rock.rock_id,
+        source: "discovered",
+        latitude: spawn.latitude,
+        longitude: spawn.longitude,
+        location_name: spawn.location_name || "Unknown",
+      };
+  
+      const res = await fetch(`${API_URL}/api/collection/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+  
+      const data = await res.json();
+      if (res.ok) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Toast.show({ type: "success", text1: data.message });
+  
+        // ✅ Remove the saved spawn from rockMarkers
+        setRockMarkers(prev => prev.filter(marker => marker.rock_spawn_id !== spawn.rock_spawn_id));
+  
+        setSelectedRock(null);
+      } else {
+        Toast.show({ type: "error", text1: "Save failed", text2: data.message });
+      }
+    } catch (err) {
+      Toast.show({ type: "error", text1: "Network Error", text2: "Please try again later" });
+      console.error("Error saving to collection:", err);
+    }
   };
 
   const handleRecenter = () => {
     if (!location || !mapRef.current) return;
-    mapRef.current.animateToRegion({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      latitudeDelta: 0.005,
-      longitudeDelta: 0.005,
-    }, 1000);
-  };
-
-  const handleSaveToCollection = () => {
-    if (!selectedRock) return;
-    setRockMarkers(prev => prev.filter(marker => marker.id !== selectedRock.id));
-    setSelectedRock(null);
+    mapRef.current.animateToRegion(
+      {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
+      1000
+    );
   };
 
   if (!location) {
@@ -143,13 +174,13 @@ export default function RockMapScreen() {
         showsUserLocation
         showsMyLocationButton={false}
         scrollEnabled
-        zoomEnabled={true}
+        zoomEnabled
         rotateEnabled={false}
         pitchEnabled={false}
       >
-        {rockMarkers.map(marker => (
+        {rockMarkers.map((marker) => (
           <Marker
-            key={marker.id}
+            key={marker.rock_spawn_id}
             coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
             onPress={() => setSelectedRock(marker)}
           >
@@ -158,50 +189,28 @@ export default function RockMapScreen() {
         ))}
       </MapView>
 
-      {/* Back button */}
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <BackIcon width={24} height={24} />
       </TouchableOpacity>
 
-      {/* Recenter button */}
       <TouchableOpacity onPress={handleRecenter} style={styles.recenterButton}>
         <Ionicons name="locate" size={30} color="#111827" />
       </TouchableOpacity>
 
-      {/* Backpack button */}
       <TouchableOpacity
         onPress={() => router.push("/mycollection")}
         style={styles.backpackButton}
         activeOpacity={0.8}
       >
-        <BackpackIcon width={50} height={50} color="#111827"/>
+        <BackpackIcon width={50} height={50} color="#111827" />
       </TouchableOpacity>
 
-      {/* Rock Info Modal */}
-      <Modal visible={!!selectedRock} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{selectedRock?.name}</Text>
-            <Text>Type: {selectedRock?.type}</Text>
-            <Text>Rarity: {selectedRock?.rarity}</Text>
-            <Text>Lifetime: {selectedRock?.remaining}s</Text>
-
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: "#16A34A" }]}
-              onPress={handleSaveToCollection}
-            >
-              <Text style={styles.modalButtonText}>Save to Collection</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: "#111827" }]}
-              onPress={() => setSelectedRock(null)}
-            >
-              <Text style={styles.modalButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <RockMarkerModal
+        visible={!!selectedRock}
+        rock={selectedRock}
+        onClose={() => setSelectedRock(null)}
+        onSave={handleSaveToCollection}
+      />
     </View>
   );
 }
@@ -248,36 +257,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalBox: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 12,
-    width: 300,
-    alignItems: "center",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  modalButton: {
-    marginTop: 15,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    width: "100%",
-    alignItems: "center",
-  },
-  modalButtonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
   },
 });
