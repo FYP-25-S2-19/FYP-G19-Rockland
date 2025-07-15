@@ -115,6 +115,7 @@ export default function HomeScreen() {
               className="flex-row items-center bg-[#EF9E1C] mx-5 py-4 px-5 rounded-2xl mb-6"
               activeOpacity={0.85}
               style={shadowStyle}
+              onPress={() => router.push("/subscribe-premium")}
             >
               <Text className="text-xl mr-3">
                 <CrownIcon width={22} height={22} style={{ marginRight: 10 }} fill="white" />
@@ -261,6 +262,8 @@ export default function HomeScreen() {
             </View>
           </Modal>
         </ScrollView>
+        {/* Optional: Include BottomTabBar if needed */}
+        {/* <BottomTabBar /> */}
       </SafeAreaView>
     </LinearGradient>
   );

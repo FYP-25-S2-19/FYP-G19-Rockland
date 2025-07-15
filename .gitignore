@@ -3,7 +3,9 @@ node_modules/
 .env
 
 # Google Cloud credentials
-config/rockland-service-account.json
+# Ignore service account key
+backend/config/rockland-service-account.json
+
 
 # Python bytecode cache
 __pycache__/
