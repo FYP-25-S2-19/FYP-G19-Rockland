@@ -502,10 +502,6 @@ export default function Dashboard() {
                     <p>No highly popular categories yet</p>
                     <p className="text-xs">Categories will appear here when 30%+ of all users select them</p>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No category data available</p>
                 </div>
               )}
             </CardContent>
