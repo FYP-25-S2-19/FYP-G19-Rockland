@@ -14,7 +14,7 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BackIcon from "../../../assets/images/back.svg";
-import { sampleArticles } from "../../../data/article";
+import axios from "axios";
 
 export default function ExpertArticleDetail() {
   const router = useRouter();
@@ -26,6 +26,13 @@ export default function ExpertArticleDetail() {
   const [confirmVisible, setConfirmVisible] = useState(false);
 
   useEffect(() => {
+    if (!id) {
+      console.warn("❗ Article ID is missing in route params");
+      router.replace("/expert/AllArticleScreen");
+    }
+  }, [id]);
+
+  useEffect(() => {
     async function checkUserRoleAndLoadArticle() {
       const role = await AsyncStorage.getItem("userRole");
       if (role !== "expert") {
@@ -33,14 +40,23 @@ export default function ExpertArticleDetail() {
         return;
       }
 
-      const foundArticle = sampleArticles.find((a) => a.id.toString() === id);
-      if (foundArticle) {
-        setArticle(foundArticle);
-      } else {
+      try {
+        const token = await AsyncStorage.getItem("accessToken");
+        const headers = { Authorization: `Bearer ${token}` };
+        const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/articles/view/${id}`, { headers });
+
+        if (res.data.success) {
+          setArticle(res.data.article);
+        } else {
+          setArticle(null);
+        }
+      } catch (err) {
+        console.error("❌ Error fetching article:", err);
         setArticle(null);
       }
       setLoading(false);
     }
+
     checkUserRoleAndLoadArticle();
   }, [id]);
 
@@ -65,7 +81,7 @@ export default function ExpertArticleDetail() {
     setMenuVisible(false);
     router.push({
       pathname: "/expert/article/edit/[id]",
-      params: { id: article.id.toString() },
+      params: { id: article.article_id.toString() },
     });
   };
 
@@ -84,22 +100,13 @@ export default function ExpertArticleDetail() {
     setConfirmVisible(false);
   };
 
-  const getAccessBadgeStyle = (accessType?: string) => {
-    if (!accessType) return styles.freeBadge;
-    switch (accessType.toLowerCase()) {
-      case "free":
-        return styles.freeBadge;
-      case "premium":
-        return styles.premiumBadge;
-      default:
-        return styles.freeBadge;
-    }
+  const getAccessBadgeStyle = (isFree?: boolean) => {
+    return isFree ? styles.freeBadge : styles.premiumBadge;
   };
 
   return (
     <View style={styles.screen}>
       <ScrollView style={styles.container}>
-        {/* Top Bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.iconWrapper} activeOpacity={0.7}>
             <BackIcon width={24} height={24} />
@@ -109,28 +116,27 @@ export default function ExpertArticleDetail() {
           </TouchableOpacity>
         </View>
 
-        {/* Author & Access */}
         <View style={styles.profileRow}>
-          <Text style={styles.profileName}>{article.authorName || article.author}</Text>
-          <Text style={styles.timeText}>{article.date || article.timestamp}</Text>
-          <View style={[styles.accessBadge, getAccessBadgeStyle(article.isPremium ? "premium" : "free")]}>
-            <Text style={styles.accessText}>{article.isPremium ? "PREMIUM" : "FREE"}</Text>
+          <Text style={styles.profileName}>{article.author_name || "Unknown"}</Text>
+          <Text style={styles.timeText}>{new Date(article.date_created).toLocaleDateString()}</Text>
+          <View style={[styles.accessBadge, getAccessBadgeStyle(article.is_free)]}>
+            <Text style={styles.accessText}>{article.is_free ? "FREE" : "PREMIUM"}</Text>
           </View>
         </View>
 
-        {/* Title + Level */}
         <View style={styles.titleRow}>
           <Text style={styles.articleTitle}>{article.title}</Text>
           <View style={styles.levelBadge}>
-            <Text style={styles.levelText}>{(article.category || article.level || "beginner").toUpperCase()}</Text>
+            <Text style={styles.levelText}>{(article.category_title || "General").toUpperCase()}</Text>
           </View>
         </View>
 
-        {/* Image */}
-        <Image source={article.thumbnail || article.image} style={styles.articleImage} />
+        <Image
+          source={article.signed_photo_url ? { uri: article.signed_photo_url } : require("../../../assets/images/article1.png")}
+          style={styles.articleImage}
+        />
 
-        {/* Description */}
-        <Text style={styles.descriptionText}>{article.preview || article.description}</Text>
+        <Text style={styles.descriptionText}>{article.content}</Text>
       </ScrollView>
 
       {/* Menu Modal */}
@@ -138,7 +144,6 @@ export default function ExpertArticleDetail() {
         <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
           <View style={styles.modalOverlay} />
         </TouchableWithoutFeedback>
-
         <View style={styles.menuContainer}>
           <View style={styles.bottomMenu}>
             <TouchableOpacity onPress={handleEdit} style={styles.menuItem} activeOpacity={0.7}>
@@ -181,6 +186,7 @@ export default function ExpertArticleDetail() {
   );
 }
 
+// 👇 Styles unchanged (same as your existing ones)
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#fff" },
   container: { paddingHorizontal: 20, paddingTop: 30 },

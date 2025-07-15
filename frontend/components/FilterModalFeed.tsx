@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,37 +6,64 @@ import {
   ScrollView,
   Modal,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
+import axios from "axios";
 import BackIcon from "../assets/images/back.svg";
 import ChevronDownIcon from "../assets/images/chevron-down.svg";
 
 export default function FilterModal({
   visible,
   onClose,
+  onApply,
+  defaultValues,
 }: {
   visible: boolean;
   onClose: () => void;
+  onApply: (filters: {
+    selectedCategories: string[];
+    sortBy: string;
+  }) => void;
+  defaultValues: {
+    selectedCategories: string[];
+    sortBy: string;
+  };
 }) {
-  const [selectedCategories, setSelectedCategories] = useState([
-    "Beginner",
-    "Fossils",
-  ]);
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Sort by Most Liked");
+  const [allCategories, setAllCategories] = useState<string[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const sortOptions = [
-  "Sort by Most Liked",
-  "Sort by Newest",
-  "Sort by Oldest",];
 
-  const categories = [
-    "Beginner",
-    "Fossils",
-    "Intermediate",
-    "Mineral & Crystal",
-    "Advanced",
-    "Geology",
-  ];
+  const sortOptions = ["Sort by Most Liked", "Sort by Newest", "Sort by Oldest"];
+
+  // Fetch categories on open
+  useEffect(() => {
+    if (visible) {
+      setSelectedCategories(defaultValues.selectedCategories || []);
+      setSortBy(defaultValues.sortBy || "Sort by Most Liked");
+      fetchCategories();
+    }
+  }, [visible]);
+
+  const fetchCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const res = await axios.get(`${API_URL}/api/categories/all`);
+      if (res.data.success) {
+        const titles = res.data.categories.map((cat: any) => cat.title);
+        setAllCategories(titles);
+      }
+    } catch (err) {
+      console.error("❌ Failed to fetch categories", err);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const removeCategory = (category: string) => {
     setSelectedCategories((prev) => prev.filter((cat) => cat !== category));
@@ -52,10 +79,14 @@ export default function FilterModal({
     setSelectedCategories([]);
     setSortBy("Sort by Most Liked");
     setShowCategoryDropdown(false);
+    setShowSortDropdown(false);
   };
 
   const handleApply = () => {
-    console.log("Apply filters:", { selectedCategories, sortBy });
+    onApply({
+      selectedCategories,
+      sortBy,
+    });
     onClose();
   };
 
@@ -89,7 +120,6 @@ export default function FilterModal({
               <View className="my-5">
                 <Text className="text-lg font-semibold mb-3">Categories</Text>
 
-                {/* Dropdown Toggle */}
                 <TouchableOpacity
                   activeOpacity={0.8}
                   className="border border-gray-300 rounded-lg px-4 py-3 bg-gray-50"
@@ -115,53 +145,58 @@ export default function FilterModal({
                         <Text className="text-gray-400">Select categories</Text>
                       )}
                     </View>
-                    <View className="ml-2">
-                      <ChevronDownIcon width={18} height={18} />
-                    </View>
+                    <ChevronDownIcon width={18} height={18} />
                   </View>
                 </TouchableOpacity>
 
-                {/* Dropdown List */}
                 {showCategoryDropdown && (
                   <View className="border border-gray-300 rounded-lg mt-2 bg-white max-h-40">
-                    <ScrollView
-                      nestedScrollEnabled
-                      keyboardShouldPersistTaps="handled"
-                      style={{ maxHeight: 160 }}
-                    >
-                      {[...selectedCategories, ...categories.filter(i => !selectedCategories.includes(i))].map((category, index) => (
-                        <TouchableOpacity
-                          key={index}
-                          className={`px-4 py-2 ${selectedCategories.includes(category) ? "bg-green-600" : ""}`}
-                          onPress={() =>
-                            selectedCategories.includes(category)
-                              ? removeCategory(category)
-                              : addCategory(category)
-                          }
-                        >
-                          <Text className={`text-base ${selectedCategories.includes(category) ? "text-white font-semibold" : "text-gray-800"}`}>
-                            {category}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                    {loadingCategories ? (
+                      <View className="py-4 items-center justify-center">
+                        <ActivityIndicator color="#459B6C" />
+                      </View>
+                    ) : (
+                      <ScrollView
+                        nestedScrollEnabled
+                        keyboardShouldPersistTaps="handled"
+                        style={{ maxHeight: 160 }}
+                      >
+                        {[...selectedCategories, ...allCategories.filter(i => !selectedCategories.includes(i))].map((category, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            className={`px-4 py-2 ${selectedCategories.includes(category) ? "bg-green-600" : ""}`}
+                            onPress={() =>
+                              selectedCategories.includes(category)
+                                ? removeCategory(category)
+                                : addCategory(category)
+                            }
+                          >
+                            <Text className={`text-base ${selectedCategories.includes(category) ? "text-white font-semibold" : "text-gray-800"}`}>
+                              {category}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    )}
                   </View>
                 )}
               </View>
 
+              {/* Sort Section */}
               <View className="my-5">
                 <Text className="text-lg font-semibold mb-3">Sort</Text>
 
                 <TouchableOpacity
-                    activeOpacity={0.8}
-                    className="border border-gray-300 rounded-lg px-4 py-3 bg-gray-50"
-                    onPress={() => setShowSortDropdown(prev => !prev)}
-                  >
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-base text-gray-900">{sortBy}</Text>
-                      <ChevronDownIcon width={18} height={18} />
-                    </View>
-                  </TouchableOpacity>
+                  activeOpacity={0.8}
+                  className="border border-gray-300 rounded-lg px-4 py-3 bg-gray-50"
+                  onPress={() => setShowSortDropdown((prev) => !prev)}
+                >
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-base text-gray-900">{sortBy}</Text>
+                    <ChevronDownIcon width={18} height={18} />
+                  </View>
+                </TouchableOpacity>
+
                 {showSortDropdown && (
                   <View className="mt-2 bg-white border border-gray-200 rounded-lg">
                     {sortOptions.map((option, index) => (
@@ -189,9 +224,7 @@ export default function FilterModal({
                 onPress={handleApply}
                 className="bg-green-600 py-4 rounded-lg items-center"
               >
-                <Text className="text-white text-lg font-semibold">
-                  Apply Filter
-                </Text>
+                <Text className="text-white text-lg font-semibold">Apply Filter</Text>
               </TouchableOpacity>
             </View>
           </SafeAreaView>
