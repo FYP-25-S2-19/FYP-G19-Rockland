@@ -29,7 +29,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
-import { getAuthInfo } from "@/lib/auth-utils" // Import the auth utilities
+import { getAuthInfo } from "@/lib/auth-utils"
 
 interface UserAccount {
   user_id: number
@@ -53,7 +53,7 @@ interface PaymentTransaction {
   description: string
   amount: string
   paymentMethod: string
-  status: "Completed" | "Pending" | "Failed"
+  status: "Completed" | "Pending" | "Failed" | string
 }
 
 interface SearchCriteria {
@@ -100,25 +100,9 @@ export default function UserAccountPage() {
   const [isSearching, setIsSearching] = useState<boolean>(false)
   const [hasSearched, setHasSearched] = useState(false)
 
-  // Sample payment data (you'll need to create API endpoint for this)
-  const samplePayments: PaymentTransaction[] = [
-    {
-      id: "#1",
-      date: "13/05/2025",
-      description: "Premium User Subscription",
-      amount: "$29.99",
-      paymentMethod: "Credit Card ****1234",
-      status: "Completed",
-    },
-    {
-      id: "#2",
-      date: "13/04/2025",
-      description: "Premium User Subscription",
-      amount: "$29.99",
-      paymentMethod: "Credit Card ****1234",
-      status: "Completed",
-    },
-  ]
+  // Payment history state
+  const [paymentHistory, setPaymentHistory] = useState<PaymentTransaction[]>([])
+  const [loadingPayments, setLoadingPayments] = useState<boolean>(false)
 
   // Get available upgrade options based on current user type
   const getUpgradeOptions = (currentType: string): UpgradeOption[] => {
@@ -140,6 +124,63 @@ export default function UserAccountPage() {
   // Check if user can be upgraded
   const canUpgrade = (userType: string): boolean => {
     return userType === "Free" || userType === "Premium"
+  }
+
+  // Fetch real payment history from API
+  const fetchPaymentHistory = async (userId: number) => {
+    try {
+      setLoadingPayments(true)
+      setError(null)
+
+      // Get authentication info from token
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return []
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/payments/history/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        // Convert backend payment data to match frontend interface
+        const formattedPayments: PaymentTransaction[] = data.payments.map((payment: any) => ({
+          id: `#${payment.transaction_id}`,
+          date: payment.date, // Already formatted as DD/MM/YYYY from backend
+          description: payment.description || 'N/A',
+          amount: payment.formatted_amount || `$${payment.amount || 0}`,
+          paymentMethod: payment.payment_method || 'N/A',
+          status: payment.status || 'Unknown'
+        }))
+        
+        setPaymentHistory(formattedPayments)
+        return formattedPayments
+      } else {
+        setError(data.message || 'Failed to fetch payment history')
+        setPaymentHistory([])
+        return []
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching payment history')
+      console.error('Error fetching payment history:', err)
+      setPaymentHistory([])
+      return []
+    } finally {
+      setLoadingPayments(false)
+    }
   }
 
   // Updated fetchUsers function with auth headers
@@ -488,6 +529,14 @@ export default function UserAccountPage() {
     }
   }
 
+  // Handle view payment history
+  const handleViewPaymentHistory = async () => {
+    if (selectedUser) {
+      setViewMode("payment")
+      await fetchPaymentHistory(selectedUser.user_id)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Active":
@@ -509,6 +558,23 @@ export default function UserAccountPage() {
         return "bg-yellow-100 text-yellow-700 border-yellow-200"
       case "Expert":
         return "bg-purple-100 text-purple-700 border-purple-200"
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200"
+    }
+  }
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "completed":
+      case "success":
+        return "bg-green-100 text-green-700 border-green-200"
+      case "pending":
+      case "processing":
+        return "bg-yellow-100 text-yellow-700 border-yellow-200"
+      case "failed":
+      case "cancelled":
+      case "declined":
+        return "bg-red-100 text-red-700 border-red-200"
       default:
         return "bg-gray-100 text-gray-700 border-gray-200"
     }
@@ -547,29 +613,6 @@ export default function UserAccountPage() {
     )
   }
 
-  // Error state
-  if (error) {
-    return (
-      <AdminLayout
-        activeMenuItem="user-account"
-        title="Hi, Admin 👋"
-        subtitle="Manage user accounts and subscriptions"
-        onNavigate={handleNavigation}
-      >
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 mb-4 max-w-md">{error}</p>
-            <Button onClick={fetchUsers} className="bg-green-600 hover:bg-green-700">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Retry
-            </Button>
-          </div>
-        </div>
-      </AdminLayout>
-    )
-  }
-
   // User Detail View
   if (viewMode === "detail" && selectedUser) {
     return (
@@ -596,10 +639,18 @@ export default function UserAccountPage() {
                 ← Back to User List
               </Button>
               <Button
-                onClick={() => setViewMode("payment")}
+                onClick={handleViewPaymentHistory}
                 className="bg-green-600 hover:bg-green-700 text-white"
+                disabled={loadingPayments}
               >
-                View Payment History
+                {loadingPayments ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "View Payment History"
+                )}
               </Button>
             </div>
           </div>
@@ -673,7 +724,7 @@ export default function UserAccountPage() {
     )
   }
 
-  // Payment History View
+  // Payment History View with Real Data
   if (viewMode === "payment" && selectedUser) {
     return (
       <AdminLayout
@@ -705,47 +756,109 @@ export default function UserAccountPage() {
                 </Badge>
               </div>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => fetchPaymentHistory(selectedUser.user_id)}
+              disabled={loadingPayments}
+              className="flex items-center space-x-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${loadingPayments ? 'animate-spin' : ''}`} />
+              <span>Refresh Payments</span>
+            </Button>
           </div>
 
           {/* Payment History Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900">Payment History</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Real-time payment data from the database
+              </p>
             </div>
 
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50 hover:bg-gray-50">
-                    <TableHead className="font-semibold">Transaction-ID</TableHead>
-                    <TableHead className="font-semibold">Date</TableHead>
-                    <TableHead className="font-semibold">Description</TableHead>
-                    <TableHead className="font-semibold">Amount</TableHead>
-                    <TableHead className="font-semibold">Payment Method</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {samplePayments.map((payment, index) => (
-                    <TableRow key={index} className="hover:bg-gray-50 transition-colors">
-                      <TableCell className="font-medium text-gray-900">{payment.id}</TableCell>
-                      <TableCell className="text-gray-600">{payment.date}</TableCell>
-                      <TableCell className="text-gray-900">{payment.description}</TableCell>
-                      <TableCell className="text-gray-900 font-medium">{payment.amount}</TableCell>
-                      <TableCell className="text-gray-600">{payment.paymentMethod}</TableCell>
-                      <TableCell>
-                        <Badge className="bg-green-100 text-green-700 border-green-200">{payment.status}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            {loadingPayments ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+                <span className="ml-2 text-gray-600">Loading payment history...</span>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                  <p className="text-red-600 mb-4 max-w-md">{error}</p>
+                  <Button 
+                    onClick={() => fetchPaymentHistory(selectedUser.user_id)} 
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50 hover:bg-gray-50">
+                        <TableHead className="font-semibold">Transaction-ID</TableHead>
+                        <TableHead className="font-semibold">Date</TableHead>
+                        <TableHead className="font-semibold">Description</TableHead>
+                        <TableHead className="font-semibold">Amount</TableHead>
+                        <TableHead className="font-semibold">Payment Method</TableHead>
+                        <TableHead className="font-semibold">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paymentHistory.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-12">
+                            <div className="flex flex-col items-center">
+                              <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
+                              <h3 className="text-lg font-medium text-gray-900 mb-2">No Payment History</h3>
+                              <p className="text-gray-500 max-w-sm text-center">
+                                This user has not made any payments yet. Payment transactions will appear here once they subscribe to a plan.
+                              </p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        paymentHistory.map((payment, index) => (
+                          <TableRow key={index} className="hover:bg-gray-50 transition-colors">
+                            <TableCell className="font-medium text-gray-900">{payment.id}</TableCell>
+                            <TableCell className="text-gray-600">{payment.date}</TableCell>
+                            <TableCell className="text-gray-900">{payment.description}</TableCell>
+                            <TableCell className="text-gray-900 font-medium">{payment.amount}</TableCell>
+                            <TableCell className="text-gray-600">{payment.paymentMethod}</TableCell>
+                            <TableCell>
+                              <Badge className={`border ${getPaymentStatusColor(payment.status)}`}>
+                                {payment.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
 
-            {/* Summary */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-              <div className="text-sm text-gray-500">Showing {samplePayments.length} payment transactions</div>
-            </div>
+                {/* Summary */}
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-500">
+                    Showing {paymentHistory.length} payment transaction{paymentHistory.length !== 1 ? 's' : ''}
+                  </div>
+                  {paymentHistory.length > 0 && (
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">Total Amount: $</span>
+                      {paymentHistory.reduce((total, payment) => {
+                        const amount = parseFloat(payment.amount.replace(/[$,]/g, ''))
+                        return total + (isNaN(amount) ? 0 : amount)
+                      }, 0).toFixed(2)}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </AdminLayout>
