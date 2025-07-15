@@ -26,26 +26,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/landingpagemanagement/page.js"
     ],
-    "/faqmanagement/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/faqmanagement/page.js"
-    ],
-    "/forummanagement/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/forummanagement/page.js"
-    ],
-    "/usertype/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/usertype/page.js"
-    ],
-    "/registration/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/registration/page.js"
-    ],
     "/pricing/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -55,6 +35,16 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/features/page.js"
+    ],
+    "/useraccount/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/useraccount/page.js"
+    ],
+    "/applications/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/applications/page.js"
     ]
   }
 }
