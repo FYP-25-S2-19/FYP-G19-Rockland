@@ -15,8 +15,81 @@ class SubscriptionPlan(db.Model):
     feature_c = db.Column(db.String(100))
     feature_d = db.Column(db.String(100))
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=True)
+    # Add these methods to your SubscriptionPlan class in app/entity/subscription_plan.py
 
-    users = db.relationship('User', back_populates='created_plans', foreign_keys=[user_id])
-    subscriptions = db.relationship('UserSubscription', back_populates='plan', cascade='all, delete-orphan')
-    payments = db.relationship('Payment', back_populates='plan', cascade='all, delete-orphan')
+    def to_dict(self):
+        """Convert SubscriptionPlan instance to dictionary"""
+        return {
+            'subscription_plan_id': self.subscription_plan_id,
+            'name': self.name,
+            'description': self.description,
+            'price': self.price,
+            'currency': self.currency,
+            'feature_a': self.feature_a,
+            'feature_b': self.feature_b,
+            'feature_c': self.feature_c,
+            'feature_d': self.feature_d
+        }
+
+    @classmethod
+    def getAllSubscriptionPlans(cls):
+        """Get all subscription plans"""
+        try:
+            return cls.query.order_by(cls.subscription_plan_id).all()
+        except Exception as e:
+            print(f"Error fetching all subscription plans: {str(e)}")
+            return None
+
+    @classmethod
+    def getSubscriptionPlanById(cls, plan_id: int):
+        """Get subscription plan by ID"""
+        try:
+            return cls.query.get(plan_id)
+        except Exception as e:
+            print(f"Error fetching subscription plan by ID {plan_id}: {str(e)}")
+            return None
+
+    @classmethod
+    def createSubscriptionPlan(cls, name: str, description: str = None, 
+                            price: float = None, currency: str = None,
+                            feature_a: str = None, feature_b: str = None,
+                            feature_c: str = None, feature_d: str = None):
+        """Create a new subscription plan"""
+        try:
+            # Validate required fields
+            if not name or not name.strip():
+                return False, 400, "Name is required", None
+            
+            if price is None or price < 0:
+                return False, 400, "Valid price is required", None
+                
+            if not currency or not currency.strip():
+                return False, 400, "Currency is required", None
+            
+            # Check if subscription plan with this name already exists
+            existing_plan = cls.query.filter_by(name=name.strip()).first()
+            if existing_plan:
+                return False, 409, f"Subscription plan with name '{name}' already exists", None
+            
+            # Create new subscription plan instance
+            new_plan = cls(
+                name=name.strip(),
+                description=description.strip() if description else None,
+                price=float(price),
+                currency=currency.strip(),
+                feature_a=feature_a.strip() if feature_a else None,
+                feature_b=feature_b.strip() if feature_b else None,
+                feature_c=feature_c.strip() if feature_c else None,
+                feature_d=feature_d.strip() if feature_d else None
+            )
+            
+            # Save to database
+            db.session.add(new_plan)
+            db.session.commit()
+            
+            return True, 201, "Subscription plan created successfully", new_plan
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error creating subscription plan: {str(e)}")
+            return False, 500, f"Error creating subscription plan: {str(e)}", None

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import BackIcon from '../assets/images/back.svg';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -56,7 +57,6 @@ export default function QuizListScreen() {
         return;
       }
 
-      // ✅ Eligible - go to quiz screen
       router.push({
         pathname: '/quiz/[id]',
         params: { id: quizId.toString() },
@@ -65,6 +65,10 @@ export default function QuizListScreen() {
       console.error('Eligibility check failed:', err);
       Alert.alert('Error', 'Failed to check eligibility. Please try again later.');
     }
+  };
+
+  const handleBack = () => {
+    router.push('/(tabs)/home');
   };
 
   if (loading) {
@@ -76,18 +80,24 @@ export default function QuizListScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FDF3E3] px-4 pt-4">
-      <ScrollView>
-        <View className="flex-row justify-between items-center mb-6">
-          <Text className="text-2xl font-bold">Available Quizzes</Text>
-          <TouchableOpacity
-            onPress={() => router.push('/quizhistory')}
-            className="bg-gray-800 px-3 py-1 rounded-lg"
-          >
-            <Text className="text-white font-semibold text-sm">📜 View History</Text>
+    <SafeAreaView className="flex-1 bg-[#FDF3E3]">
+      {/* Header with Back Button */}
+      <View className="border-b border-gray-100 px-4 py-4 bg-white">
+        <View className="flex-row items-center justify-between">
+          <TouchableOpacity onPress={handleBack} activeOpacity={0.7}>
+            <BackIcon width={24} height={24} />
+          </TouchableOpacity>
+
+          <Text className="text-xl font-semibold text-gray-800">Quizzes</Text>
+
+          <TouchableOpacity onPress={() => router.push('/quizhistory')}>
+            <Text className="text-sm font-semibold text-gray-700">📜 History</Text>
           </TouchableOpacity>
         </View>
+      </View>
 
+      {/* Quizzes List */}
+      <ScrollView className="flex-1 px-4 pt-4">
         {quizzes.map((quiz) => (
           <View key={quiz.id || quiz.quiz_id} className="bg-white rounded-xl shadow-md mb-4 p-4">
             <Text className="text-lg font-bold text-black mb-2">{quiz.title}</Text>
@@ -100,6 +110,8 @@ export default function QuizListScreen() {
             </TouchableOpacity>
           </View>
         ))}
+
+        <View className="h-6" />
       </ScrollView>
     </SafeAreaView>
   );
