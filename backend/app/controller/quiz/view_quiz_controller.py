@@ -5,7 +5,7 @@ from app.controller.authentication.permission_required import permission_require
 view_quiz_blueprint = Blueprint('view_quiz', __name__)
 
 @view_quiz_blueprint.route('/api/quizzes', methods=['GET'])
-@permission_required('has_freeuser_permission')
+@permission_required('has_premium_permission', 'has_freeuser_permission', 'has_expert_permission')
 def get_quizzes(current_user):
     quizzes = Quiz.query.all()
     return jsonify({
@@ -14,7 +14,7 @@ def get_quizzes(current_user):
     }), 200
 
 @view_quiz_blueprint.route('/api/quizzes/<int:quiz_id>', methods=['GET'])
-@permission_required('has_freeuser_permission')
+@permission_required('has_premium_permission', 'has_freeuser_permission', 'has_expert_permission')
 def get_quiz_detail(quiz_id, current_user):
     quiz = Quiz.query.get(quiz_id)
     if not quiz:

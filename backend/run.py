@@ -31,6 +31,10 @@ from app.entity.article import Article
 from app.entity.article_like import ArticleLike
 from app.entity.discussion import Discussion
 from app.entity.discussion_comment import DiscussionComment
+from app.entity.subscription_plan import SubscriptionPlan
+from app.entity.user_subscription import UserSubscription
+from app.entity.payment import Payment
+
 
 # Create app - no environment switching, always use Cloud SQL
 app = create_app()
