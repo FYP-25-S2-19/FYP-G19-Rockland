@@ -21,7 +21,7 @@ def get_all_articles(**kwargs):
         articles = Article.query_all_preview_only()
         return jsonify({
             "success": True,
-            "articles": [a.to_preview_dict() for a in articles]
+            "articles": [a.to_preview_dict(current_user_id=current_user.user_id) for a in articles]
         }), 200
 
     except Exception as e:

@@ -4,10 +4,11 @@ import os
 import humanize
 from werkzeug.utils import secure_filename
 from io import BytesIO
-
+from sqlalchemy import func
 # Local dependencies
 from app.models import db
 from app.utils.gcs import generate_signed_url, upload_file_to_gcs, delete_file_from_gcs
+from app.entity.article_like import ArticleLike
 
 class Article(db.Model):
     __tablename__ = 'article'
@@ -35,7 +36,7 @@ class Article(db.Model):
     ALLOWED_PHOTO_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
     MAX_PHOTO_SIZE = 10 * 1024 * 1024  # 10MB limit for photos
 
-    def to_dict(self) -> dict:
+    def to_dict(self, current_user_id=None) -> dict:
         """Return a dictionary representation of the article."""
         # Generate signed URL for photo if it exists
         signed_photo_url = None
@@ -44,6 +45,10 @@ class Article(db.Model):
                 signed_photo_url = generate_signed_url(self.photo, expiration_minutes=60)
             except Exception as e:
                 print(f"⚠️ Failed to generate signed URL for {self.photo}: {e}")
+
+        liked = False
+        if current_user_id:
+            liked = ArticleLike.query.filter_by(user_id=current_user_id, article_id=self.article_id).first() is not None
         
         return {
             'article_id': self.article_id,
@@ -52,7 +57,7 @@ class Article(db.Model):
             'photo': self.photo,          # Internal cloud storage path
             'photo_url': self.photo_url,  # Stored public URL (for backward compatibility)
             'signed_photo_url': signed_photo_url,  # Fresh signed URL
-            "date_created": humanize.naturaltime(datetime.utcnow() - self.date_created) if self.date_created else None,
+            "date_created": self.date_created.isoformat() if self.date_created else None,
             'is_free': self.is_free,
             'categories_id': self.categories_id,
             'category_title': self.category.title if self.category else None,
@@ -60,16 +65,23 @@ class Article(db.Model):
             'author_name': f"{self.author.first_name} {self.author.last_name}" if self.author else None,
             'author_email': self.author.email if self.author else None,
             'author_profile_picture': generate_signed_url(self.author.profile_picture) if self.author and self.author.profile_picture else None,
-            'total_likes': self.likes.count() if self.likes else 0
+            'total_likes': self.likes.count() if self.likes else 0,
+            'liked_by_user': liked
         }
     
-    def to_preview_dict(self):
+    def to_preview_dict(self, current_user_id=None):
         signed_url = None
         if self.photo:
             try:
                 signed_url = generate_signed_url(self.photo, expiration_minutes=60)
             except Exception as e:
                 print(f"⚠️ Failed to generate signed URL for preview: {e}")
+
+        liked = False
+        if current_user_id:
+            liked = ArticleLike.query.filter_by(user_id=current_user_id, article_id=self.article_id).first() is not None
+
+    
         
         return {
             "article_id": self.article_id,
@@ -78,11 +90,12 @@ class Article(db.Model):
             "category_title": self.category.title if self.category else "",
             "author_name": f"{self.author.first_name} {self.author.last_name}" if self.author else "Unknown",
             'author_profile_picture': generate_signed_url(self.author.profile_picture) if self.author and self.author.profile_picture else None,
-            "date_created": humanize.naturaltime(datetime.utcnow() - self.date_created) if self.date_created else None,
+            "date_created": self.date_created.isoformat() if self.date_created else None,
             "is_free": self.is_free,
             "photo_url": self.photo_url,
             "signed_photo_url": signed_url,  # ✅ Correct variable
-            "total_likes": self.likes.count() if self.likes else 0
+            "total_likes": self.likes.count() if self.likes else 0,
+            "liked_by_user": liked  # ✅ add this
         }
 
     @classmethod
@@ -224,7 +237,7 @@ class Article(db.Model):
             if not user:
                 return False, 404, "User not found", None
             
-            # Check permissions: only admin can delete
+            # Check permissions: only admin can deletege
             is_admin = user.user_type and user.user_type.name == 'Admin'
             
             if not is_admin:
@@ -263,6 +276,35 @@ class Article(db.Model):
         except Exception as e:
             print(f"Error fetching all articles for admin: {e}")
             return None, 500
+        
+    @classmethod
+    def getArticlesByAuthor(cls, author_id: int, limit: int = 6):
+        try:
+            articles = (
+                cls.query.filter_by(user_id=author_id)
+                .order_by(cls.date_created.desc())
+                .limit(limit)
+                .all()
+            )
+            articles_data = [article.to_dict() for article in articles]
+            return articles_data, 200, f"Top {limit} articles by author"
+        except Exception as e:
+            print(f"Error fetching articles by author: {e}")
+            return None, 500, f"Error: {str(e)}"
+        
+    @classmethod
+    def getAllArticlesByAuthor(cls, author_id: int):
+        try:
+            articles = (
+                cls.query.filter_by(user_id=author_id)
+                .order_by(cls.date_created.desc())
+                .all()
+            )
+            articles_data = [article.to_dict() for article in articles]
+            return articles_data, 200, f"All articles by author {author_id}"
+        except Exception as e:
+            print(f"❌ Error fetching all articles by author: {e}")
+            return None, 500, f"Error: {str(e)}"
 
     @classmethod
     def getArticleById(cls, article_id: int):
@@ -280,102 +322,87 @@ class Article(db.Model):
     def getArticlesForUser(cls, user_id: int):
         """Get articles based on user type with restrictions"""
         try:
-            # Get the user
             from app.entity.user import User
             user = User.queryUserById(user_id)
             if not user:
                 return None, 404, "User not found"
-            
+
             if user.status != 'Active':
                 return None, 403, "User account is not active"
-            
+
             user_type_name = user.user_type.name if user.user_type else None
-            
-            # Admin can see all articles
+
+            # Admin can view all articles
             if user_type_name == 'Admin':
                 articles = cls.query.order_by(cls.date_created.desc()).all()
                 articles_data = [article.to_dict() for article in articles]
                 return articles_data, 200, "All articles for admin"
-            
-            # Expert and Premium can see all articles (free + premium)
-            elif user_type_name in ['Expert', 'Premium']:
+
+            # Expert can also view all articles, but doesn't need like info
+            elif user_type_name == 'Expert':
                 articles = cls.query.order_by(cls.date_created.desc()).all()
                 articles_data = [article.to_dict() for article in articles]
-                return articles_data, 200, f"All articles (free + premium) for {user_type_name} user"
-            
-            # Free users can only view free articles (unlimited)
+                return articles_data, 200, "All articles for expert"
+
+            # Premium can view all articles (free + premium) with like info
+            elif user_type_name == 'Premium':
+                articles = cls.query.order_by(cls.date_created.desc()).all()
+                articles_data = [article.to_dict(user.user_id) for article in articles]
+                return articles_data, 200, "All articles for premium user"
+
+            # Free users can only see free articles
             elif user_type_name == 'Free':
-                articles = cls.query.order_by(cls.date_created.desc()).all()
-                articles_data = [article.to_dict() for article in articles]
+                articles = cls.query.filter_by(is_free=True).order_by(cls.date_created.desc()).all()
+                articles_data = [article.to_dict(user.user_id) for article in articles]
                 return articles_data, 200, "Free articles only for free user"
-            
-            else:
-                return None, 403, "Invalid user type"
-                
+
+            return None, 403, "Invalid user type"
+
         except Exception as e:
             print(f"Error fetching articles for user: {e}")
             return None, 500, f"Error fetching articles: {str(e)}"
 
     @classmethod
-    def searchArticles(cls, user_id: int, search_term: str = None, category_id: int = None):
-        """Search articles by title or category based on user type restrictions"""
+    def searchArticles(cls, user_id: int, search_term: str = None, category_ids: list = None, sort_by: str = "newest"):
         try:
-            # Get the user
             from app.entity.user import User
             user = User.queryUserById(user_id)
             if not user:
                 return None, 404, "User not found"
-            
+
             if user.status != 'Active':
                 return None, 403, "User account is not active"
-            
-            user_type_name = user.user_type.name if user.user_type else None
-            
-            # Only Free and Premium users can search (based on requirements)
-            if user_type_name not in ['Free', 'Premium']:
-                return None, 403, "Only Free and Premium users can search articles"
-            
-            # Build base query based on user type
-            if user_type_name == 'Free':
-                # Free users can only search free articles
-                base_query = cls.query.filter_by(is_free=True)
-            elif user_type_name == 'Premium':
-                # Premium users can search all articles
-                base_query = cls.query
-            
-            # Apply search filters
-            if search_term and search_term.strip():
-                # Search by title (case-insensitive)
-                search_term_clean = search_term.strip()
-                base_query = base_query.filter(cls.title.ilike(f'%{search_term_clean}%'))
-            
-            if category_id:
-                # Search by category
-                base_query = base_query.filter_by(categories_id=category_id)
-            
-            # If no search criteria provided
-            if not search_term and not category_id:
-                return None, 400, "Please provide search term or category"
-            
-            # Execute query
-            articles = base_query.order_by(cls.date_created.desc()).all()
-            articles_data = [article.to_dict() for article in articles]
-            
-            # Build response message
-            search_info = []
+
+            user_type = user.user_type.name if user.user_type else None
+
+            if user_type not in ['Free', 'Premium', 'Expert', 'Admin']:
+                return None, 403, "Invalid user type"
+
+            # Build base query
+            query = cls.query
+            if user_type == 'Free':
+                query = query.filter_by(is_free=True)
+
             if search_term:
-                search_info.append(f"title containing '{search_term}'")
-            if category_id:
-                search_info.append(f"category ID {category_id}")
-            
-            search_description = " and ".join(search_info)
-            message = f"Search results for {search_description} ({user_type_name} user access)"
-            
-            return articles_data, 200, message
-            
+                query = query.filter(cls.title.ilike(f'%{search_term.strip()}%'))
+
+            if category_ids and isinstance(category_ids, list) and category_ids:
+                query = query.filter(cls.categories_id.in_(category_ids))
+
+            # Sorting
+            if sort_by == "oldest":
+                query = query.order_by(cls.date_created.asc())
+            elif sort_by == "most_liked":
+                query = query.outerjoin(ArticleLike).group_by(cls.article_id).order_by(func.count(ArticleLike.article_like_id).desc())
+            else:  # default to newest
+                query = query.order_by(cls.date_created.desc())
+
+            articles = query.all()
+            articles_data = [a.to_dict(user.user_id if user_type in ['Free', 'Premium'] else None) for a in articles]
+            return articles_data, 200, "Search results returned"
         except Exception as e:
             print(f"Error searching articles: {e}")
-            return None, 500, f"Error searching articles: {str(e)}"
+            return None, 500, f"Internal error: {str(e)}"
         
     @classmethod
     def getArticleByIdForUser(cls, article_id: int, user_id: int):
@@ -396,19 +423,22 @@ class Article(db.Model):
             if not article:
                 return None, 404, "Article not found"
 
-            # Access rules
+            # Access control and liked_by_user toggle
             if user_type == "Admin":
                 return article.to_dict(), 200, "Admin access granted"
-            
-            elif user_type in ["Premium", "Expert"]:
-                return article.to_dict(), 200, f"{user_type} access granted"
-            
+
+            elif user_type == "Expert":
+                return article.to_dict(), 200, "Expert access granted"
+
+            elif user_type == "Premium":
+                return article.to_dict(user.user_id), 200, "Premium access granted"
+
             elif user_type == "Free":
                 if article.is_free:
-                    return article.to_dict(), 200, "Free user can view free article"
+                    return article.to_dict(user.user_id), 200, "Free user can view free article"
                 else:
                     return None, 403, "Access denied: Premium content"
-            
+
             return None, 403, "Access denied: Invalid user type"
 
         except Exception as e:
@@ -448,3 +478,29 @@ class Article(db.Model):
         except Exception as e:
             print(f"Error fetching article count: {e}")
             return 0, 500, f"Error: {str(e)}"
+        
+    @classmethod
+    def getTopLikedArticles(cls, limit=3):
+        try:
+            from app.entity.article_like import ArticleLike
+            from sqlalchemy import func
+
+            top_articles = (
+                db.session.query(cls, func.count(ArticleLike.article_like_id).label("like_count"))
+                .join(ArticleLike, cls.article_id == ArticleLike.article_id)
+                .group_by(cls.article_id)
+                .order_by(func.count(ArticleLike.article_like_id).desc())
+                .limit(limit)
+                .all()
+            )
+
+            articles_data = [
+                {**article.to_preview_dict(), "like_count": count}
+                for article, count in top_articles
+            ]
+
+            return articles_data, 200, f"Top {limit} most liked articles"
+        
+        except Exception as e:
+            print(f"❌ Error fetching top liked articles: {e}")
+            return None, 500, f"Internal error: {str(e)}"

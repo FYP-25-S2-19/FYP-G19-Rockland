@@ -1,5 +1,6 @@
 from datetime import datetime
 from app.models import db
+from app.entity.user_rock_collection import UserRockCollection  # Optional if you want to auto-add to collection
 
 """
 Entity: UserRockSpawn
@@ -44,6 +45,18 @@ class UserRockSpawn(db.Model):
         try:
             new_entry = cls(user_id=user_id, rock_spawn_id=rock_spawn_id)
             db.session.add(new_entry)
+            db.session.flush()  # Flush to get ID if needed before additional inserts
+
+            # Optional: auto-add to UserRockCollection
+            from app.entity.rock_spawn import RockSpawn
+            spawn = RockSpawn.query.get(rock_spawn_id)
+            if spawn:
+                UserRockCollection.add_to_collection(
+                    user_id=user_id,
+                    rock_id=spawn.rock_id,
+                    source="Discovered"
+                )
+
             db.session.commit()
             return True, 201, "Rock spawn collected", new_entry
         except Exception as e:

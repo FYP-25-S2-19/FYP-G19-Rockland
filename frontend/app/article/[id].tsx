@@ -1,10 +1,21 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import LikeIcon from "../../assets/images/like.svg";
 import NoLikeIcon from "../../assets/images/nolike.svg";
 import BackIcon from "../../assets/images/back.svg";
+import { timeAgo } from "../../utils/timeAgo"; // ✅ Import reusable formatter
+import EventBus from "../../utils/eventBus";
+
 
 export default function ArticleDetail() {
   const { id } = useLocalSearchParams();
@@ -28,9 +39,12 @@ export default function ArticleDetail() {
         const json = await res.json();
 
         if (json.success && json.article) {
-          setArticle(json.article);
+          setArticle({
+            ...json.article,
+            date_created: timeAgo(new Date(json.article.date_created)),
+          });
           setLikesCount(json.article.total_likes);
-          setIsLiked(json.article.liked_by_user || false);
+          setIsLiked(json.article.liked_by_user === true);
         } else {
           Alert.alert("Error", json.message || "Failed to fetch article");
         }
@@ -45,14 +59,37 @@ export default function ArticleDetail() {
     if (id) fetchArticle();
   }, [id]);
 
-  const handleLike = () => {
-    if (isLiked) {
-      setLikesCount((prev) => prev - 1);
-    } else {
-      setLikesCount((prev) => prev + 1);
+  const handleLike = async () => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const url = `${API_URL}/api/articles/${id}/${isLiked ? "unlike" : "like"}`;
+      const method = isLiked ? "DELETE" : "POST";
+
+      const res = await fetch(url, { method, headers });
+      const json = await res.json();
+
+      
+      if (json.success) {
+        const newLiked = !isLiked;
+        const newLikes = likesCount + (newLiked ? 1 : -1);
+
+        setIsLiked(newLiked);
+        setLikesCount(newLikes);
+
+        EventBus.emit("articleLikeUpdated", {
+          articleId: Number(id),
+          liked: newLiked,
+          likeCount: newLikes,
+        });
+      }else {
+        Alert.alert("Error", json.message || "Failed to update like");
+      }
+    } catch (e) {
+      console.error("❌ Like/unlike failed:", e);
+      Alert.alert("Error", "Something went wrong.");
     }
-    setIsLiked(!isLiked);
-    // (optional: send like request to backend)
   };
 
   const formatLikes = (count: number): string => {
@@ -80,7 +117,7 @@ export default function ArticleDetail() {
       </TouchableOpacity>
 
       <View className="flex-row items-center mb-4 pt-2">
-      <Image
+        <Image
           source={
             article.author_profile_picture
               ? { uri: article.author_profile_picture }
@@ -90,21 +127,38 @@ export default function ArticleDetail() {
           className="mr-3"
         />
         <View className="flex-1">
-          <Text className="text-base font-semibold text-gray-900">{article.author_name}</Text>
+          <Text className="text-base font-semibold text-gray-900">
+            {article.author_name}
+          </Text>
           <Text className="text-xs text-gray-500">{article.date_created}</Text>
         </View>
-        <View style={{ minWidth: 80, alignItems: 'center' }} className={`px-3 py-1 rounded-full ${!article.is_free ? "bg-[#EF9E1C]" : "bg-[#459B6C]"}`}>
-          <Text className="text-white text-sm">{!article.is_free ? "Premium" : "Free"}</Text>
+        <View
+          style={{ minWidth: 80, alignItems: "center" }}
+          className={`px-3 py-1 rounded-full ${
+            !article.is_free ? "bg-[#EF9E1C]" : "bg-[#459B6C]"
+          }`}
+        >
+          <Text className="text-white text-sm">
+            {!article.is_free ? "Premium" : "Free"}
+          </Text>
         </View>
       </View>
 
       <Text className="text-2xl font-bold mb-2">{article.title}</Text>
 
       <View className="self-start bg-green-100 px-2 py-1 rounded-lg mb-3 border border-green-600">
-        <Text className="text-xs font-medium text-green-600">{article.category_title}</Text>
+        <Text className="text-xs font-medium text-green-600">
+          {article.category_title}
+        </Text>
       </View>
 
-      <Image source={{ uri: article.signed_photo_url || article.photo_url }} style={{ width: "100%", height: 200, marginBottom: 20 }} resizeMode="cover" />
+      <Image
+        source={{
+          uri: article.signed_photo_url || article.photo_url,
+        }}
+        style={{ width: "100%", height: 200, marginBottom: 20 }}
+        resizeMode="cover"
+      />
 
       <Text className="text-base text-gray-700 leading-6">{article.content}</Text>
 
@@ -113,9 +167,16 @@ export default function ArticleDetail() {
           {isLiked ? (
             <LikeIcon width={21} height={21} style={{ marginRight: 6 }} />
           ) : (
-            <NoLikeIcon width={24} height={24} style={{ marginRight: 6 }} fill="red" />
+            <NoLikeIcon
+              width={24}
+              height={24}
+              style={{ marginRight: 6 }}
+              fill="red"
+            />
           )}
-          <Text className="text-sm font-medium text-gray-500">{formatLikes(likesCount)}</Text>
+          <Text className="text-sm font-medium text-gray-500">
+            {formatLikes(likesCount)}
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
