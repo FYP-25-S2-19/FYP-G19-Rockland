@@ -287,4 +287,8 @@ def create_app():
     from .controller.subscriptionplan.delete_subscription_controller import delete_subscription_plan_blueprint
     app.register_blueprint(delete_subscription_plan_blueprint)
 
+    ### Payment
+    from .controller.payment.view_payment_history import view_payment_history_blueprint
+    app.register_blueprint(view_payment_history_blueprint)
+
     return app
