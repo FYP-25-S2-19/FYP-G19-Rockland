@@ -13,7 +13,8 @@ def get_leaderboard():
             {
                 "user_id": u.user_id,
                 "name": f"{u.first_name} {u.last_name}",
-                "points": u.total_points or 0
+                "points": u.total_points or 0,
+                "image": u.to_dict_with_signed_url()["profile_picture"]  # ✅ Signed URL
             }
             for u in users
         ]

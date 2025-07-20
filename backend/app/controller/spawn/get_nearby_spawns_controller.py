@@ -12,8 +12,13 @@ def get_nearby_spawns(current_user):
         lng = float(request.args.get("lng"))
         radius = float(request.args.get("radius", 10000))
 
-        success, status, message, spawns = RockSpawn.get_nearby_spawns(current_user.user_id, lat, lng, radius)
-        return jsonify({"success": success, "message": message, "spawns": spawns}), status
+        success, status, message, data = RockSpawn.get_nearby_spawns(current_user.user_id, lat, lng, radius)
+
+        return jsonify({
+            "success": success,
+            "message": message,
+            **data  # ✅ This unpacks both 'zone' and 'spawns' correctly
+        }), status
 
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
