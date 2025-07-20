@@ -1,9 +1,6 @@
-// RockMapScreen.tsx
-
 import React, { useEffect, useState, useRef } from "react";
 import {
   View,
-  StyleSheet,
   Dimensions,
   ActivityIndicator,
   TouchableOpacity,
@@ -48,35 +45,18 @@ export default function RockMapScreen() {
   const router = useRouter();
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission Denied", "Location permission is required to use this feature.");
-        return;
-      }
-      let loc = await Location.getCurrentPositionAsync({});
-      setLocation(loc);
-      fetchMarkers(loc.coords.latitude, loc.coords.longitude);
-    })();
-  }, []);
-
   const fetchMarkers = async (lat: number, lng: number) => {
     try {
-      const radius = 10000;
       const token = await AsyncStorage.getItem("accessToken");
-
       if (!token) {
         router.push("/login");
         return;
       }
 
       const response = await fetch(
-        `${API_URL}/api/spawns/nearby?lat=${lat}&lng=${lng}&radius=${radius}`,
+        `${API_URL}/api/spawns/nearby?lat=${lat}&lng=${lng}&radius=10000`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
@@ -90,8 +70,29 @@ export default function RockMapScreen() {
       }
 
       const data = await response.json();
-      if (data.success) {
-        setRockMarkers(data.spawns);
+
+     if (data.success && Array.isArray(data.spawns)) {
+      console.log("📦 Raw Spawns:", JSON.stringify(data.spawns, null, 2));
+      const bufferMs = 2 * 60 * 1000;
+      const now = new Date(Date.now() - bufferMs);
+      console.log("🕒 Adjusted Client Time (with buffer):", now.toISOString());
+
+      data.spawns.forEach((s: RockSpawn, index: number) => {
+        console.log(`⏳ Spawn[${index}] expires_at:`, s.expires_at, "Parsed:", new Date(s.expires_at).toISOString());
+      });
+
+      // 🔥 REMOVE FILTER FOR DEBUGGING
+      const filtered = data.spawns.map((s: RockSpawn) => ({
+        ...s,
+        latitude: Number(s.latitude),
+        longitude: Number(s.longitude),
+      }));
+
+      console.log("🪨 Showing Markers (no filter):", filtered.length);
+      setRockMarkers(filtered);
+      } else {
+        console.warn("🛑 Unexpected response or spawns missing:", data);
+        setRockMarkers([]);
       }
     } catch (error) {
       console.error("Failed to fetch spawns", error);
@@ -101,7 +102,7 @@ export default function RockMapScreen() {
   const handleSaveToCollection = async (spawn: RockSpawn) => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
-  
+
       const payload = {
         rock_id: spawn.rock.rock_id,
         source: "discovered",
@@ -109,7 +110,7 @@ export default function RockMapScreen() {
         longitude: spawn.longitude,
         location_name: spawn.location_name || "Unknown",
       };
-  
+
       const res = await fetch(`${API_URL}/api/collection/add`, {
         method: "POST",
         headers: {
@@ -118,16 +119,13 @@ export default function RockMapScreen() {
         },
         body: JSON.stringify(payload),
       });
-  
+
       const data = await res.json();
       if (res.ok) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Toast.show({ type: "success", text1: data.message });
-  
-        // ✅ Remove the saved spawn from rockMarkers
-        setRockMarkers(prev => prev.filter(marker => marker.rock_spawn_id !== spawn.rock_spawn_id));
-  
         setSelectedRock(null);
+        fetchMarkers(location!.coords.latitude, location!.coords.longitude);
       } else {
         Toast.show({ type: "error", text1: "Save failed", text2: data.message });
       }
@@ -136,6 +134,20 @@ export default function RockMapScreen() {
       console.error("Error saving to collection:", err);
     }
   };
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Location Permission Required", "Please enable location access.");
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({});
+      setLocation(loc);
+      fetchMarkers(loc.coords.latitude, loc.coords.longitude);
+    })();
+  }, []);
 
   const handleRecenter = () => {
     if (!location || !mapRef.current) return;
@@ -152,7 +164,7 @@ export default function RockMapScreen() {
 
   if (!location) {
     return (
-      <View style={styles.loader}>
+      <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#16A34A" />
       </View>
     );
@@ -161,22 +173,18 @@ export default function RockMapScreen() {
   const initialRegion: Region = {
     latitude: location.coords.latitude,
     longitude: location.coords.longitude,
-    latitudeDelta: 0.005,
-    longitudeDelta: 0.005,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
   };
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1">
       <MapView
         ref={mapRef}
-        style={styles.map}
+        style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height }}
         initialRegion={initialRegion}
         showsUserLocation
         showsMyLocationButton={false}
-        scrollEnabled
-        zoomEnabled
-        rotateEnabled={false}
-        pitchEnabled={false}
       >
         {rockMarkers.map((marker) => (
           <Marker
@@ -189,18 +197,23 @@ export default function RockMapScreen() {
         ))}
       </MapView>
 
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+      <TouchableOpacity
+        onPress={() => router.back()}
+        className="absolute top-[50px] left-5 bg-white rounded-full p-2 shadow-md"
+      >
         <BackIcon width={24} height={24} />
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={handleRecenter} style={styles.recenterButton}>
+      <TouchableOpacity
+        onPress={handleRecenter}
+        className="absolute bottom-10 right-5 bg-white rounded-full p-2 shadow-md"
+      >
         <Ionicons name="locate" size={30} color="#111827" />
       </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => router.push("/mycollection")}
-        style={styles.backpackButton}
-        activeOpacity={0.8}
+        className="absolute bottom-10 self-center w-[70px] h-[70px] rounded-full bg-white justify-center items-center shadow-md"
       >
         <BackpackIcon width={50} height={50} color="#111827" />
       </TouchableOpacity>
@@ -214,48 +227,3 @@ export default function RockMapScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  map: { width: Dimensions.get("window").width, height: Dimensions.get("window").height },
-  loader: { flex: 1, justifyContent: "center", alignItems: "center" },
-  backButton: {
-    position: "absolute",
-    top: 50,
-    left: 20,
-    backgroundColor: "white",
-    borderRadius: 50,
-    padding: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  recenterButton: {
-    position: "absolute",
-    bottom: 40,
-    right: 20,
-    backgroundColor: "white",
-    borderRadius: 50,
-    padding: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  backpackButton: {
-    position: "absolute",
-    bottom: 40,
-    alignSelf: "center",
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-});
