@@ -363,6 +363,114 @@ class User(db.Model):
             db.session.rollback()
             print(f"❌ Error creating user: {e}")
             return False, 500, f"Error creating user: {str(e)}", None
+    
+    @classmethod
+    def createUserAccountWithVerification(cls, email: str, verification_code: str, 
+                                        password: str = "Password123",
+                                        first_name: str = None,
+                                        last_name: str = None,
+                                        date_of_birth: str = None,
+                                        contact_number: str = None,
+                                        gender: str = None,
+                                        region: str = None,
+                                        user_type_id: int = 2,
+                                        status: str = 'Active',
+                                        total_points: int = 0,
+                                        interests: list = None):
+        """Create a new user account with email verification"""
+        try:
+            from app.entity.email_verification import EmailVerification
+            from app.utils.email_service import EmailService
+            
+            # Validate required fields
+            if not email or not verification_code or not first_name or not last_name or not date_of_birth:
+                return False, 400, "Missing required fields", None
+            
+            # Validate email format
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                return False, 400, "Invalid email format", None
+            
+            # Check if verification code is provided
+            if not verification_code or not verification_code.strip():
+                return False, 400, "Email verification code is required", None
+            
+            # Check if email has been verified recently (within last 30 minutes)
+            if not EmailVerification.is_email_verified(email):
+                return False, 400, "Email must be verified before creating account. Please verify your email first.", None
+            
+            # Check if user already exists
+            if cls.queryUserAccount(email):
+                return False, 409, "User with this email already exists", None
+            
+            # Check if user_type_id exists
+            user_type = UserType.query.get(user_type_id)
+            if not user_type:
+                return False, 404, f"User type with ID {user_type_id} not found", None
+            
+            # Convert date_of_birth string to date object
+            try:
+                dob_date = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+            except ValueError:
+                return False, 400, "Invalid date format. Use YYYY-MM-DD", None
+            
+            # Automatically assign placeholder based on gender
+            placeholder_url = get_placeholder_profile_picture(gender)
+            
+            # Create new user instance
+            new_user = cls(
+                email=email.lower(),  # Store email in lowercase
+                first_name=first_name.strip(),
+                last_name=last_name.strip(),
+                date_of_birth=dob_date,
+                contact_number=contact_number,
+                gender=gender,
+                region=region,
+                profile_picture=placeholder_url,
+                user_type_id=user_type_id,
+                status=status,
+                total_points=total_points,
+                created_date=datetime.utcnow()
+            )
+            
+            # Hash the password
+            new_user.set_password(password)
+            
+            # Save to database first to get user_id
+            db.session.add(new_user)
+            db.session.flush()  # Assigns user_id without committing
+            
+            # Handle interests if provided
+            if interests and isinstance(interests, list):
+                from app.entity.interest import Interest
+                for interest_title in interests:
+                    if interest_title and interest_title.strip():
+                        interest = Interest.query.filter_by(title=interest_title.strip()).first()
+                        if interest:
+                            new_user.interests.append(interest)
+                        else:
+                            print(f"⚠️ Interest '{interest_title}' not found in database")
+            
+            # Commit the user creation
+            db.session.commit()
+            
+            # Send welcome email after successful registration
+            try:
+                EmailService.send_welcome_email(
+                    to_email=email,
+                    user_name=f"{first_name} {last_name}"
+                )
+                welcome_message = " Welcome email sent."
+            except Exception as e:
+                # Don't fail registration if welcome email fails
+                print(f"⚠️ Failed to send welcome email: {e}")
+                welcome_message = ""
+            
+            return True, 201, f"User created successfully!{welcome_message}", new_user
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error creating user with verification: {e}")
+            return False, 500, f"Error creating user: {str(e)}", None
 
         
     @classmethod

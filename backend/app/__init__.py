@@ -1,3 +1,11 @@
+# Update your app/__init__.py file
+
+import os
+from dotenv import load_dotenv
+
+# Load environment variables at the module level (before create_app)
+load_dotenv()
+
 from flask import Flask
 from flask_cors import CORS
 from .models import db
@@ -5,6 +13,20 @@ from .models import db
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
+
+    # Add environment variables to app config for debugging
+    app.config['EMAIL_USER'] = os.getenv('EMAIL_USER')
+    app.config['EMAIL_PASSWORD'] = os.getenv('EMAIL_PASSWORD')
+    app.config['SMTP_SERVER'] = os.getenv('SMTP_SERVER')
+    app.config['SMTP_PORT'] = os.getenv('SMTP_PORT')
+    app.config['FROM_NAME'] = os.getenv('FROM_NAME')
+    
+    # Debug: Print email configuration
+    print("🔧 Email Configuration Check in create_app():")
+    print(f"EMAIL_USER: {app.config.get('EMAIL_USER')}")
+    print(f"SMTP_SERVER: {app.config.get('SMTP_SERVER')}")
+    print(f"FROM_NAME: {app.config.get('FROM_NAME')}")
+    print(f"EMAIL_PASSWORD: {'✓ Set' if app.config.get('EMAIL_PASSWORD') else '✗ Missing'}")
 
     db.init_app(app)
     CORS(app)
@@ -273,5 +295,9 @@ def create_app():
     app.register_blueprint(view_subscription_plan_blueprint)
     app.register_blueprint(create_subscription_plan_blueprint)
     app.register_blueprint(delete_subscription_plan_blueprint)
+
+    ## Email Verification
+    from .controller.email.email_verification import email_verification_blueprint
+    app.register_blueprint(email_verification_blueprint)
 
     return app
