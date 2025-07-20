@@ -134,6 +134,9 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
               <Text className="text-white font-bold text-base">
                 Save to Collection
               </Text>
+              <Text className="text-sm text-red-600 font-semibold mb-2">
+                Expires in: {Math.max(0, Math.floor((new Date(rock.expires_at).getTime() - Date.now()) / 60000))} min
+              </Text>
             </TouchableOpacity>
 
             {/* ✅ Underlined Read More */}

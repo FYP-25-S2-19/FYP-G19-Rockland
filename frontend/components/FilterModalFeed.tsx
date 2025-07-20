@@ -32,7 +32,7 @@ export default function FilterModal({
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState("Sort by Most Liked");
+  const [sortBy, setSortBy] = useState("");
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
