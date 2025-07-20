@@ -11,6 +11,7 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 
 import ArticleCard from "./ArticleCard";
 import DiscussionCard from "./DiscussionCard";
@@ -79,7 +80,8 @@ export default function BaseFeed({
   };
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState("Sort by Most Liked");
+  const [sortBy, setSortBy] = useState("newest");
+  
   
   const fetchArticles = async () => {
     try {
@@ -115,7 +117,9 @@ export default function BaseFeed({
           thumbnail: { uri: article.signed_photo_url || article.photo_url },
           likes: article.total_likes,
           liked: !!article.liked_by_user,
-          timeAgo: article.time_ago ?? "",
+          timeAgo: article.date_created
+            ? require("../utils/timeAgo").timeAgo(new Date(article.date_created))
+            : "",
         }));
         setArticles(fetchedArticles);
       } else {
@@ -125,6 +129,12 @@ export default function BaseFeed({
       console.error("❌ Error fetching articles:", error);
     }
   };
+
+  useEffect(() => {
+    const defaultSort = "newest";
+    setSortBy(defaultSort);
+    fetchArticles();
+  }, []);
   /* ----------------------- DISCUSSION SEARCH -------------------------- */
 
   const filteredDiscussions = useMemo(() => {
