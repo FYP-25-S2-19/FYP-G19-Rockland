@@ -380,8 +380,6 @@ class Article(db.Model):
 
             # Build base query
             query = cls.query
-            if user_type == 'Free':
-                query = query.filter_by(is_free=True)
 
             if search_term:
                 query = query.filter(cls.title.ilike(f'%{search_term.strip()}%'))

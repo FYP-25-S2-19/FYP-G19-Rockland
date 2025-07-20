@@ -25,6 +25,7 @@ def import_entities():
     from app.entity.like_comment_rock import LikeCommentRock
     from app.entity.rock_scan_history import RockScanHistory
     from app.entity.trade_offer import TradeOffer
+    from app.entity.zone_profile import ZoneProfile
     # Add any additional entities here
 
     print("✅ All entities imported successfully")

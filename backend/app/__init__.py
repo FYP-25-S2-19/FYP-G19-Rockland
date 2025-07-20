@@ -158,6 +158,20 @@ def create_app():
     app.register_blueprint(get_user_collection_blueprint)
     app.register_blueprint(filter_user_collection_blueprint)
 
+
+    #ZONE PROFILE
+    from app.controller.zone.create_zone_controller import create_zone_blueprint
+    from app.controller.zone.update_zone_controller import update_zone_blueprint
+    from app.controller.zone.delete_zone_controller import delete_zone_blueprint
+    from app.controller.zone.get_all_zone_controller import get_all_zones_blueprint
+    from app.controller.zone.get_zone_by_location_controller import get_zone_by_location_blueprint
+
+    app.register_blueprint(create_zone_blueprint)
+    app.register_blueprint(update_zone_blueprint)
+    app.register_blueprint(delete_zone_blueprint)
+    app.register_blueprint(get_all_zones_blueprint)
+    app.register_blueprint(get_zone_by_location_blueprint)
+
     # COMMENT ROCK
     from .controller.comment.rock.comment_create_controller import create_comment_blueprint
     from .controller.comment.rock.comment_get_by_rock_controller import get_comments_blueprint
