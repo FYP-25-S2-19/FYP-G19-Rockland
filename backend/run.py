@@ -34,6 +34,7 @@ from app.entity.discussion_comment import DiscussionComment
 from app.entity.subscription_plan import SubscriptionPlan
 from app.entity.user_subscription import UserSubscription
 from app.entity.payment import Payment
+from app.entity.zone_profile import ZoneProfile
 
 
 # Create app - no environment switching, always use Cloud SQL

@@ -1,8 +1,13 @@
+# 📄 rock_spawn.py
+
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from app.models import db
 from app.entity.user_rock_spawn import UserRockSpawn
 from app.entity.rock import Rock
+from app.entity.zone_profile import ZoneProfile
+import random
+
 
 class RockSpawn(db.Model):
     __tablename__ = "rock_spawn"
@@ -26,19 +31,22 @@ class RockSpawn(db.Model):
             "location_name": self.location_name,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "rock": self.rock.to_dict()  # ✅ Assumes this includes rarity, name, etc.
         }
 
+    # ⏳ Expiration time depends on rock rarity
     @classmethod
     def generate_expiration(cls, rarity: str) -> datetime:
         now = datetime.utcnow()
         if rarity == "Common":
-            return now + timedelta(minutes=2 + (3 * db.func.random()))
+            return now + timedelta(minutes=5 + (5 * random.random()))
         elif rarity == "Rare":
-            return now + timedelta(minutes=1 + (2 * db.func.random()))
+            return now + timedelta(minutes=3 + (2 * random.random()))
         elif rarity == "Legendary":
-            return now + timedelta(seconds=30 + (90 * db.func.random()))
+            return now + timedelta(minutes=2 + (1 * random.random()))
         return now + timedelta(minutes=3)
 
+    # ✅ Collect a spawn if nearby and not expired
     @classmethod
     def collect_spawn(cls, user_id: int, rock_spawn_id: int):
         try:
@@ -59,6 +67,7 @@ class RockSpawn(db.Model):
             db.session.rollback()
             return False, 500, f"Error: {str(e)}", None
 
+    # 📍 Get nearby uncollected and valid spawns
     @classmethod
     def get_nearby_spawns(cls, user_id: int, lat: float, lng: float, radius: float = 1000):
         try:
@@ -67,15 +76,13 @@ class RockSpawn(db.Model):
                     func.sin(func.radians(lat1)) * func.sin(func.radians(lat2)) +
                     func.cos(func.radians(lat1)) * func.cos(func.radians(lat2)) *
                     func.cos(func.radians(lng2) - func.radians(lng1))
-                ) * 6371000  # Earth radius
+                ) * 6371000  # Earth radius in meters
 
             all_spawns = (
                 cls.query
                 .join(Rock, Rock.rock_id == cls.rock_id)
                 .filter(cls.expires_at > datetime.utcnow())
-                .filter(
-                    haversine_formula(lat, lng, cls.latitude, cls.longitude) <= radius
-                )
+                .filter(haversine_formula(lat, lng, cls.latitude, cls.longitude) <= radius)
                 .all()
             )
 
@@ -88,16 +95,27 @@ class RockSpawn(db.Model):
             for spawn in all_spawns:
                 if spawn.rock_spawn_id in collected_ids:
                     continue
-                result.append({
-                    "rock_spawn_id": spawn.rock_spawn_id,
-                    "latitude": spawn.latitude,
-                    "longitude": spawn.longitude,
-                    "location_name": spawn.location_name,
-                    "expires_at": spawn.expires_at.isoformat(),
-                    "rock": spawn.rock.to_dict()
-                })
+                result.append(spawn.to_dict())
 
-            return True, 200, "Nearby spawns fetched", result
+            zone = ZoneProfile.get_zone_by_coordinates(lat, lng)
+            zone_info = zone.to_dict() if zone else None
+
+            return True, 200, "Nearby spawns fetched", {
+                "zone": zone_info,
+                "spawns": result
+            }
 
         except Exception as e:
-            return False, 500, f"Error: {str(e)}", []
+            return False, 500, f"Error: {str(e)}", {}
+
+    # 🧹 Delete expired rock spawns (use in cron or refresh_spawn)
+    @classmethod
+    def delete_expired(cls):
+        try:
+            now = datetime.utcnow()
+            deleted = cls.query.filter(cls.expires_at < now).delete()
+            db.session.commit()
+            return True, f"🧹 Deleted {deleted} expired spawns."
+        except Exception as e:
+            db.session.rollback()
+            return False, f"Delete error: {str(e)}"

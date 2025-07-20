@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.entity.rock import Rock
 from app.controller.authentication.permission_required import permission_required
+from app.utils.spawn_logic import get_all_rocks  # ✅ Added
 
 create_rock_blueprint = Blueprint('create_rock', __name__)
 
@@ -18,13 +19,11 @@ class CreateRockController:
                     'message': 'No data provided'
                 }), 400
 
-            # ✅ Inject current user's ID into the data dict
             data['user_id'] = current_user.user_id
-
-            # ✅ Call logic inside the entity
             success, status_code, message, rock = Rock.create_rock(**data)
 
             if success:
+                get_all_rocks.cache_clear()  # ✅ Clear cached rock list
                 return jsonify({
                     'success': True,
                     'message': message,

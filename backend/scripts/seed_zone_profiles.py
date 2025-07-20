@@ -1,4 +1,14 @@
-zone_profiles = {
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app import create_app
+from app.models import db
+from app.entity.zone_profile import ZoneProfile
+from app.entity.import_all_entities import import_entities  # ✅ make sure this is imported
+
+def seed_zones():
+    zone_profiles = {
     "Bukit Timah": {
         "bounds": [(1.31, 103.75), (1.41, 103.83)],
         "key_rock": "Granite",
@@ -114,3 +124,28 @@ zone_profiles = {
         "geological_name": "Northeast Marine Zone"
     }
 }
+
+
+    for name, data in zone_profiles.items():
+        exists = ZoneProfile.query.filter_by(zone_name=name).first()
+        if not exists:
+            zone_data = {
+                "zone_name": name,
+                "geological_name": data["geological_name"],
+                "rock_type": data["rock_type"],
+                "key_rock": data["key_rock"],
+                "lat_min": data["bounds"][0][0],
+                "lng_min": data["bounds"][0][1],
+                "lat_max": data["bounds"][1][0],
+                "lng_max": data["bounds"][1][1],
+            }
+            new_zone = ZoneProfile(**zone_data)
+            db.session.add(new_zone)
+    db.session.commit()
+    print("✅ Zone profiles seeded.")
+
+if __name__ == "__main__":
+    app = create_app()
+    with app.app_context():
+        import_entities()  # ✅ ensures all relationships work
+        seed_zones()

@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.entity.rock import Rock
 from app.controller.authentication.permission_required import permission_required
+from app.utils.spawn_logic import get_all_rocks  # ✅ Added
 
 update_rock_blueprint = Blueprint('update_rock', __name__)
 
@@ -18,12 +19,11 @@ class UpdateRockController:
                     'message': 'No data provided'
                 }), 400
 
-            # Ensure current user's ID is included
             data["user_id"] = current_user.user_id
-
             success, status_code, message, updated_rock = Rock.update_rock(rock_id, **data)
 
             if success:
+                get_all_rocks.cache_clear()  # ✅ Clear cache after update
                 return jsonify({
                     'success': True,
                     'message': message,
