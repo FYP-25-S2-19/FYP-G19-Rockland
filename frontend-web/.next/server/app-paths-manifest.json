@@ -1,7 +1,11 @@
 {
-  "/login/page": "app/login/page.js",
+  "/usertype/page": "app/usertype/page.js",
+  "/forummanagement/page": "app/forummanagement/page.js",
+  "/userprofiling/page": "app/userprofiling/page.js",
+  "/landingpagemanagement/page": "app/landingpagemanagement/page.js",
+  "/faqmanagement/page": "app/faqmanagement/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/page": "app/page.js",
-  "/useraccount/page": "app/useraccount/page.js",
-  "/registration/page": "app/registration/page.js"
+  "/applications/page": "app/applications/page.js",
+  "/adminprofile/page": "app/adminprofile/page.js",
+  "/useraccount/page": "app/useraccount/page.js"
 }

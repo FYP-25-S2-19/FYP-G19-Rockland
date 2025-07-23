@@ -34,6 +34,8 @@ interface Interest {
 }
 
 export default function RegistrationPage() {
+  // API configuration
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
   const router = useRouter();
   const [step, setStep] = useState(1); // 1: Email Verification, 2: Account Setup, 3: Profile Setup
   const [showPassword, setShowPassword] = useState(false);
@@ -78,7 +80,7 @@ export default function RegistrationPage() {
           setInterestsError("");
 
           const response = await fetch(
-            "http://localhost:5000/api/interests/all",
+            `${API_BASE_URL}/api/interests/all`,
             {
               method: "GET",
               headers: {
@@ -144,7 +146,7 @@ export default function RegistrationPage() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/send-verification-code", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/send-verification-code`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -185,7 +187,7 @@ export default function RegistrationPage() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/verify-email-code", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify-email-code`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -224,7 +226,7 @@ export default function RegistrationPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/resend-verification-code", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/resend-verification-code`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -333,7 +335,7 @@ export default function RegistrationPage() {
       console.log("Sending registration request:", requestData);
 
       const response = await fetch(
-        "http://localhost:5000/api/users/create_user",
+        `${API_BASE_URL}/api/users/create_user`,
         {
           method: "POST",
           headers: {
@@ -357,7 +359,7 @@ export default function RegistrationPage() {
         // If user selected Premium Plan, redirect to Stripe
         if (formData.plan === "Premium Plan") {
           const stripeResponse = await fetch(
-            "http://localhost:5000/api/create-checkout-session",
+            `${API_BASE_URL}/api/create-checkout-session`,
             {
               method: "POST",
               headers: {

@@ -36,7 +36,11 @@ interface RawCategoryDemandResponse {
   category_usage: CategoryUsage[]
 }
 
+
 export default function Dashboard() {
+
+  // API configuration
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
   const router = useRouter()
   const [userInfo, setUserInfo] = useState({
     name: '',
@@ -101,7 +105,7 @@ export default function Dashboard() {
       }
 
       // Fetch dashboard stats
-      const statsResponse = await fetch('http://localhost:5000/api/dashboard/stats', {
+      const statsResponse = await fetch(`${API_BASE_URL}/api/dashboard/stats`, {
         headers: {
           'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json'
@@ -123,7 +127,7 @@ export default function Dashboard() {
       }
 
       // Fetch category demand data (raw data from backend)
-      const demandResponse = await fetch('http://localhost:5000/api/dashboard/categories/demand', {
+      const demandResponse = await fetch(`${API_BASE_URL}/api/dashboard/categories/demand`, {
         headers: {
           'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json'
