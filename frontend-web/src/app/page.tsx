@@ -8,6 +8,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Check, Play, Plus, Minus, Loader2 } from "lucide-react"
 
+// API configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
 interface FAQItem {
   faq_id: number
   question: string
@@ -115,7 +118,7 @@ export default function RocklandLanding(): JSX.Element {
         setSubscriptionLoading(true)
         setSubscriptionError(null)
         
-        const response = await fetch('http://localhost:5000/api/subscription-plans/public')
+        const response = await fetch(`${API_BASE_URL}/api/subscription-plans/public`)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -168,7 +171,7 @@ export default function RocklandLanding(): JSX.Element {
         setAppLinksError(null)
         
         // Fetch all app links from your backend
-        const response = await fetch('http://localhost:5000/api/applinks')
+        const response = await fetch(`${API_BASE_URL}/api/applinks`)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -220,7 +223,7 @@ export default function RocklandLanding(): JSX.Element {
         setFaqLoading(true)
         setFaqError(null)
         
-        const response = await fetch('http://localhost:5000/api/faqs/public')
+        const response = await fetch(`${API_BASE_URL}/api/faqs/public`)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -255,7 +258,7 @@ export default function RocklandLanding(): JSX.Element {
         setTestimonialsLoading(true)
         setTestimonialsError(null)
         
-        const response = await fetch('http://localhost:5000/api/testimonials/public')
+        const response = await fetch(`${API_BASE_URL}/api/testimonials/public`)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -290,7 +293,7 @@ export default function RocklandLanding(): JSX.Element {
         setArticlesLoading(true)
         setArticlesError(null)
         
-        const response = await fetch('http://localhost:5000/api/articles/public')
+        const response = await fetch(`${API_BASE_URL}/api/articles/public`)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -326,7 +329,7 @@ export default function RocklandLanding(): JSX.Element {
         setVideoError(null)
         
         // Use the correct backend port (5000)
-        const response = await fetch('http://localhost:5000/api/videos')
+        const response = await fetch(`${API_BASE_URL}/api/videos`)
         
         if (!response.ok) {
           if (response.status === 404) {
