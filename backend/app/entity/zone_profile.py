@@ -15,6 +15,11 @@ class ZoneProfile(db.Model):
     lng_min = db.Column(db.Float, nullable=False)
     lng_max = db.Column(db.Float, nullable=False)
 
+    # NEW FIELDS
+    density = db.Column(db.String(20), nullable=False, default="medium")  
+    spawn_cooldown_minutes = db.Column(db.Integer, nullable=False, default=15)  # default 15 min cooldown
+    max_spawn_count = db.Column(db.Integer, nullable=False, default=15)  # default max 15 spawns
+
     def to_dict(self):
         return {
             "zone_id": self.zone_id,
@@ -22,7 +27,10 @@ class ZoneProfile(db.Model):
             "geological_name": self.geological_name,
             "rock_type": self.rock_type,
             "key_rock": self.key_rock,
-            "bounds": [(self.lat_min, self.lng_min), (self.lat_max, self.lng_max)]
+            "bounds": [(self.lat_min, self.lng_min), (self.lat_max, self.lng_max)],
+            "density": self.density,
+            "spawn_cooldown_minutes": self.spawn_cooldown_minutes,
+            "max_spawn_count": self.max_spawn_count
         }
 
     def contains(self, lat, lng):
@@ -38,7 +46,7 @@ class ZoneProfile(db.Model):
             cls.lng_max >= lng
         ).first()
 
-    # 🔄 CRUD Methods
+    # CRUD Methods
     @classmethod
     def create(cls, data):
         try:

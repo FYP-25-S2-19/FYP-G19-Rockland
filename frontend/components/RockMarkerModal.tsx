@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ interface RockMarkerModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (spawnData: RockSpawn) => void;
+  onExpire?: () => void; // NEW: trigger refresh on expire
   rock: RockSpawn | null;
 }
 
@@ -38,9 +39,36 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
   visible,
   onClose,
   onSave,
+  onExpire,
   rock,
 }) => {
   const router = useRouter();
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  useEffect(() => {
+    if (!rock || !rock.expires_at) return;
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const expiry = new Date(rock.expires_at).getTime();
+      const diff = Math.max(0, expiry - now);
+
+      if (diff <= 0) {
+        setTimeLeft("Expired");
+        clearInterval(interval);
+
+        // Trigger refresh + close modal
+        if (onExpire) onExpire();
+        onClose();
+      } else {
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        setTimeLeft(`${mins}m ${secs}s`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [rock]);
 
   if (!rock || !rock.rock) return null;
   const r = rock.rock;
@@ -56,6 +84,8 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
   const rarityText = r.rarity
     ? r.rarity.charAt(0).toUpperCase() + r.rarity.slice(1)
     : "Unknown";
+
+  const isExpired = timeLeft === "Expired";
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -91,7 +121,13 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
             {r.signed_url ? (
               <Image
                 source={{ uri: r.signed_url }}
-                style={{ width: 180, height: 180, borderRadius: 12, marginBottom: 16, borderWidth: 1}}
+                style={{
+                  width: 180,
+                  height: 180,
+                  borderRadius: 12,
+                  marginBottom: 16,
+                  borderWidth: 1,
+                }}
                 resizeMode="cover"
               />
             ) : (
@@ -109,9 +145,7 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
             <Text className="text-2xl font-bold text-center mb-1">
               {r.rock_name}
             </Text>
-            <Text className="text-l text-gray-600 mb-2">
-              Type: {r.rock_type}
-            </Text>
+            <Text className="text-l text-gray-600 mb-2">Type: {r.rock_type}</Text>
 
             <View
               className="px-3 py-1 rounded-full mb-3"
@@ -126,20 +160,27 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
               {r.description}
             </Text>
 
-            {/* ✅ Save Button */}
-            <TouchableOpacity
-              onPress={() => onSave(rock)}
-              className="w-full py-2 rounded-lg mb-2 items-center " style={{ backgroundColor: "#459B6C" }}
-            >
-              <Text className="text-white font-bold text-base">
-                Save to Collection
-              </Text>
-              <Text className="text-sm text-red-600 font-semibold mb-2">
-                Expires in: {Math.max(0, Math.floor((new Date(rock.expires_at).getTime() - Date.now()) / 60000))} min
-              </Text>
-            </TouchableOpacity>
+            {/* Countdown */}
+            <Text className="text-sm text-red-600 font-semibold mb-2">
+              Expires in: {timeLeft}
+            </Text>
 
-            {/* ✅ Underlined Read More */}
+            {/* Save Button */}
+            {!isExpired ? (
+              <TouchableOpacity
+                onPress={() => onSave(rock)}
+                className="w-full py-2 rounded-lg mb-2 items-center"
+                style={{ backgroundColor: "#459B6C" }}
+              >
+                <Text className="text-white font-bold text-base">
+                  Save to Collection
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Text className="text-gray-500 mb-2">Rock expired</Text>
+            )}
+
+            {/* Read More */}
             <TouchableOpacity
               onPress={() =>
                 router.push({
@@ -149,9 +190,7 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
               }
               className="mb-4"
             >
-              <Text className="text-black underline font-semibold">
-                Read More
-              </Text>
+              <Text className="text-black underline font-semibold">Read More</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>

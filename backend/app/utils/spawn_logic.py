@@ -1,27 +1,22 @@
 import random
 from functools import lru_cache
 
-# Optional: Cache rock list if it doesn't change often (invalidate manually on add/update)
+# Cache rock list to avoid repeated DB queries
 @lru_cache(maxsize=1)
 def get_all_rocks():
     from app.entity.rock import Rock
     return Rock.query.all()
 
-def get_weighted_rock_choices(zone_profile, rock_list=None):
+
+def get_weighted_rock_choices(zone_profile, rock_list=None, mode="static"):
     """
-    Generate a list of weighted rock names for a given zone.
-    
-    Args:
-        zone_profile (dict): {
-            "key_rock": str,
-            "rock_type": str,
-            ...
-        }
-        rock_list (List[Rock], optional): If not provided, will use get_all_rocks()
-    
-    Returns:
-        List[str]: Weighted list of rock names to randomly choose from.
+    Generate a weighted list of rock names for spawning in a zone.
+
+    Modes:
+    - static (zone-wide cron spawn): 75% key rock, 20% same-type, 5% wildcard
+    - dynamic (on-demand near user): 90% key rock, 7% same-type, 3% wildcard
     """
+
     key_rock = zone_profile["key_rock"]
     rock_type = zone_profile["rock_type"]
 
@@ -31,18 +26,34 @@ def get_weighted_rock_choices(zone_profile, rock_list=None):
 
     choices = []
 
+    # Determine weighting based on mode
+    if mode == "dynamic":
+        key_weight = 90
+        same_type_weight = 7
+        wildcard_weight = 3
+    else:  # static
+        key_weight = 75
+        same_type_weight = 20
+        wildcard_weight = 5
+
     if key_rock_exists:
-        # 65% key rock, 25% other same-type, 10% random other-type
-        choices += [key_rock] * 75
+        # Key rock weight
+        choices += [key_rock] * key_weight
+
+        # Same-type rocks (excluding key rock)
         others = [r.rock_name for r in rocks_of_type if r.rock_name != key_rock]
         if others:
-            choices += random.choices(others, k=20)
+            choices += random.choices(others, k=same_type_weight)
         else:
-            choices += [key_rock] * 25  # fallback
+            choices += [key_rock] * same_type_weight  # fallback
+
+        # Wildcard (different types)
         wildcard_pool = [r.rock_name for r in rock_list if r.rock_type != rock_type]
         if wildcard_pool:
-            choices += random.choices(wildcard_pool, k=5)
+            choices += random.choices(wildcard_pool, k=wildcard_weight)
+
     else:
+        # No key rock → fallback to all same-type
         type_rocks = [r.rock_name for r in rocks_of_type]
         if not type_rocks:
             return []
@@ -53,14 +64,7 @@ def get_weighted_rock_choices(zone_profile, rock_list=None):
 
 def generate_grid_sample(bounds, num_points):
     """
-    Generate a grid of lat/lng points with slight randomness.
-    
-    Args:
-        bounds (tuple): ((lat_min, lng_min), (lat_max, lng_max))
-        num_points (int): Desired number of points
-
-    Returns:
-        List[Tuple[float, float]]
+    Generate randomized grid points within zone bounds.
     """
     lat_min, lng_min = bounds[0]
     lat_max, lng_max = bounds[1]
@@ -78,7 +82,7 @@ def generate_grid_sample(bounds, num_points):
             base_lat = lat_min + i * lat_step
             base_lng = lng_min + j * lng_step
 
-            # Add randomness
+            # Add randomness for natural distribution
             lat = base_lat + random.uniform(0, lat_step)
             lng = base_lng + random.uniform(0, lng_step)
             points.append((lat, lng))

@@ -27,7 +27,7 @@ def main():
     with app.app_context():
         import_entities()  # Ensure all models are loaded
         delete_expired_spawns()
-        spawn_all_zones(count_per_zone=30)  # Adjust count per zone as needed
+        spawn_all_zones(count_per_zone=15)  # Adjust count per zone as needed
         print("✅ Rock spawn refresh completed for all zones.")
 
 
