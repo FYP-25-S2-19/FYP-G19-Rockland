@@ -1,25 +1,8 @@
 from datetime import datetime
 from app.models import db
-from app.entity.user_rock_collection import UserRockCollection  # Optional if you want to auto-add to collection
+from app.entity.user_rock_collection import UserRockCollection
+from app.utils.geo import haversine
 
-"""
-Entity: UserRockSpawn
-
-This table tracks which users have collected which `RockSpawn` records.
-
-Each RockSpawn is a shared/public spawn (visible to all users),
-but this table creates a personal link between the user and the spawn,
-ensuring:
-- Each user can collect a given RockSpawn only once.
-- Collected spawns are time-stamped (collected_at).
-- This is used to prevent re-collecting and enable reward tracking.
-
-Typical flow:
-1. RockSpawn is generated on the map.
-2. User taps 'Collect'.
-3. A UserRockSpawn record is created.
-4. A UserRockCollection entry is also saved (source = "Discovered").
-"""
 
 class UserRockSpawn(db.Model):
     __tablename__ = "user_rock_spawn"
@@ -40,30 +23,62 @@ class UserRockSpawn(db.Model):
             "collected_at": self.collected_at.isoformat() if self.collected_at else None,
         }
 
+    # ------------------------------------
+    # Unified collection flow (validation + insert)
+    # ------------------------------------
     @classmethod
-    def create(cls, user_id: int, rock_spawn_id: int):
+    def collect_spawn_flow(cls, user_id: int, rock_spawn_id: int, user_lat: float, user_lng: float):
+        """
+        Full collection flow:
+        - Validate spawn existence & expiration
+        - Validate distance (150m)
+        - Prevent duplicate collection
+        - Insert UserRockSpawn + UserRockCollection with location info
+        """
+        from app.entity.rock_spawn import RockSpawn
+
         try:
+            spawn = RockSpawn.query.get(rock_spawn_id)
+            if not spawn:
+                return False, 404, "Spawn not found", None
+
+            # Expiration check
+            if spawn.expires_at < datetime.utcnow():
+                return False, 400, "Spawn expired", None
+
+            # Distance check (150m)
+            distance = haversine(user_lat, user_lng, spawn.latitude, spawn.longitude)
+            if distance > 150:
+                return False, 403, "Too far to collect this rock", None
+
+            # Duplicate check
+            if cls.has_already_collected(user_id, rock_spawn_id):
+                return False, 409, "Already collected", None
+
+            # Create UserRockSpawn record
             new_entry = cls(user_id=user_id, rock_spawn_id=rock_spawn_id)
             db.session.add(new_entry)
-            db.session.flush()  # Flush to get ID if needed before additional inserts
+            db.session.flush()  # needed for auto IDs
 
-            # Optional: auto-add to UserRockCollection
-            from app.entity.rock_spawn import RockSpawn
-            spawn = RockSpawn.query.get(rock_spawn_id)
-            if spawn:
-                UserRockCollection.add_to_collection(
-                    user_id=user_id,
-                    rock_id=spawn.rock_id,
-                    source="Discovered"
-                )
+            # Add to UserRockCollection with location details
+            UserRockCollection.add_to_collection(
+                user_id=user_id,
+                rock_id=spawn.rock_id,
+                source="discovered",
+                latitude=spawn.latitude,
+                longitude=spawn.longitude,
+                location_name=spawn.location_name
+            )
 
             db.session.commit()
-            return True, 201, "Rock spawn collected", new_entry
+            return True, 200, "Rock collected", new_entry
+
         except Exception as e:
             db.session.rollback()
-            print(f"Error creating UserRockSpawn: {e}")
+            print(f"❌ Error in collect_spawn_flow: {e}")
             return False, 500, f"Error: {str(e)}", None
 
     @classmethod
     def has_already_collected(cls, user_id: int, rock_spawn_id: int) -> bool:
+        """Check if the user already collected this spawn"""
         return cls.query.filter_by(user_id=user_id, rock_spawn_id=rock_spawn_id).first() is not None

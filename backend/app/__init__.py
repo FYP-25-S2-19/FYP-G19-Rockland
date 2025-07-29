@@ -275,9 +275,11 @@ def create_app():
     # SPAWN (ROCK SPAWN)
     from .controller.spawn.get_nearby_spawns_controller import get_nearby_spawns_blueprint
     from .controller.spawn.collect_spawn_controller import collect_spawn_blueprint
+    from .controller.spawn.refresh_spawn_controller import refresh_spawn_blueprint
 
     app.register_blueprint(get_nearby_spawns_blueprint)
     app.register_blueprint(collect_spawn_blueprint)
+    app.register_blueprint(refresh_spawn_blueprint)
 
     # SUBSCRIPTION PLAN
     from .controller.subscriptionplan.view_subscription_plan_controller import view_subscription_plan_blueprint
