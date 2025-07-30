@@ -1,0 +1,19 @@
+runtime: python39
+
+env_variables:
+  JWT_SECRET: "your-super-secret-jwt-key-here-make-it-long-and-random-123456789"
+  CLOUD_SQL_DATABASE_URL: "postgresql://rockland_user:rockland123@34.87.38.175:5432/rockland"
+  PRODUCTION_DATABASE_URL: "postgresql://rockland_user:rockland123@34.87.38.175:5432/rockland"
+  FLASK_ENV: "production"
+  GCS_BUCKET_NAME: "rocklandapp"
+  STRIPE_SECRET_KEY: "sk_test_51Rk7VAFTkP3JhCq4kr4pBvHWy465oOdDQuIbOhulzSeI9fKjsW8OTgcsgDyjkA7R784SW6cqRLS6etDEG6M5PYsQ00tAkFCDz5"
+  STRIPE_WEBHOOK_SECRET: "whsec_bH2m6xXmYJ2gzu8yRFa294a5pfpOuEY0"
+  EMAIL_USER: "fyprockland@gmail.com"
+  EMAIL_PASSWORD: "ccyf xmqg ltaj thzv"
+  SMTP_SERVER: "smtp.gmail.com"
+  SMTP_PORT: "587"
+  FROM_NAME: "Rockland"
+
+automatic_scaling:
+  min_instances: 1
+  max_instances: 10

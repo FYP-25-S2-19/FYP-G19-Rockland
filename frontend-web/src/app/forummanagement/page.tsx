@@ -68,6 +68,8 @@ type ViewMode = "list" | "detail"
 type ForumType = "Articles" | "Discussion"
 
 export default function ForumManagement() {
+  // API Configuration
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
   const router = useRouter()
   const [forumType, setForumType] = useState<ForumType>("Articles")
   const [viewMode, setViewMode] = useState<ViewMode>("list")
@@ -127,7 +129,7 @@ export default function ForumManagement() {
         return
       }
 
-      const response = await fetch('http://localhost:5000/api/articles/admin/all', {
+      const response = await fetch(`${API_BASE_URL}/api/articles/admin/all`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +167,7 @@ export default function ForumManagement() {
         return
       }
 
-      const response = await fetch('http://localhost:5000/api/discussions/admin/all', {
+      const response = await fetch(`${API_BASE_URL}/api/discussions/admin/all`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -199,7 +201,7 @@ export default function ForumManagement() {
         return false
       }
 
-      const response = await fetch(`http://localhost:5000/api/articles/delete/${articleId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/articles/delete/${articleId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -234,7 +236,7 @@ export default function ForumManagement() {
         return false
       }
 
-      const response = await fetch(`http://localhost:5000/api/discussions/delete/${discussionId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/discussions/delete/${discussionId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

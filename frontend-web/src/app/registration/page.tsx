@@ -13,8 +13,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
-import Image from "next/image";
+import { 
+  ChevronLeft, 
+  Eye, 
+  EyeOff, 
+  AlertCircle, 
+  Loader2, 
+  Mail, 
+  CheckCircle,
+  Shield
+} from "lucide-react";
 
 // Interface for Interest data
 interface Interest {
@@ -26,17 +34,28 @@ interface Interest {
 }
 
 export default function RegistrationPage() {
+  // API configuration
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // 1: Email Verification, 2: Account Setup, 3: Profile Setup
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
+
+  // Email verification states
+  const [emailForVerification, setEmailForVerification] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isCodeSent, setIsCodeSent] = useState(false);
+  const [canResend, setCanResend] = useState(true);
+  const [resendTimer, setResendTimer] = useState(0);
 
   // State for dynamic interests from database
   const [availableInterests, setAvailableInterests] = useState<Interest[]>([]);
-  const [interestsLoading, setInterestsLoading] = useState(true);
+  const [interestsLoading, setInterestsLoading] = useState(false);
   const [interestsError, setInterestsError] = useState("");
 
   const [formData, setFormData] = useState({
@@ -52,65 +71,195 @@ export default function RegistrationPage() {
     plan: "Free Plan",
   });
 
-  // Fetch interests from database on component mount
+  // Fetch interests when reaching step 3
   useEffect(() => {
-    const fetchInterests = async () => {
-      try {
-        setInterestsLoading(true);
-        setInterestsError("");
+    if (step === 3) {
+      const fetchInterests = async () => {
+        try {
+          setInterestsLoading(true);
+          setInterestsError("");
 
-        const response = await fetch(
-          "http://localhost:5000/api/interests/all",
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
+          const response = await fetch(
+            `${API_BASE_URL}/api/interests/all`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            setAvailableInterests(data.interests);
+          } else {
+            setInterestsError(data.error || "Failed to load interests");
           }
-        );
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          setAvailableInterests(data.interests);
-        } else {
-          setInterestsError(data.error || "Failed to load interests");
+        } catch (error) {
+          console.error("Error fetching interests:", error);
+          setInterestsError("Unable to connect to server");
+        } finally {
+          setInterestsLoading(false);
         }
-      } catch (error) {
-        console.error("Error fetching interests:", error);
-        setInterestsError("Unable to connect to server");
-      } finally {
-        setInterestsLoading(false);
-      }
-    };
+      };
 
-    fetchInterests();
-  }, []);
+      fetchInterests();
+    }
+  }, [step]);
+
+  // Resend timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((timer) => timer - 1);
+      }, 1000);
+    } else if (resendTimer === 0) {
+      setCanResend(true);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer]);
 
   const toggleInterest = (interest: string) => {
     if (interests.includes(interest)) {
       setInterests(interests.filter((i) => i !== interest));
     } else {
-      // Only allow selecting if less than 3 interests are selected
       if (interests.length < 3) {
         setInterests([...interests, interest]);
       }
     }
   };
 
-  const validateStep1 = () => {
+  // Step 1: Email Verification Functions
+  const handleSendVerificationCode = async () => {
+    setError("");
+    setSuccess("");
+    setIsLoading(true);
+
+    if (!emailForVerification.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailForVerification)) {
+      setError("Please enter a valid email address");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/send-verification-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: emailForVerification.toLowerCase().trim(),
+          name: "User"
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsCodeSent(true);
+        setSuccess("Verification code sent to your email!");
+        setCanResend(false);
+        setResendTimer(60);
+      } else {
+        setError(data.message || "Failed to send verification code");
+      }
+    } catch (error) {
+      console.error("Error sending verification code:", error);
+      setError("Unable to connect to server");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    setError("");
+    setSuccess("");
+    setIsLoading(true);
+
+    if (!verificationCode.trim() || verificationCode.length !== 6) {
+      setError("Please enter the 6-digit verification code");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify-email-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: emailForVerification.toLowerCase().trim(),
+          code: verificationCode.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsEmailVerified(true);
+        setFormData({ ...formData, email: emailForVerification.toLowerCase().trim() });
+        setSuccess("Email verified successfully!");
+        setTimeout(() => {
+          setStep(2);
+        }, 1500);
+      } else {
+        setError(data.message || "Invalid verification code");
+      }
+    } catch (error) {
+      console.error("Error verifying code:", error);
+      setError("Unable to connect to server");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!canResend) return;
+    
+    setError("");
+    setSuccess("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/resend-verification-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: emailForVerification.toLowerCase().trim(),
+          name: "User"
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSuccess("New verification code sent!");
+        setCanResend(false);
+        setResendTimer(60);
+      } else {
+        setError(data.message || "Failed to resend code");
+      }
+    } catch (error) {
+      console.error("Error resending code:", error);
+      setError("Unable to connect to server");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Step 2: Account Setup Validation
+  const validateStep2 = () => {
     setError("");
 
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
       setError("Please enter your first and last name");
-      return false;
-    }
-
-    if (
-      !formData.email.trim() ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
-    ) {
-      setError("Please enter a valid email address");
       return false;
     }
 
@@ -128,19 +277,25 @@ export default function RegistrationPage() {
   };
 
   const handleNext = () => {
-    if (validateStep1()) {
-      setStep(2);
+    if (step === 2 && validateStep2()) {
+      setStep(3);
     }
   };
 
   const handleBack = () => {
     if (step === 1) {
       router.push("/");
-    } else {
+    } else if (step === 2) {
       setStep(1);
+      setIsEmailVerified(false);
+      setIsCodeSent(false);
+      setVerificationCode("");
+    } else {
+      setStep(2);
     }
   };
 
+  // Step 3: Create Account
   const handleCreateAccount = async () => {
     setError("");
     setIsLoading(true);
@@ -162,9 +317,10 @@ export default function RegistrationPage() {
         )}-${dateParts[0].padStart(2, "0")}`;
       }
 
-      // ❗Always create as Free first (user_type_id: 2)
+      // Include verification code in request
       const requestData = {
-        email: formData.email.toLowerCase().trim(),
+        email: formData.email,
+        verification_code: verificationCode, // This is the key addition!
         password: formData.password,
         first_name: formData.firstName.trim(),
         last_name: formData.lastName.trim(),
@@ -179,7 +335,7 @@ export default function RegistrationPage() {
       console.log("Sending registration request:", requestData);
 
       const response = await fetch(
-        "http://localhost:5000/api/users/create_user",
+        `${API_BASE_URL}/api/users/create_user`,
         {
           method: "POST",
           headers: {
@@ -200,10 +356,10 @@ export default function RegistrationPage() {
           return;
         }
 
-        // ✅ If user selected Premium Plan, redirect to Stripe
+        // If user selected Premium Plan, redirect to Stripe
         if (formData.plan === "Premium Plan") {
           const stripeResponse = await fetch(
-            "http://localhost:5000/api/create-checkout-session",
+            `${API_BASE_URL}/api/create-checkout-session`,
             {
               method: "POST",
               headers: {
@@ -211,7 +367,7 @@ export default function RegistrationPage() {
               },
               body: JSON.stringify({
                 user_id: userId,
-                plan_id: 4, // Replace with your Premium plan_id
+                plan_id: 4,
               }),
             }
           );
@@ -226,16 +382,24 @@ export default function RegistrationPage() {
             setError("Stripe checkout session failed.");
           }
         } else {
-          // ✅ Free user — go to login
-          alert("Account created successfully! Please login.");
-          router.push("/login");
+          // Free user — go to login
+          setSuccess("Account created successfully! Redirecting to login...");
+          setTimeout(() => {
+            router.push("/login");
+          }, 2000);
         }
       } else {
         const errorMessage = data.message || "Registration failed";
         if (response.status === 409) {
           setError("An account with this email already exists");
         } else if (response.status === 400) {
-          if (errorMessage.includes("age")) {
+          if (errorMessage.includes("verification") || errorMessage.includes("verify")) {
+            setError("Email verification expired. Please verify your email again.");
+            setStep(1);
+            setIsEmailVerified(false);
+            setIsCodeSent(false);
+            setVerificationCode("");
+          } else if (errorMessage.includes("age")) {
             setError("You must be at least 13 years old to register");
           } else if (errorMessage.includes("date")) {
             setError("Please enter a valid date in DD/MM/YYYY format");
@@ -248,11 +412,27 @@ export default function RegistrationPage() {
       }
     } catch (error) {
       console.error("Registration error:", error);
-      setError(
-        "Unable to connect to server. Please ensure the backend is running."
-      );
+      setError("Unable to connect to server. Please ensure the backend is running.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const getStepTitle = () => {
+    switch (step) {
+      case 1: return "Step 1: Email Verification";
+      case 2: return "Step 2: Account Setup";
+      case 3: return "Step 3: Profile Setup";
+      default: return "Registration";
+    }
+  };
+
+  const getStepIcon = () => {
+    switch (step) {
+      case 1: return <Mail className="h-12 w-12 text-emerald-500 mx-auto mb-4" />;
+      case 2: return <Shield className="h-12 w-12 text-emerald-500 mx-auto mb-4" />;
+      case 3: return <span className="text-emerald-500 text-6xl mb-4 block">👤</span>;
+      default: return null;
     }
   };
 
@@ -280,11 +460,35 @@ export default function RegistrationPage() {
         </div>
 
         <h2 className="text-white text-4xl font-bold">REGISTRATION</h2>
+        
+        {/* Progress indicator */}
+        <div className="mt-8 flex space-x-2">
+          {[1, 2, 3].map((stepNumber) => (
+            <div
+              key={stepNumber}
+              className={`w-3 h-3 rounded-full transition-colors ${
+                stepNumber < step
+                  ? 'bg-green-300'
+                  : stepNumber === step
+                  ? 'bg-white'
+                  : 'bg-white/30'
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Right Side - Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl">
+          {/* Success Message */}
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-700">
+              <CheckCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span className="text-sm">{success}</span>
+            </div>
+          )}
+
           {/* Error Message */}
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center text-red-700">
@@ -293,12 +497,133 @@ export default function RegistrationPage() {
             </div>
           )}
 
-          {step === 1 ? (
+          {/* Step 1: Email Verification */}
+          {step === 1 && (
             <>
               <div className="text-center mb-6">
+                {getStepIcon()}
                 <h3 className="text-xl font-semibold text-gray-800">
-                  Step 1: Account Setup
+                  {getStepTitle()}
                 </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  We'll send a verification code to your email
+                </p>
+              </div>
+
+              {!isCodeSent ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="emailVerification" className="text-sm text-gray-600">
+                      Email Address
+                    </Label>
+                    <Input
+                      id="emailVerification"
+                      type="email"
+                      value={emailForVerification}
+                      onChange={(e) => setEmailForVerification(e.target.value)}
+                      className="mt-1 text-black"
+                      placeholder="your.email@example.com"
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleSendVerificationCode}
+                    disabled={isLoading}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Sending Code...
+                      </>
+                    ) : (
+                      "Send Verification Code"
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="verificationCode" className="text-sm text-gray-600">
+                      Verification Code
+                    </Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter the 6-digit code sent to {emailForVerification}
+                    </p>
+                    <Input
+                      id="verificationCode"
+                      type="text"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="mt-1 text-black text-center text-lg tracking-widest"
+                      placeholder="000000"
+                      maxLength={6}
+                      disabled={isLoading || isEmailVerified}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleVerifyCode}
+                    disabled={isLoading || verificationCode.length !== 6 || isEmailVerified}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : isEmailVerified ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Verified!
+                      </>
+                    ) : (
+                      "Verify Code"
+                    )}
+                  </Button>
+
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500">
+                      Didn't receive the code?{" "}
+                      <button
+                        onClick={handleResendCode}
+                        disabled={!canResend || isLoading}
+                        className="text-emerald-600 hover:text-emerald-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {canResend ? "Resend Code" : `Resend in ${resendTimer}s`}
+                      </button>
+                    </p>
+                  </div>
+
+                  <div className="text-center">
+                    <button
+                      onClick={() => {
+                        setIsCodeSent(false);
+                        setVerificationCode("");
+                        setEmailForVerification("");
+                      }}
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Change email address
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Step 2: Account Setup */}
+          {step === 2 && (
+            <>
+              <div className="text-center mb-6">
+                {getStepIcon()}
+                <h3 className="text-xl font-semibold text-gray-800">
+                  {getStepTitle()}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Email: {formData.email} ✓
+                </p>
               </div>
 
               <div className="space-y-4">
@@ -329,22 +654,6 @@ export default function RegistrationPage() {
                     }
                     className="mt-1 text-black"
                     placeholder="Enter your last name"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="email" className="text-sm text-gray-600">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className="mt-1 text-black"
-                    placeholder="your.email@example.com"
                   />
                 </div>
 
@@ -426,11 +735,15 @@ export default function RegistrationPage() {
                 Next
               </Button>
             </>
-          ) : (
+          )}
+
+          {/* Step 3: Profile Setup */}
+          {step === 3 && (
             <>
               <div className="text-center mb-6">
+                {getStepIcon()}
                 <h3 className="text-xl font-semibold text-gray-800">
-                  Step 2: Profiling
+                  {getStepTitle()}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
                   Tell us about yourself!
@@ -533,41 +846,41 @@ export default function RegistrationPage() {
                         {interestsError}. Please try again later.
                       </span>
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="mt-2 max-h-32 overflow-y-auto">
+                      <div className="grid grid-cols-2 gap-2 text-black">
+                        {availableInterests.map((interest) => {
+                          const isSelected = interests.includes(interest.title);
+                          const canSelect = interests.length < 3 || isSelected;
 
-                  <div className="mt-2 max-h-32 overflow-y-auto">
-                    <div className="grid grid-cols-2 gap-2 text-black">
-                      {availableInterests.map((interest) => {
-                        const isSelected = interests.includes(interest.title);
-                        const canSelect = interests.length < 3 || isSelected;
-
-                        return (
-                          <div
-                            key={interest.interest_id}
-                            className="flex items-center space-x-2"
-                          >
-                            <input
-                              type="checkbox"
-                              id={`interest-${interest.interest_id}`}
-                              checked={isSelected}
-                              onChange={() => toggleInterest(interest.title)}
-                              className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 disabled:opacity-50"
-                              disabled={interestsLoading || !canSelect}
-                            />
-                            <Label
-                              htmlFor={`interest-${interest.interest_id}`}
-                              className={`text-sm cursor-pointer ${
-                                !canSelect ? "opacity-50" : ""
-                              }`}
-                              title={interest.description || interest.title}
+                          return (
+                            <div
+                              key={interest.interest_id}
+                              className="flex items-center space-x-2"
                             >
-                              {interest.title}
-                            </Label>
-                          </div>
-                        );
-                      })}
+                              <input
+                                type="checkbox"
+                                id={`interest-${interest.interest_id}`}
+                                checked={isSelected}
+                                onChange={() => toggleInterest(interest.title)}
+                                className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 disabled:opacity-50"
+                                disabled={interestsLoading || !canSelect}
+                              />
+                              <Label
+                                htmlFor={`interest-${interest.interest_id}`}
+                                className={`text-sm cursor-pointer ${
+                                  !canSelect ? "opacity-50" : ""
+                                }`}
+                                title={interest.description || interest.title}
+                              >
+                                {interest.title}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {interests.length === 3 && (
                     <div className="mt-2 text-xs text-emerald-600">
@@ -659,7 +972,14 @@ export default function RegistrationPage() {
                 disabled={isLoading}
                 className="w-full mt-8 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-lg font-medium disabled:opacity-50"
               >
-                {isLoading ? "Creating Account..." : "Create Account"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </>
           )}
