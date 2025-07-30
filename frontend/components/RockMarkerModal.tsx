@@ -14,7 +14,7 @@ interface RockMarkerModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (spawnData: RockSpawn) => void;
-  onExpire?: () => void; // NEW: trigger refresh on expire
+  onExpire?: () => void; 
   rock: RockSpawn | null;
 }
 
