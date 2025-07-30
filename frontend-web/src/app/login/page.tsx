@@ -17,6 +17,9 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const router = useRouter()
 
+  // API configuration
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -25,7 +28,7 @@ export default function LoginPage() {
     try {
       console.log('Attempting login with:', { email, password: '***' })
       
-      const response = await fetch('http://localhost:5000/api/login/admin', {
+      const response = await fetch(`${API_BASE_URL}/api/login/admin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -20,6 +20,9 @@ interface SubscriptionPlan {
 }
 
 export default function PricingPage() {
+  
+   // API configuration
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
   // Dynamic subscription plans state
   const [subscriptionPlans, setSubscriptionPlans] = useState({
     free: null as SubscriptionPlan | null,
@@ -35,7 +38,7 @@ export default function PricingPage() {
         setSubscriptionLoading(true)
         setSubscriptionError(null)
         
-        const response = await fetch('http://localhost:5000/api/subscription-plans/public')
+        const response = await fetch(`${API_BASE_URL}/api/subscription-plans/public`)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
