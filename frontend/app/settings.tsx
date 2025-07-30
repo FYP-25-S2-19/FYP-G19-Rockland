@@ -33,7 +33,7 @@ export default function SettingsScreen() {
   };
 
   const handleUpdateInfo = () => {
-    console.log("Update Personal Information");
+    router.push("/profile");
   };
 
   const handleUpgrade = () => {
