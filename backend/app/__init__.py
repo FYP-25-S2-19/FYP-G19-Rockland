@@ -142,11 +142,14 @@ def create_app():
     from app.controller.quiz.view_quiz_controller import view_quiz_blueprint
     from app.controller.quiz.view_quizhistory_controller import view_quizhistory_blueprint
     from app.controller.quiz.manage_quiz_controller import manage_quiz_blueprint
+    from app.controller.quiz.upload_thumbnail_controller import upload_thumbnail_blueprint
+
 
     app.register_blueprint(create_quizattempt_blueprint)
     app.register_blueprint(view_quiz_blueprint)
     app.register_blueprint(view_quizhistory_blueprint)
     app.register_blueprint(manage_quiz_blueprint)
+    app.register_blueprint(upload_thumbnail_blueprint)
 
     # ACHIEVEMENTS
     from app.controller.achievements.collect_achievement_controller import collect_achievement_blueprint

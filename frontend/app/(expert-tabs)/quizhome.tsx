@@ -44,10 +44,28 @@ export default function ExpertQuizHome() {
     fetchQuizzes();
   }, []);
 
-  const handleDeleteConfirmed = (quizId: number) => {
-    console.log("TODO: connect to delete API for quiz ID:", quizId);
-    setShowDeleteModal(false);
-  };
+  const handleDeleteConfirmed = async (quizId: number) => {
+  try {
+    const token = await AsyncStorage.getItem("accessToken");
+    const res = await fetch(`${API_URL}/api/quizzes/${quizId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      // Remove deleted quiz from local state
+      setQuizzes((prev) => prev.filter((q) => q.quiz_id !== quizId));
+      setShowDeleteModal(false);
+    } else {
+      const error = await res.text();
+      console.error("Failed to delete quiz:", error);
+      alert("❌ Failed to delete quiz.");
+    }
+  } catch (err) {
+    console.error("Delete error:", err);
+    alert("❌ An error occurred while deleting the quiz.");
+  }
+};
 
   const filteredQuizzes = quizzes.filter((quiz) =>
     quiz.title.toLowerCase().includes(searchText.toLowerCase())
@@ -57,9 +75,6 @@ export default function ExpertQuizHome() {
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
       <View className="flex-row items-center justify-center px-4 pt-4 mb-4 relative">
-        <TouchableOpacity onPress={() => router.back()} className="absolute left-4 mt-2">
-          <BackIcon width={24} height={24} />
-        </TouchableOpacity>
         <Text className="text-xl font-bold">My Quizzes</Text>
       </View>
 

@@ -315,6 +315,38 @@ class Article(db.Model):
         except Exception as e:
             print(f"Error fetching article by ID for user: {e}")
             return None, 500, f"Internal error: {str(e)}"
+        
+    @classmethod
+    def getArticlesByAuthor(cls, author_id: int, limit: int = 6):
+        """Get latest `limit` articles by specific author (used for profile/preview)"""
+        try:
+            articles = (
+                cls.query.filter_by(user_id=author_id)
+                .order_by(cls.date_created.desc())
+                .limit(limit)
+                .all()
+            )
+            articles_data = [article.to_dict() for article in articles]
+            return articles_data, 200, f"Top {limit} articles by author {author_id}"
+        except Exception as e:
+            print(f"Error fetching articles by author: {e}")
+            return None, 500, f"Error: {str(e)}"
+
+    @classmethod
+    def getAllArticlesByAuthor(cls, author_id: int):
+        """Get all articles by specific author (full history)"""
+        try:
+            articles = (
+                cls.query.filter_by(user_id=author_id)
+                .order_by(cls.date_created.desc())
+                .all()
+            )
+            articles_data = [article.to_dict() for article in articles]
+            return articles_data, 200, f"All articles by author {author_id}"
+        except Exception as e:
+            print(f"❌ Error fetching all articles by author: {e}")
+            return None, 500, f"Error: {str(e)}"
+
 
     @classmethod
     def query_all_preview_only(cls):

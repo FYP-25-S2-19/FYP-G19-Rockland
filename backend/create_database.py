@@ -3,7 +3,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 DB_NAME = "rockland"  # Changed to lowercase to match config.py
 DB_USER = "postgres"
-DB_PASSWORD = "admin"
+DB_PASSWORD = "111111"
 DB_HOST = "localhost"
 DB_PORT = "5432"
 
