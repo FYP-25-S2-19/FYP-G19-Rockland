@@ -75,16 +75,27 @@ export default function CreateQuiz() {
           type: `image/${filename?.split(".").pop()}`,
         } as any);
 
-        const uploadRes = await fetch(`${API_URL}/api/upload/quiz_thumbnail`, {
+        const uploadRes = await fetch(`${API_URL}/api/upload-thumbnail`, {
           method: "POST",
           headers: {
-            ...headers,
-            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
           },
           body: formData,
         });
 
-        const uploadData = await uploadRes.json();
+        const uploadText = await uploadRes.text(); // get raw text for debugging
+
+        console.log("📦 Upload response status:", uploadRes.status);
+        console.log("📦 Upload response text:", uploadText);
+
+        if (!uploadRes.ok) {
+          console.error("❌ Upload failed with status", uploadRes.status, uploadText);
+          throw new Error("Thumbnail upload failed.");
+        }
+
+
+
+        const uploadData = JSON.parse(uploadText);
         thumbnailBlobPath = uploadData.blob_path || "";
       }
 
