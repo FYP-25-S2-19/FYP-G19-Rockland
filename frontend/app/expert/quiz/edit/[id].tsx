@@ -7,7 +7,6 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Modal,
-  Image,
   Alert,
   ActivityIndicator,
 } from "react-native";
@@ -50,17 +49,19 @@ export default function EditQuiz() {
 
         setQuizTitle(quiz.title);
         setQuizDescription(quiz.description);
-        setThumbnail(null); // Removed thumbnail_blob_path reference
+        setThumbnail(null);
         setQuestions(
-          quiz.questions.map((q: any) => ({
-            question: q.question_text,
-            options: q.options.map((opt: any) => opt.option_text),
-            correctAnswerIndex: q.options.findIndex(
-              (opt: any) => opt.is_correct
-            ),
-            points: q.points,
-          }))
-        );
+  quiz.questions.map((q: any) => ({
+    question_id: q.question_id,
+    question: q.question_text,
+    points: q.points,
+    correctAnswerIndex: q.options.findIndex((opt: any) => opt.is_correct),
+    options: q.options.map((opt: any) => ({
+      option_id: opt.option_id,
+      option_text: opt.option_text,
+    })),
+  }))
+);
       } catch (err) {
         console.error("❌ Failed to fetch quiz:", err);
         Alert.alert("❌ Error loading quiz");
@@ -83,26 +84,37 @@ export default function EditQuiz() {
   };
 
   const handleSave = async () => {
-    try {
-      const token = await AsyncStorage.getItem("accessToken");
-      const headers = { Authorization: `Bearer ${token}` };
+  try {
+    const token = await AsyncStorage.getItem("accessToken");
+    const headers = { Authorization: `Bearer ${token}` };
 
-      await axios.put(
-        `${API_URL}/api/quizzes/${id}`,
-        {
-          title: quizTitle,
-          description: quizDescription,
-        },
-        { headers }
-      );
+    const formattedQuestions = questions.map((q) => ({
+  question_id: q.question_id, // include if available
+  question_text: q.question,
+  points: q.points,
+  options: q.options.map((opt, idx) => ({
+    option_id: opt.option_id, // include if available
+    option_text: opt.option_text ?? opt, // fallback for new ones
+    is_correct: idx === q.correctAnswerIndex,
+  })),
+}));
 
-      Alert.alert("✅ Quiz updated!");
-      router.push("/(expert-tabs)/quizhome");
-    } catch (err) {
-      console.error("Update failed", err);
-      Alert.alert("❌ Failed to update quiz");
-    }
-  };
+    const payload = {
+      title: quizTitle,
+      description: quizDescription,
+      questions: formattedQuestions,
+    };
+
+    console.log("Sending payload:", payload); // 👈 Add this to debug
+    await axios.put(`${API_URL}/api/quizzes/${id}`, payload, { headers });
+
+    Alert.alert("✅ Quiz updated!");
+    router.push("/(expert-tabs)/quizhome");
+  } catch (err) {
+    console.error("Update failed", err);
+    Alert.alert("❌ Failed to update quiz");
+  }
+};
 
   const handleDelete = async () => {
     try {
@@ -137,33 +149,32 @@ export default function EditQuiz() {
 
   return (
     <SafeAreaView className="flex-1 bg-white px-4 pt-4">
-      <TextInput
-        placeholder="Search quizzes..."
-        value={searchText}
-        onChangeText={setSearchText}
-        onSubmitEditing={handleSearch}
-        className="border p-2 rounded mb-4"
-      />
 
       <View className="flex-row justify-between items-center mb-4">
-        <TouchableOpacity
-          onPress={() => {
-            if (quizTitle || quizDescription || questions.length) {
-              setShowExitModal(true);
-            } else {
-              router.back();
-            }
-          }}
-        >
-          <BackIcon width={24} height={24} />
-        </TouchableOpacity>
-        <Text className="text-xl font-bold">Edit Quiz</Text>
-        <TouchableOpacity onPress={handleSave}>
-          <Text className="text-green-600 font-semibold text-base">Save</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleDelete}>
-          <Text className="text-red-600 font-semibold text-base">Delete</Text>
-        </TouchableOpacity>
+        <View className="flex-row items-center space-x-2 pl-5">
+          <TouchableOpacity
+            onPress={() => {
+              if (quizTitle || quizDescription || questions.length) {
+                setShowExitModal(true);
+              } else {
+                router.back();
+              }
+            }}
+          >
+            <BackIcon width={24} height={24} />
+          </TouchableOpacity>
+          <Text className="text-xl font-bold pl-2">Edit Quiz</Text>
+        </View>
+
+
+        <View className="flex-row items-center pr-5">
+          <TouchableOpacity onPress={handleDelete} className="ml-4 mr-5">
+            <Text className="text-red-600 font-semibold text-base">Delete</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleSave}>
+            <Text className="text-green-600 font-semibold text-base">Save</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
@@ -226,15 +237,16 @@ export default function EditQuiz() {
                   />
                 </TouchableOpacity>
                 <TextInput
-                  value={option}
-                  onChangeText={(text) => {
-                    const updated = [...questions];
-                    updated[index].options[optIdx] = text;
-                    setQuestions(updated);
-                  }}
-                  placeholder={`Option ${optIdx + 1}`}
-                  className="flex-1 border-b border-gray-300 text-base"
-                />
+  value={option.option_text}
+  onChangeText={(text) => {
+    const updated = [...questions]; // ✅ define updated
+    updated[index].options[optIdx].option_text = text;
+    setQuestions(updated);
+  }}
+  placeholder={`Option ${optIdx + 1}`}
+  className="flex-1 border-b border-gray-300 text-base"
+/>
+
                 <TouchableOpacity
                   className="ml-2"
                   onPress={() => {
@@ -252,7 +264,7 @@ export default function EditQuiz() {
               <TouchableOpacity
                 onPress={() => {
                   const updated = [...questions];
-                  updated[index].options.push("");
+                  updated[index].options.push({ option_text: "", option_id: null });
                   setQuestions(updated);
                 }}
               >
@@ -288,6 +300,20 @@ export default function EditQuiz() {
           </View>
         ))}
       </ScrollView>
+
+      <TouchableOpacity
+        onPress={() => {
+          if (questions.length < 50) {
+            setQuestions([
+              ...questions,
+              { question: "", options: [""], correctAnswerIndex: null, points: 0 },
+            ]);
+          }
+        }}
+        className="absolute bottom-6 right-6 bg-green-600 p-4 rounded-full"
+      >
+        <PlusIcon width={24} height={24} fill="white" />
+      </TouchableOpacity>
 
       <Modal
         visible={showExitModal}
