@@ -42,6 +42,8 @@ class User(db.Model):
     # Relationship with UserType model
     user_type = db.relationship('UserType', backref='users')
 
+    rock_collection = db.relationship("UserRockCollection", backref="user", lazy=True)
+
     # Many-to-many relationship with Interest using association table
     interests = db.relationship('Interest', 
                               secondary=user_interest_association,

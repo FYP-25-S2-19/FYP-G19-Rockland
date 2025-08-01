@@ -1,516 +1,410 @@
-"use client";
-import { useRouter } from "expo-router"
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
+  FlatList,
   TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  Image,
+  Alert,
+  TextInput,
   Modal,
+  StyleSheet,
+  Pressable,
+  ScrollView
 } from "react-native";
-import Amethyst from "../assets/images/Amethyst.jpg";
-import Quartz from "../assets/images/Quartz.webp";
-import Obsidian from "../assets/images/Obsidian.webp";
-import Granite from "../assets/images/Granite.webp";
-import BackIcon from "../assets/images/back.svg"
+import { useRouter } from "expo-router";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import BackIcon from "../assets/images/back.svg";
+import { Picker } from "@react-native-picker/picker";
 
-// Rock type definitions
+
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
 type Rock = {
-  id: string;
-  name: string;
-  category: string;
-  image: any; // Changed to any to handle imported images
-  rarity: "Common" | "Rare" | "Legendary";
-  country: string;
+  id?: number;
+  rock_id?: number;
+  name: string;       
+  type: string;
+  rarity?: string;
+  category?: string;
+  location?: string;
 };
 
-type FilterState = {
-  categories: string[];
-  countries: string[];
-  rarity: string[];
-  sortBy: string;
-};
+export default function TradeCreate() {
+  const router = useRouter();
 
-export default function CreateTradeOfferScreen() {
-  const router = useRouter()
-  const [step, setStep] = useState<1 | 2>(1);
-  const [selectedRockToGive, setSelectedRockToGive] = useState<Rock | null>(
-    null
-  );
-  const [selectedRockToReceive, setSelectedRockToReceive] =
-    useState<Rock | null>(null);
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [filters, setFilters] = useState<FilterState>({
-    categories: ["Igneous Rock"],
-    countries: ["Brazil"],
-    rarity: [],
-    sortBy: "A-Z",
+  const [step, setStep] = useState<"give" | "receive">("give");
+  const [userRocks, setUserRocks] = useState<Rock[]>([]);
+  const [allRocks, setAllRocks] = useState<Rock[]>([]);
+  const [selectedGive, setSelectedGive] = useState<Rock | null>(null);
+  const [selectedReceive, setSelectedReceive] = useState<Rock | null>(null);
+  const [search, setSearch] = useState("");
+  const [rarity, setRarity] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<"recent" | "alphabet">("recent");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
+  const [filterVisible, setFilterVisible] = useState(false);
+
+  useEffect(() => {
+  const fetchUserRocks = async () => {
+    const token = await AsyncStorage.getItem("accessToken");
+    const res = await axios.get(`${API_URL}/api/collection/my`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // Normalize to Rock[]
+    const normalized = res.data.collection.map((rock: any) => ({
+      id: rock.collection_id,
+      rock_id: rock.rock_id,
+      name: rock.rock_name,
+      type: rock.rock_type,
+      rarity: rock.rock_rarity,
+      category: rock.rock_category,
+      location: rock.location_name,
+    }));
+
+    setUserRocks(normalized);
+  };
+
+  const fetchAllRocks = async () => {
+    const res = await axios.get(`${API_URL}/api/rocks`);
+    const normalized = res.data.data.map((rock: any) => ({
+      rock_id: rock.rock_id,
+      name: rock.rock_name,
+      type: rock.rock_type,
+      rarity: rock.rarity,
+      category: rock.category,
+      location: rock.location_name,
+    }));
+
+    setAllRocks(normalized);
+  };
+
+  fetchUserRocks();
+  fetchAllRocks();
+}, []);
+
+  const handleSubmitTrade = async () => {
+    const token = await AsyncStorage.getItem("accessToken");
+
+    if (!selectedGive || !selectedReceive) {
+      Alert.alert("Please select both rocks before submitting.");
+      return;
+    }
+
+    try {
+      await axios.post(
+        `${API_URL}/api/trade/create`,
+        {
+          collection_id_offered: selectedGive.id,
+          rock_id_requested: selectedReceive.rock_id,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      Alert.alert("Success", "The trade offer has been created successfully", [
+        {
+          text: "OK",
+          onPress: () => router.replace("/tradelist?tab=myoffers"),
+        },
+      ]);
+    } catch (err: any) {
+      console.error("❌ Error response:", err.response?.data || err.message);
+      Alert.alert("Error", err.response?.data?.message || "Failed to create trade offer.");
+    }
+  };
+
+  const toggleChip = (value: string, list: string[], setList: Function) => {
+    if (list.includes(value)) {
+      setList(list.filter((item) => item !== value));
+    } else {
+      setList([...list, value]);
+    }
+  };
+
+  const filteredList = (step === "give" ? userRocks : allRocks || [])
+  .filter((rock) =>
+    (rock.name || "").toLowerCase().includes(search.toLowerCase())
+  )
+  .filter((rock) => !rarity || rock.rarity === rarity)
+  .filter(
+    (rock) =>
+      categories.length === 0 ||
+      categories.includes(rock.category || "")
+  )
+  .filter(
+    (rock) =>
+      locations.length === 0 ||
+      locations.includes(rock.location || "")
+  )
+  .sort((a, b) => {
+    if (sortBy === "alphabet") {
+      return a.name.localeCompare(b.name);
+    }
+    return 0;
   });
 
-  // Sample rock data with imported images
-  const availableRocks: Rock[] = [
-    {
-      id: "1",
-      name: "Granite Boulder",
-      category: "Igneous Rock",
-      image: Granite,
-      rarity: "Common",
-      country: "Brazil",
-    },
-    {
-      id: "2",
-      name: "Amethyst Cluster",
-      category: "Crystals",
-      image: Amethyst,
-      rarity: "Rare",
-      country: "Brazil",
-    },
-    {
-      id: "3",
-      name: "Obsidian Shard",
-      category: "Igneous Rock",
-      image: Obsidian,
-      rarity: "Common",
-      country: "Indonesia",
-    },
-    {
-      id: "4",
-      name: "Diamond Crystal",
-      category: "Crystals",
-      image: Quartz, // Using Quartz as placeholder for Diamond
-      rarity: "Legendary",
-      country: "South Africa",
-    },
-    {
-      id: "5",
-      name: "Rose Quartz",
-      category: "Crystals",
-      image: Quartz,
-      rarity: "Common",
-      country: "Madagascar",
-    },
-    {
-      id: "6",
-      name: "Basalt Column",
-      category: "Igneous Rock",
-      image: Obsidian, // Using Obsidian as placeholder for Basalt
-      rarity: "Rare",
-      country: "Iceland",
-    },
-    {
-      id: "7",
-      name: "Emerald Gem",
-      category: "Crystals",
-      image: Amethyst, // Using Amethyst as placeholder for Emerald
-      rarity: "Legendary",
-      country: "Colombia",
-    },
-    {
-      id: "8",
-      name: "Pumice Stone",
-      category: "Igneous Rock",
-      image: Granite, // Using Granite as placeholder for Pumice
-      rarity: "Common",
-      country: "Italy",
-    },
-  ];
-
-  const handleBack = () => {
-    if (step === 2) {
-      setStep(1);
-      setSelectedRockToReceive(null);
-    } else {
-      router.back();
-    }
-  };
-
-  const handleRockSelect = (rock: Rock) => {
-    if (step === 1) {
-      setSelectedRockToGive(rock);
-    } else {
-      setSelectedRockToReceive(rock);
-    }
-  };
-
-  const handleNextStep = () => {
-    if (step === 1 && selectedRockToGive) {
-      setStep(2);
-    }
-  };
-
-  const handleCreateTradeOffer = () => {
-    if (selectedRockToGive && selectedRockToReceive) {
-      console.log(
-        "Create trade offer:",
-        selectedRockToGive.name,
-        "for",
-        selectedRockToReceive.name
-      );
-    }
-  };
-
-  const handleShowFilter = () => {
-    setShowFilterModal(true);
-  };
-
-  const handleApplyFilter = () => {
-    setShowFilterModal(false);
-    console.log("Apply filters:", filters);
-  };
-
-  const handleResetFilter = () => {
-    setFilters({
-      categories: [],
-      countries: [],
-      rarity: [],
-      sortBy: "A-Z",
-    });
-  };
-
-  const removeFilterTag = (type: keyof FilterState, value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [type]: prev[type].filter((item) => item !== value),
-    }));
-  };
-
-  const addFilterTag = (type: keyof FilterState, value: string) => {
-    if (type === "rarity") {
-      setFilters((prev) => ({
-        ...prev,
-        [type]: prev[type].includes(value)
-          ? prev[type].filter((item) => item !== value)
-          : [...prev[type], value],
-      }));
-    }
-  };
-
-  // Helper function to get image source
-  const getImageSource = (image: any) => {
-    if (typeof image === "string") {
-      return { uri: image };
-    }
-    return image;
-  };
-
-  // Filter and sort rocks
-  const filteredRocks = availableRocks
-    .filter((rock) => {
-      if (
-        filters.categories.length > 0 &&
-        !filters.categories.includes(rock.category)
-      )
-        return false;
-      if (
-        filters.countries.length > 0 &&
-        !filters.countries.includes(rock.country)
-      )
-        return false;
-      if (filters.rarity.length > 0 && !filters.rarity.includes(rock.rarity))
-        return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (filters.sortBy === "A-Z") return a.name.localeCompare(b.name);
-      if (filters.sortBy === "Rarity") {
-        const rarityOrder = { Common: 1, Rare: 2, Legendary: 3 };
-        return rarityOrder[b.rarity] - rarityOrder[a.rarity];
-      }
-      return 0;
-    });
-
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case "Legendary":
-        return "text-yellow-600";
-      case "Rare":
-        return "text-purple-600";
-      default:
-        return "text-gray-600";
-    }
-  };
-
-  const renderRockItem = (rock: Rock) => {
-    const isSelected =
-      step === 1
-        ? selectedRockToGive?.id === rock.id
-        : selectedRockToReceive?.id === rock.id;
-
-    return (
-      <TouchableOpacity
-        key={rock.id}
-        className="bg-white rounded-lg p-4 mb-3 border border-gray-200 shadow-sm"
-        onPress={() => handleRockSelect(rock)}
-      >
-        <View className="flex-row items-center">
-          <Image
-            source={getImageSource(rock.image)}
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: 8,
-              marginRight: 16,
-            }}
-            resizeMode="cover"
-          />
-          <View className="flex-1">
-            <Text className="text-gray-900 font-semibold text-base mb-1">
-              {rock.name}
-            </Text>
-            <Text className="text-gray-600 text-sm mb-1">{rock.category}</Text>
-            <Text
-              className={`text-xs font-medium ${getRarityColor(rock.rarity)}`}
-            >
-              {rock.rarity}
-            </Text>
-          </View>
-          <View
-            className={`w-6 h-6 rounded-full border-2 ${isSelected ? "border-green-500 bg-green-500" : "border-gray-300"} items-center justify-center`}
-          >
-            {isSelected && <Text className="text-white text-xs">✓</Text>}
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      {/* Top Navigation */}
-      <View className="bg-white border-b border-gray-200 px-4 py-4 relative items-center justify-center">
-        <TouchableOpacity 
-          onPress={handleBack} 
-          className="absolute left-4 top-4"
-          style={{ zIndex: 10 }}
-        >
-          <BackIcon width={24} height={24} />
-        </TouchableOpacity>
+  <View style={styles.container}> 
 
-        <Text className="text-gray-900 font-semibold text-lg">Create Trade Offer</Text>
-      </View>
+    <View style={styles.header}>
+      <TouchableOpacity onPress={() => {
+        if (step === "give") {
+          router.back();
+        } else {
+          setStep("give");
+        }
+      }} style={styles.backButton}>
+        <BackIcon width={30} height={24} />
+      </TouchableOpacity>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Rock Summary Section */}
-        <View className="bg-gray-100 mx-4 mt-4 rounded-lg p-4">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1 items-center">
-              <Text className="text-gray-600 text-sm mb-2">Trading:</Text>
-              {selectedRockToGive ? (
-                <View className="items-center">
-                  <Image
-                    source={getImageSource(selectedRockToGive.image)}
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 8,
-                      marginBottom: 4,
-                    }}
-                    resizeMode="cover"
-                  />
-                  <Text className="text-gray-900 text-xs font-medium text-center">
-                    {selectedRockToGive.name}
-                  </Text>
-                </View>
-              ) : (
-                <View className="w-12 h-12 bg-gray-300 rounded-lg items-center justify-center">
-                  <Text className="text-gray-500 text-xs">?</Text>
-                </View>
-              )}
-            </View>
-            <Text className="text-gray-400 text-lg mx-4">⇄</Text>
-            <View className="flex-1 items-center">
-              <Text className="text-gray-600 text-sm mb-2">For:</Text>
-              {selectedRockToReceive ? (
-                <View className="items-center">
-                  <Image
-                    source={getImageSource(selectedRockToReceive.image)}
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 8,
-                      marginBottom: 4,
-                    }}
-                    resizeMode="cover"
-                  />
-                  <Text className="text-gray-900 text-xs font-medium text-center">
-                    {selectedRockToReceive.name}
-                  </Text>
-                </View>
-              ) : (
-                <View className="w-12 h-12 bg-gray-300 rounded-lg items-center justify-center">
-                  <Text className="text-gray-500 text-xs">?</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
+      <Text style={styles.title}>
+        {step === "give" ? "Select A Rock to Give" : "Select A Rock to Receive"}
+      </Text>
+    </View>
 
-        {/* Section Header */}
-        <View className="flex-row items-center justify-between px-4 py-4">
-          <Text className="text-gray-900 font-semibold text-lg">
-            {step === 1 ? "Select Rock to Give" : "Select Rock to Receive"}
-          </Text>
-          <TouchableOpacity
-            onPress={handleShowFilter}
-            className="bg-gray-200 px-3 py-2 rounded-lg"
-          >
-            <Text className="text-gray-700 text-sm">Filter</Text>
-          </TouchableOpacity>
-        </View>
+    <TextInput
+      style={styles.searchBox}
+      placeholder="Search..."
+      value={search}
+      onChangeText={setSearch}
+    />
 
-        {/* Rock List */}
-        <View className="px-4 pb-6">{filteredRocks.map(renderRockItem)}</View>
-      </ScrollView>
+    <TouchableOpacity
+      onPress={() => setFilterVisible(true)}
+      style={styles.filterButton}
+    >
+      <Text style={styles.filterText}>Filter</Text>
+    </TouchableOpacity>
 
-      {/* Bottom CTA */}
-      <View className="bg-white border-t border-gray-200 px-4 py-4">
+    <FlatList
+      data={filteredList}
+      keyExtractor={(item) => (item.id ?? item.rock_id ?? "").toString()}
+      renderItem={({ item }) => (
         <TouchableOpacity
-          className={`rounded-lg py-4 items-center ${
-            (step === 1 && selectedRockToGive) ||
-            (step === 2 && selectedRockToReceive)
-              ? "bg-green-500"
-              : "bg-gray-300"
-          }`}
-          onPress={step === 1 ? handleNextStep : handleCreateTradeOffer}
-          disabled={step === 1 ? !selectedRockToGive : !selectedRockToReceive}
+          style={styles.rockItem}
+          onPress={() => {
+            if (step === "give") {
+              setSelectedGive(item);
+            } else {
+              setSelectedReceive(item);
+            }
+          }}
         >
-          <Text
-            className={`font-semibold text-lg ${
-              (step === 1 && selectedRockToGive) ||
-              (step === 2 && selectedRockToReceive)
-                ? "text-white"
-                : "text-gray-500"
-            }`}
-          >
-            {step === 1 ? "Select Rock to Giveaway" : "Create Trade Offer"}
-          </Text>
+          <Text>{item.name}</Text>
+          <Text>Category: {item.type}</Text>
+          <Text>Rarity: {item.rarity}</Text>
         </TouchableOpacity>
-      </View>
+      )}
+    />
+
+
+
+
+      {step === "give" && selectedGive && (
+        <TouchableOpacity onPress={() => setStep("receive")} style={styles.submitButton}>
+          <Text style={styles.submitText}>Select Rock to Giveaway</Text>
+        </TouchableOpacity>
+      )}
+
+      {step === "receive" && selectedReceive && (
+        <TouchableOpacity onPress={handleSubmitTrade} style={styles.submitButton}>
+          <Text style={styles.submitText}>Create Trade Offer</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Filter Modal */}
-      <Modal
-        visible={showFilterModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView className="flex-1 bg-white">
-          {/* Modal Header */}
-          <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-200">
-            <TouchableOpacity onPress={() => setShowFilterModal(false)}>
-              <Text className="text-gray-900 text-lg">✕</Text>
-            </TouchableOpacity>
-            <Text className="text-gray-900 font-semibold text-lg">Filter</Text>
-            <TouchableOpacity onPress={handleResetFilter}>
-              <Text className="text-green-600 font-medium">Reset</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView className="flex-1 px-4 py-4">
-            {/* Categories */}
-            <View className="mb-6">
-              <Text className="text-gray-900 font-semibold text-base mb-3">
-                Categories
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                {filters.categories.map((category, index) => (
-                  <View
-                    key={index}
-                    className="bg-green-100 px-3 py-2 rounded-full flex-row items-center"
-                  >
-                    <Text className="text-green-800 text-sm mr-2">
-                      {category}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => removeFilterTag("categories", category)}
-                    >
-                      <Text className="text-green-800 text-sm">×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            {/* Countries */}
-            <View className="mb-6">
-              <Text className="text-gray-900 font-semibold text-base mb-3">
-                Countries
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                {filters.countries.map((country, index) => (
-                  <View
-                    key={index}
-                    className="bg-blue-100 px-3 py-2 rounded-full flex-row items-center"
-                  >
-                    <Text className="text-blue-800 text-sm mr-2">
-                      {country}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => removeFilterTag("countries", country)}
-                    >
-                      <Text className="text-blue-800 text-sm">×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            {/* Rarity */}
-            <View className="mb-6">
-              <Text className="text-gray-900 font-semibold text-base mb-3">
-                Rarity
-              </Text>
-              <View className="flex-row gap-3">
-                {["Common", "Rare", "Legendary"].map((rarity) => (
-                  <TouchableOpacity
-                    key={rarity}
-                    className={`px-4 py-2 rounded-full border ${
-                      filters.rarity.includes(rarity)
-                        ? "bg-purple-100 border-purple-500"
-                        : "bg-gray-100 border-gray-300"
-                    }`}
-                    onPress={() => addFilterTag("rarity", rarity)}
-                  >
-                    <Text
-                      className={`text-sm font-medium ${
-                        filters.rarity.includes(rarity)
-                          ? "text-purple-800"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      {rarity}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Sort By */}
-            <View className="mb-6">
-              <Text className="text-gray-900 font-semibold text-base mb-3">
-                Sort By
-              </Text>
-              <TouchableOpacity className="bg-gray-100 px-4 py-3 rounded-lg flex-row items-center justify-between">
-                <Text className="text-gray-900">{filters.sortBy}</Text>
-                <Text className="text-gray-500">▼</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-
-          {/* Apply Filter Button */}
-          <View className="px-4 py-4 border-t border-gray-200">
+      <Modal visible={filterVisible} animationType="slide">
+        <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+          <View style={styles.filterHeader}>
+            <Text style={styles.modalTitle}>Filter</Text>
             <TouchableOpacity
-              className="bg-green-500 rounded-lg py-4 items-center"
-              onPress={handleApplyFilter}
+              onPress={() => {
+                setRarity(null);
+                setSortBy("recent");
+                setCategories([]);
+                setLocations([]);
+              }}
             >
-              <Text className="text-white font-semibold text-lg">
-                Apply Filter
-              </Text>
+              <Text style={styles.resetText}>Reset</Text>
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
+
+          <Text style={styles.sectionLabel}>Rarity</Text>
+          <View style={styles.chipRow}>
+            {["Common", "Rare", "Legendary"].map((r) => (
+              <Pressable
+                key={r}
+                style={[styles.chip, rarity === r && styles.chipSelected]}
+                onPress={() => setRarity(r)}
+              >
+                <Text style={rarity === r ? styles.chipTextSelected : styles.chipText}>{r}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.sectionLabel}>Sort By</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={sortBy}
+              onValueChange={(itemValue) => setSortBy(itemValue)}
+              style={styles.picker}
+            >
+              <Picker.Item label="Sort by Most Recent" value="recent" />
+              <Picker.Item label="Sort by Alphabet (A-Z)" value="alphabet" />
+            </Picker>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setFilterVisible(false)}
+            style={styles.applyButton}
+          >
+            <Text style={styles.applyButtonText}>Apply Filter</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 16,
+    flex: 1,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  searchBox: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 8,
+    marginBottom: 8,
+  },
+  filterButton: {
+    alignSelf: "flex-end",
+    marginBottom: 8,
+  },
+  filterText: {
+    color: "blue",
+  },
+  rockItem: {
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    marginBottom: 8,
+  },
+  submitButton: {
+    backgroundColor: "#459B6C",
+    padding: 12,
+    marginTop: 10,
+    alignItems: "center",
+  },
+  submitText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  backText: {
+    fontSize: 16,
+    color: "blue",
+    marginLeft: 8,
+  },
+   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginVertical: 10,
+  },
+  chipContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+  modalContent: {
+    padding: 20,
+    flexGrow: 1,
+  },
+  filterHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    marginTop: 40,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  resetText: {
+    color: "red",
+    fontWeight: "bold",
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 16,
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: "gray",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  chipSelected: {
+    backgroundColor: "gray",
+    borderColor: "gray",
+  },
+  chipText: {
+    color: "black",
+  },
+  chipTextSelected: {
+    color: "white",
+  },
+  pickerContainer: {
+  borderWidth: 1,
+  borderColor: "#ccc",
+  borderRadius: 10,
+  overflow: "hidden",
+  marginBottom: 20,
+  backgroundColor: "white", // ensures visibility
+  height: 50, // ensure Picker has space
+  },
+  picker: {
+  height: 50,
+  width: "100%",
+  color: "black", // ensures text is visible
+  },
+  applyButton: {
+    backgroundColor: "#459B6C",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  applyButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+});
