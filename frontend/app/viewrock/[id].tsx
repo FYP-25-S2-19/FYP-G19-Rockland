@@ -20,6 +20,7 @@ import NoLikeIcon from '../../assets/images/nolike.svg';
 import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { timeAgo } from "../../utils/timeAgo";
 
 export default function ViewRockScreen() {
   const { id } = useLocalSearchParams();
@@ -277,7 +278,7 @@ export default function ViewRockScreen() {
             <View key={`comment-${comment.comment_rock_id}`} className="mb-6 bg-gray-50 p-4 rounded-lg">
               <Text className="font-semibold text-gray-900">
                 {comment.username}{'   '}
-                <Text className="text-sm text-gray-400">{comment.created_at}</Text>
+                <Text className="text-sm text-gray-400">{timeAgo(comment.created_at)}</Text>
               </Text>
               <Text className="text-base text-gray-800 mt-1">{comment.content}</Text>
 
@@ -309,7 +310,7 @@ export default function ViewRockScreen() {
                 >
                   <Text className="font-semibold text-gray-900">
                     {reply.username}{' '}
-                    <Text className="text-sm text-gray-400">{reply.created_at}</Text>
+                    <Text className="text-sm text-gray-400">{timeAgo(reply.created_at)}</Text>
                   </Text>
                   <Text className="text-base text-gray-800 mt-1">{reply.content}</Text>
 

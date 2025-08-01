@@ -37,7 +37,7 @@ export default function SettingsScreen() {
   };
 
   const handleUpgrade = () => {
-    console.log("Upgrade Account to Premium");
+    router.push("/subscribe-premium");
   };
 
   const handleFAQ = () => {
