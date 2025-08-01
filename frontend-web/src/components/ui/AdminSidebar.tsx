@@ -9,7 +9,9 @@ import {
   MessageSquare, 
   FileText, 
   HelpCircle, 
-  LogOut 
+  LogOut,
+  Mountain, // Added for rock management icon
+  MapPin // Added for zone management icon
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -32,6 +34,8 @@ const navigationItems: NavigationItem[] = [
   { id: "user-profiling", icon: User, label: "User Profiling", href: "/admin/user-profiling" },
   { id: "forum", icon: MessageSquare, label: "Forum", href: "/admin/forum" },
   { id: "landing-page", icon: FileText, label: "Landing Page", href: "/admin/landing-page" },
+  { id: "rock-management", icon: Mountain, label: "Rock Management", href: "/admin/rock-management" },
+  { id: "zone-management", icon: MapPin, label: "Zone Management", href: "/admin/zone-management" }, // Added zone management
   { id: "faq-page", icon: HelpCircle, label: "FAQ Page", href: "/admin/faq" },
   { id: "my-profile", icon: User, label: "My Profile", href: "/admin/profile" },
 ]
