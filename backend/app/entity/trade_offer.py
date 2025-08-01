@@ -34,6 +34,30 @@ class TradeOffer(db.Model):
             "status": self.status,
             "created_at": self.created_at.isoformat(),
         }
+    def to_detailed_dict(self):
+        return {
+        "trade_id": self.trade_id,
+        "status": self.status,
+        "created_at": self.created_at.isoformat(),
+        "offerer": {
+            "id": self.offerer.user_id,
+            "username": self.offerer.username
+        } if self.offerer else None,
+        "receiver": {
+            "id": self.receiver.user_id,
+            "username": self.receiver.username
+        } if self.receiver else None,
+        "youGive": {
+            "rockName": self.requested_rock.name if self.requested_rock else None,
+            "rockImage": self.requested_rock.image_url if self.requested_rock else None,
+            "type": self.requested_rock.type if self.requested_rock else None,
+            "rarity": self.requested_rock.rarity if self.requested_rock else None,
+        },
+        "youReceive": {
+            "rockName": self.offered_collection.rock.name if self.offered_collection else None,
+            "rockImage": self.offered_collection.rock.image_url if self.offered_collection else None
+        } if self.offered_collection and hasattr(self.offered_collection, "rock") else None
+    }
 
     @classmethod
     def create_offer(cls, data):

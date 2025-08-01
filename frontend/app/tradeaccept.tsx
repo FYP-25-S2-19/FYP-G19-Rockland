@@ -1,297 +1,221 @@
-"use client"
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  FlatList,
+  Alert,
+  ActivityIndicator,
+  StyleSheet,
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
-import { useRouter } from "expo-router"
-import { useState } from "react"
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, FlatList, Image } from "react-native"
-import Amethyst from "../assets/images/Amethyst.jpg"
-import Quartz from "../assets/images/Quartz.webp"
-import Obsidian from "../assets/images/Obsidian.webp"
-import Granite from "../assets/images/Granite.webp"
-import BackIcon from "../assets/images/back.svg"
+const TradeAccept = () => {
+  const router = useRouter();
+  const rawParams = useLocalSearchParams();
 
-// Rock type definitions
-type Rock = {
-  id: string
-  name: string
-  type: string
-  image: any
-  rarity?: string
-}
+  const rawTradeId = (rawParams.tradeId as string || "").trim();
+  const tradeId = parseInt(rawTradeId, 10);
 
-type TradeOffer = {
-  rockToReceive: Rock & { owner: string }
-  categoryToGive: string
-  availableRocks: Rock[]
-}
+  const [trade, setTrade] = useState<any>(null);
+  const [userRocks, setUserRocks] = useState<any[]>([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default function TradeSelectionScreen() {
-  const router = useRouter()
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-  const [selectedRockId, setSelectedRockId] = useState<string | null>(null)
-
-  // Sample trade data with imported images
-  const tradeOffer: TradeOffer = {
-    rockToReceive: {
-      id: "receive-1",
-      name: "Amethyst Crystal",
-      type: "Mineral",
-      image: Amethyst,
-      owner: "@Marie",
-    },
-    categoryToGive: "Rose Quartz",
-    availableRocks: [
-      {
-        id: "1",
-        name: "Rose Quartz Cluster",
-        type: "Mineral",
-        image: Quartz,
-        rarity: "Common",
-      },
-      {
-        id: "2",
-        name: "Rose Quartz Tumbled",
-        type: "Mineral",
-        image: Quartz,
-        rarity: "Common",
-      },
-      {
-        id: "3",
-        name: "Rose Quartz Raw",
-        type: "Mineral",
-        image: Granite,
-        rarity: "Rare",
-      },
-      {
-        id: "4",
-        name: "Rose Quartz Sphere",
-        type: "Mineral",
-        image: Obsidian,
-        rarity: "Rare",
-      },
-      {
-        id: "5",
-        name: "Rose Quartz Point",
-        type: "Mineral",
-        image: Quartz,
-        rarity: "Common",
-      },
-      {
-        id: "6",
-        name: "Rose Quartz Pendant",
-        type: "Mineral",
-        image: Amethyst,
-        rarity: "Uncommon",
-      },
-      {
-        id: "7",
-        name: "Rose Quartz Bracelet",
-        type: "Mineral",
-        image: Granite,
-        rarity: "Uncommon",
-      },
-      {
-        id: "8",
-        name: "Rose Quartz Geode",
-        type: "Mineral",
-        image: Obsidian,
-        rarity: "Legendary",
-      },
-      {
-        id: "9",
-        name: "Rose Quartz Tower",
-        type: "Mineral",
-        image: Quartz,
-        rarity: "Rare",
-      },
-      {
-        id: "10",
-        name: "Rose Quartz Heart",
-        type: "Mineral",
-        image: Amethyst,
-        rarity: "Common",
-      },
-      {
-        id: "11",
-        name: "Rose Quartz Wand",
-        type: "Mineral",
-        image: Granite,
-        rarity: "Uncommon",
-      },
-      {
-        id: "12",
-        name: "Rose Quartz Pyramid",
-        type: "Mineral",
-        image: Obsidian,
-        rarity: "Rare",
-      },
-    ],
-  }
-
-  const handleBack = () => {
-    router.back()
-  }
-
-  
-
-  const handleRockSelect = (rockId: string) => {
-    setSelectedRockId(rockId)
-    console.log("Selected rock:", rockId)
-  }
-
-  const handleConfirmTrade = () => {
-    if (selectedRockId) {
-      const selectedRock = tradeOffer.availableRocks.find((rock) => rock.id === selectedRockId)
-      console.log("Confirm trade:", selectedRock?.name, "for", tradeOffer.rockToReceive.name)
+  useEffect(() => {
+    if (!tradeId || isNaN(tradeId)) {
+      Alert.alert("Invalid Trade ID");
+      router.back();
+      return;
     }
-  }
 
-  const selectedRock = tradeOffer.availableRocks.find((rock) => rock.id === selectedRockId)
+    const fetchData = async () => {
+      try {
+        const token = await AsyncStorage.getItem("accessToken");
 
-  // Helper function to get image source
-  const getImageSource = (image: any) => {
-    if (typeof image === "string") {
-      return { uri: image }
-    }
-    return image
-  }
+        const tradeRes = await axios.get(`${API_URL}/trade-offer/${tradeId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log("✅ Trade fetched:", tradeRes.data);
+        setTrade(tradeRes.data);
 
-  // Render rock card
-  const renderRockCard = ({ item }: { item: Rock }) => {
-    const isSelected = item.id === selectedRockId
+        const rocksRes = await axios.get(`${API_URL}/api/collection/my`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUserRocks(rocksRes.data);
 
-    // Get rarity color
-    const getRarityColor = (rarity: string) => {
-      switch (rarity) {
-        case "Legendary":
-          return "bg-yellow-100 text-yellow-800"
-        case "Rare":
-          return "bg-purple-100 text-purple-800"
-        case "Uncommon":
-          return "bg-blue-100 text-blue-800"
-        default:
-          return "bg-gray-100 text-gray-800"
+        setLoading(false);
+      } catch (err: any) {
+        console.error("❌ Failed to fetch trade:", err.message);
+        Alert.alert("Error", "Could not load trade data.");
+        setLoading(false);
       }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleAcceptTrade = async () => {
+    if (!selectedCollectionId) {
+      Alert.alert("Select a rock to offer in return.");
+      return;
     }
 
-    
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
 
-    return (
-      <TouchableOpacity
-        className={`bg-white rounded-lg p-4 mb-3 border-2 ${
-          isSelected ? "border-green-500" : "border-gray-200"
-        } shadow-sm`}
-        onPress={() => handleRockSelect(item.id)}
-      >
-        <View className="flex-row items-center">
-          {/* Rock image */}
-          <Image 
-            source={getImageSource(item.image)} 
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 8,
-              marginRight: 16,
-            }}
-            resizeMode="cover"
-          />
+      await axios.post(
+        `${API_URL}/trade-offer/accept/${tradeId}`,
+        { collection_id_received: selectedCollectionId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-          {/* Rock info */}
-          <View className="flex-1">
-            <Text className="text-gray-900 font-semibold text-base mb-1">{item.name}</Text>
-            <View className="flex-row items-center">
-              <View className="bg-gray-100 px-2 py-1 rounded-full mr-2">
-                <Text className="text-gray-600 text-xs font-medium">{item.type}</Text>
-              </View>
-              {item.rarity && (
-                <View className={`px-2 py-1 rounded-full ${getRarityColor(item.rarity)}`}>
-                  <Text className="text-xs font-medium">{item.rarity}</Text>
-                </View>
-              )}
-            </View>
-          </View>
+      Alert.alert("Success", "Trade accepted!", [
+        { text: "OK", onPress: () => router.replace("/tradelist?tab=myoffers") },
+      ]);
+    } catch (err: any) {
+      console.error("❌ Accept error:", err.message);
+      Alert.alert("Error", "Failed to accept trade.");
+    }
+  };
 
-          {/* Check icon */}
-          {isSelected && <Text className="text-green-500 text-xl ml-2">✅</Text>}
-        </View>
-      </TouchableOpacity>
-    )
-  }
-
+  if (loading || !trade || !trade.youGive) {
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      {/* Top Navigation */}
-      <View className="bg-white border-b border-gray-200 px-4 py-4 relative items-center justify-center">
-        <TouchableOpacity 
-          onPress={handleBack} 
-          className="absolute left-4 top-4"
-          style={{ zIndex: 10 }}
-        >
-          <BackIcon width={24} height={24} />
-        </TouchableOpacity>
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <ActivityIndicator size="large" />
+      <Text>Loading trade details...</Text>
+    </View>
+  );
+}
 
-        <Text className="text-gray-900 font-semibold text-lg">Trade Selection</Text>
-      </View>
+return (
+  <View style={styles.container}>
+    <Text style={styles.title}>Trade Offer</Text>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Trade Summary */}
-        <View className="px-4 py-6">
-          <Text className="text-gray-700 font-medium text-base mb-3">You want to receive:</Text>
-          <View className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-            <View className="flex-row items-center">
-              <Image 
-                source={getImageSource(tradeOffer.rockToReceive.image)} 
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 8,
-                  marginRight: 16,
-                }}
-                resizeMode="cover"
-              />
-              <View className="flex-1">
-                <Text className="text-gray-900 font-semibold text-base mb-1">{tradeOffer.rockToReceive.name}</Text>
-                <Text className="text-gray-600 text-sm mb-1">Type: {tradeOffer.rockToReceive.type}</Text>
-                <Text className="text-gray-500 text-sm">Owner: {tradeOffer.rockToReceive.owner}</Text>
-              </View>
-            </View>
-          </View>
+    <View style={styles.tradeBox}>
+      <View style={styles.tradeRow}>
+        {/* You Get */}
+        <View style={styles.tradeColumn}>
+          <Text style={styles.sectionLabel}>You Get</Text>
+          <Image source={{ uri: trade.youGive.rockImage }} style={styles.rockImage} />
+          <Text style={styles.rockName}>{trade.youGive.rockName}</Text>
         </View>
 
-        {/* Selection List */}
-        <View className="px-4 pb-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-gray-700 font-medium text-base">Select a {tradeOffer.categoryToGive}</Text>
-            <Text className="text-gray-500 text-sm">{tradeOffer.availableRocks.length} rocks</Text>
-          </View>
-
+        {/* You Give */}
+        <View style={styles.tradeColumn}>
+          <Text style={styles.sectionLabel}>You Give</Text>
           <FlatList
-            data={tradeOffer.availableRocks}
-            renderItem={renderRockCard}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            showsVerticalScrollIndicator={false}
+            data={userRocks}
+            horizontal
+            keyExtractor={(item) => item.collection_id.toString()}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => setSelectedCollectionId(item.collection_id)}
+                style={[
+                  styles.rockOption,
+                  selectedCollectionId === item.collection_id && styles.rockSelected,
+                ]}
+              >
+                <Image source={{ uri: item.signed_url }} style={styles.rockImage} />
+                <Text style={styles.rockName}>{item.rock_name}</Text>
+              </TouchableOpacity>
+            )}
+            showsHorizontalScrollIndicator={false}
           />
         </View>
-      </ScrollView>
-
-      {/* Bottom CTA */}
-      <View className="bg-white border-t border-gray-200 px-4 py-4">
-        <TouchableOpacity
-          className={`rounded-lg py-4 items-center mb-2 ${selectedRockId ? "bg-green-500" : "bg-gray-300"}`}
-          onPress={handleConfirmTrade}
-          disabled={!selectedRockId}
-        >
-          <Text className={`font-semibold text-lg ${selectedRockId ? "text-white" : "text-gray-500"}`}>
-            Confirm Trade
-          </Text>
-        </TouchableOpacity>
-
-        {selectedRock && (
-          <Text className="text-gray-600 text-sm text-center">
-            Trading {selectedRock.name} for {tradeOffer.rockToReceive.name}
-          </Text>
-        )}
       </View>
-    </SafeAreaView>
-  )
-}
+    </View>
+
+    <TouchableOpacity style={styles.acceptButton} onPress={handleAcceptTrade}>
+      <Text style={styles.acceptText}>Accept Trade</Text>
+    </TouchableOpacity>
+  </View>
+);}
+
+export default TradeAccept;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f9f9f9",
+    paddingHorizontal: 16,
+    paddingTop: 40,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  tradeBox: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: "#fff",
+    marginBottom: 24,
+  },
+  sectionLabel: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  rockImage: {
+    width: 100,
+    height: 100,
+    resizeMode: "contain",
+    alignSelf: "center",
+  },
+  rockName: {
+    textAlign: "center",
+    marginTop: 8,
+    fontSize: 16,
+  },
+  rockOption: {
+    alignItems: "center",
+    marginRight: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    backgroundColor: "#fff",
+  },
+  rockSelected: {
+    borderColor: "#FFA500",
+    backgroundColor: "#FFF3E0",
+  },
+  acceptButton: {
+    backgroundColor: "#FFA500",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  acceptText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  rockRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  tradeRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  gap: 16,
+},
+tradeColumn: {
+  flex: 1,
+  alignItems: "center",
+},
+});
+
+
+
