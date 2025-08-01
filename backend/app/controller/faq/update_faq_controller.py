@@ -1,12 +1,10 @@
 from flask import Blueprint, request, jsonify
 from app.entity.faq import Faq
-# Temporarily comment out the permission_required import
 from app.controller.authentication.permission_required import permission_required
 
 update_faq_blueprint = Blueprint('update_faq', __name__)
 
 class UpdateFaqController:
-    # Update FAQ (admin permission required)
     @staticmethod
     @update_faq_blueprint.route('/api/faqs/update/<int:faq_id>', methods=['PUT'])
     @permission_required('has_admin_permission')
@@ -25,20 +23,7 @@ class UpdateFaqController:
             question = data.get('question')
             answer = data.get('answer')
             
-            # Basic request validation
-            if not question or not question.strip():
-                return jsonify({
-                    "success": False, 
-                    "message": "Question is required"
-                }), 400
-            
-            if not answer or not answer.strip():
-                return jsonify({
-                    "success": False, 
-                    "message": "Answer is required"
-                }), 400
-            
-            # Check if FAQ exists
+            # Get FAQ by ID using entity method
             existing_faq = Faq.getFaqById(faq_id)
             if not existing_faq:
                 return jsonify({
@@ -46,27 +31,23 @@ class UpdateFaqController:
                     "message": "FAQ not found"
                 }), 404
             
-            # Update the FAQ
-            existing_faq.question = question.strip()
-            existing_faq.answer = answer.strip()
+            # Use the entity method to update FAQ
+            success, status_code, message = existing_faq.updateFaq(
+                question=question.strip() if question else None,
+                answer=answer.strip() if answer else None
+            )
             
-            # Save changes to database
-            from app.models import db
-            try:
-                db.session.commit()
-                
+            if success:
                 return jsonify({
                     "success": True, 
-                    "message": "FAQ updated successfully",
+                    "message": message,
                     "faq": existing_faq.to_dict()
-                }), 200
-                
-            except Exception as db_error:
-                db.session.rollback()
+                }), status_code
+            else:
                 return jsonify({
                     "success": False, 
-                    "message": f"Database error: {str(db_error)}"
-                }), 500
+                    "message": message
+                }), status_code
                 
         except Exception as e:
             return jsonify({
