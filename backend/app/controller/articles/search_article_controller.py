@@ -17,33 +17,51 @@ class SearchArticleController:
             if not current_user:
                 return jsonify({'success': False, 'message': 'Authentication required'}), 401
 
+            # Default values
+            search_term = ""
+            sort_by = "newest"
+            category_ids = []
+
+            # 🔄 Handle GET requests (e.g., browser)
             if request.method == 'GET':
-                # Query params (for web or simple testing)
                 search_term = request.args.get('search_term', '').strip()
                 sort_by = request.args.get('sort_by', 'newest').lower()
                 category_ids_raw = request.args.get('category_ids', '')
-                category_ids = [
-                    int(cid) for cid in category_ids_raw.split(",") if cid.strip().isdigit()
-                ] if category_ids_raw else []
 
+                if category_ids_raw:
+                    category_ids = [
+                        int(cid) for cid in category_ids_raw.split(",") if cid.strip().isdigit()
+                    ]
+
+            # 🔄 Handle POST requests (e.g., React Native)
             else:
-                # POST body (for React Native, etc.)
                 data = request.get_json()
                 search_term = data.get('search_term', '').strip()
                 sort_by = data.get('sort_by', 'newest').lower()
                 category_titles = data.get('selectedCategories', [])
-                category_ids = []
 
-                # Convert category titles to IDs
+                # 🧠 Convert category titles to IDs
                 if category_titles:
-                    found_categories = Categories.query.filter(Categories.title.in_(category_titles)).all()
+                    normalized_titles = [title.strip().lower() for title in category_titles if isinstance(title, str)]
+
+                    found_categories = Categories.query.filter(
+                        db.func.lower(Categories.title).in_(normalized_titles)
+                    ).all()
+
                     category_ids = [cat.categories_id for cat in found_categories]
 
-            # Search using entity logic
+                    print("🔍 Raw titles:", category_titles)
+                    print("🔎 Normalized:", normalized_titles)
+                    print("✅ Matched category IDs:", category_ids)
+
+                    if not category_ids:
+                        print("⚠️ No matching categories found. Search will return empty.")
+
+            # 🔍 Perform search using model logic
             articles_data, status_code, message = Article.searchArticles(
                 user_id=current_user.user_id,
-                search_term=search_term if search_term else None,
-                category_ids=category_ids,
+                search_term=search_term or None,
+                category_ids=category_ids or None,
                 sort_by=sort_by
             )
 
@@ -55,7 +73,6 @@ class SearchArticleController:
                     'total_count': len(articles_data),
                     'user_type': current_user.user_type.name if current_user.user_type else "Unknown"
                 }), status_code
-
             else:
                 return jsonify({'success': False, 'message': message}), status_code
 

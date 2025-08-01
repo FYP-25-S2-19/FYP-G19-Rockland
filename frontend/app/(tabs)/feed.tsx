@@ -3,7 +3,7 @@ import { Alert, ActivityIndicator, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import BaseFeed from "../../components/BaseFeed";
-import { timeAgo } from "../../utils/timeAgo"; // ✅ Make sure this import path is correct
+import { timeAgo } from "../../utils/timeAgo";
 import EventBus from "../../utils/eventBus";
 
 export default function FreePremiumFeed() {
@@ -11,6 +11,8 @@ export default function FreePremiumFeed() {
   const [loading, setLoading] = useState(true);
   const [articles, setArticles] = useState<any[]>([]);
   const [discussions, setDiscussions] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [discussionSort, setDiscussionSort] = useState<"asc" | "desc">("desc");
 
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -24,7 +26,8 @@ export default function FreePremiumFeed() {
         const token = await AsyncStorage.getItem("accessToken");
         const headers = { Authorization: `Bearer ${token}` };
 
-        const articleRes = await axios.get(`${API_URL}/api/articles/all`, {
+        // ✅ Fetch articles (hybrid feed)
+        const articleRes = await axios.get(`${API_URL}/api/articles/feed-hybrid`, {
           headers,
         });
 
@@ -43,12 +46,14 @@ export default function FreePremiumFeed() {
             likes: article.total_likes,
             liked: !!article.liked_by_user,
             timeAgo: timeAgo(new Date(article.date_created)),
+            isRecommended: article.is_recommended ?? false,
           }));
           setArticles(fetchedArticles);
         } else {
           Alert.alert("Error", articleRes.data.message || "Failed to load articles");
         }
 
+        // ✅ Fetch discussions
         const discussionRes = await fetch(`${API_URL}/api/discussions`, { headers });
         const discussionJson = await discussionRes.json();
 
@@ -57,7 +62,6 @@ export default function FreePremiumFeed() {
         } else {
           console.warn("⚠️ Failed to load discussions:", discussionJson.message);
         }
-
       } catch (e) {
         console.error("❌ Error initializing feed:", e);
         Alert.alert("Error", "Something went wrong while loading content.");
@@ -82,7 +86,7 @@ export default function FreePremiumFeed() {
         )
       );
     };
-  
+
     EventBus.on("articleLikeUpdated", handleArticleLikeUpdated);
     return () => {
       EventBus.off("articleLikeUpdated", handleArticleLikeUpdated);
@@ -93,16 +97,16 @@ export default function FreePremiumFeed() {
     try {
       const token = await AsyncStorage.getItem("accessToken");
       const headers = { Authorization: `Bearer ${token}` };
-  
+
       const article = articles.find((a) => a.id === articleId);
       if (!article) return;
-  
+
       const method = article.liked ? "DELETE" : "POST";
       const url = `${API_URL}/api/articles/${articleId}/${article.liked ? "unlike" : "like"}`;
-  
+
       const res = await fetch(url, { method, headers });
       const json = await res.json();
-  
+
       if (json.success) {
         const newLiked = !article.liked;
         const newLikes = article.likes + (newLiked ? 1 : -1);
@@ -141,13 +145,15 @@ export default function FreePremiumFeed() {
       updateArticleLike={(articleId, liked, likeCount) => {
         setArticles((prev) =>
           prev.map((a) =>
-            a.id === articleId
-              ? { ...a, liked, likes: likeCount }
-              : a
+            a.id === articleId ? { ...a, liked, likes: likeCount } : a
           )
         );
       }}
       onUpgradeRequest={(message) => Alert.alert("Upgrade Needed", message)}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      discussionSort={discussionSort}
+      setDiscussionSort={setDiscussionSort}
     />
   );
 }
