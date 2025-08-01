@@ -1231,17 +1231,6 @@ export default function RocklandLanding(): JSX.Element {
 
           <div className="flex justify-center">
             <div className="text-center">
-              <div className="w-48 h-48 relative overflow-hidden rounded-xl mx-auto mb-4">
-                <Image
-                  src="/qr.jpg"
-                  alt="QR Code to download Rockland app"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <p className="text-sm text-gray-600">Scan the QR code</p>
-              <p className="text-sm text-gray-600 mb-8">to download the app on your phone</p>
-
               <div className="flex justify-center space-x-4">
                 <AppStoreButton 
                   platform="ios" 

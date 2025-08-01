@@ -858,6 +858,12 @@ export default function LandingPageManagement() {
       case "landing-page":
         // Already on landing page management
         break
+      case "rock-management":
+        router.push('/rockmanagement')
+        break
+      case "zone-management":
+        router.push('/zoneprofile')
+        break
       case "faq-page":
         router.push('/faqmanagement')
         break
