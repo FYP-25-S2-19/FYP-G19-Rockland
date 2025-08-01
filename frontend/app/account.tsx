@@ -85,7 +85,7 @@ export default function AccountScreen() {
 
   const handleSettings = () => router.push("/settings");
   const handleProfile = () => router.push("/profile");
-  const handleSubscribe = () => console.log("Subscribe Now pressed");
+  const handleSubscribe = () => router.push("/subscribe-premium");
   const handleMyCollection = () => router.push("/mycollection");
   const handleBadgesAndAchievements = () => router.push("/badges");
   const handleTradeList = () => router.push("/tradelist");

@@ -9,6 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BackIcon from "../../assets/images/back.svg";
+import { timeAgo } from "../../utils/timeAgo";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -120,7 +121,7 @@ export default function DiscussionDetail() {
           <Text className="text-base font-bold text-gray-900">
             {discussion.user}
           </Text>
-          <Text className="text-sm text-gray-500">{discussion.timestamp}</Text>
+          <Text className="text-sm text-gray-500">{timeAgo(discussion.timestamp)}</Text>
         </View>
       </View>
 
@@ -140,7 +141,7 @@ export default function DiscussionDetail() {
             <View className="flex-1">
               <Text className="font-bold text-sm">
                 {comment.user}{" "}
-                <Text className="text-xs text-gray-500">{comment.time}</Text>
+                <Text className="text-xs text-gray-500">{timeAgo(comment.time)}</Text>
               </Text>
               <Text className="text-sm text-gray-700 mb-1">{comment.text}</Text>
               <View className="flex-row items-center mb-2">
@@ -164,9 +165,7 @@ export default function DiscussionDetail() {
                     <View className="flex-1">
                       <Text className="font-bold text-sm">
                         {reply.user}{" "}
-                        <Text className="text-xs text-gray-500">
-                          {reply.time}
-                        </Text>
+                        <Text className="text-xs text-gray-500">{timeAgo(reply.time)}</Text>
                       </Text>
                       <Text className="text-sm text-gray-700 mb-1">
                         {reply.text}

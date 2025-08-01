@@ -1,5 +1,7 @@
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { useRouter } from "expo-router";
+import { timeAgo } from "../utils/timeAgo";
+
 
 // Comment and Discussion types reused across app
 export interface Comment {
@@ -57,7 +59,7 @@ export default function DiscussionCard({
               {discussion.user}
             </Text>
             <Text className="text-gray-400 text-sm">
-              {discussion.timestamp}
+              {timeAgo(discussion.timestamp)}
             </Text>
           </View>
         </View>

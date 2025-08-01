@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import BackIcon from "../assets/images/back.svg";
 
 import CrownIcon from "../assets/images/crown.svg";
 import ArrowRightIcon from "../assets/images/arrow_right.svg";
@@ -25,6 +26,10 @@ export default function SubscribePremiumScreen() {
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const handleGoBack = () => {
+    router.back();
+  };
 
   const fetchPlan = async () => {
     try {
@@ -99,6 +104,9 @@ export default function SubscribePremiumScreen() {
       <SafeAreaView className="flex-1 bg-transparent">
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           <View className="items-center mb-6">
+            <TouchableOpacity onPress={handleGoBack} className="absolute left-0">
+            <BackIcon width={24} height={24} />
+          </TouchableOpacity>
             <Text className="text-3xl font-bold text-green-800 mb-2">
               Go Premium 🚀
             </Text>
