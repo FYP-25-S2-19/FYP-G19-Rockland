@@ -93,3 +93,28 @@ class SubscriptionPlan(db.Model):
             db.session.rollback()
             print(f"Error creating subscription plan: {str(e)}")
             return False, 500, f"Error creating subscription plan: {str(e)}", None
+    
+    @classmethod
+    def deleteSubscriptionPlanById(cls, plan_id: int):
+        """Delete subscription plan by ID"""
+        try:
+            existing_plan = cls.getSubscriptionPlanById(plan_id)
+            
+            if not existing_plan:
+                return False, 404, "Subscription plan not found", None
+            
+            plan_name = existing_plan.name
+            
+            # Store plan info for response
+            plan_data = existing_plan.to_dict()
+            
+            # Delete the subscription plan from database
+            db.session.delete(existing_plan)
+            db.session.commit()
+            
+            return True, 200, f"Subscription plan '{plan_name}' deleted successfully", plan_data
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error deleting subscription plan by ID: {str(e)}")
+            return False, 500, f"Error deleting subscription plan: {str(e)}", None

@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { RefreshCw, Eye, Check, X, Clock, CheckCircle, XCircle, FileTextIcon, AlertCircle } from 'lucide-react'
+import { RefreshCw, Eye, Check, X, Clock, CheckCircle, XCircle, FileTextIcon, AlertCircle, Download } from 'lucide-react'
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
 
@@ -43,7 +43,11 @@ interface Application {
     question2: string
     answer2: string
   }
-  attached_files?: string[]
+  attached_files?: Array<{
+    file_id: number
+    filename: string
+    file_path: string
+  }>
 }
 
 // API configuration
@@ -81,6 +85,7 @@ export default function ApplicationsManagement() {
   const [viewMode, setViewMode] = useState<"list" | "detail">("list")
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
   const [detailPage, setDetailPage] = useState(1)
+  const [downloadingFileId, setDownloadingFileId] = useState<number | null>(null)
 
   // Application data state
   const [pendingApplications, setPendingApplications] = useState<Application[]>([])
@@ -208,6 +213,53 @@ export default function ApplicationsManagement() {
       return null
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Download file function
+  const downloadFile = async (fileId: number, filename: string) => {
+    try {
+      setDownloadingFileId(fileId)
+      
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        return
+      }
+
+      // First get the download URL
+      const response = await fetch(`${API_BASE_URL}/api/applications/file/url/${fileId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success && data.download_url) {
+        // Create a temporary link element and trigger download
+        const link = document.createElement('a')
+        link.href = data.download_url
+        link.download = filename
+        link.target = '_blank'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      } else {
+        setError(data.error || 'Failed to get download URL')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while downloading file')
+      console.error('Error downloading file:', err)
+    } finally {
+      setDownloadingFileId(null)
     }
   }
 
@@ -366,6 +418,12 @@ export default function ApplicationsManagement() {
         break
       case "landing-page":
         router.push('/landingpagemanagement')
+        break
+      case "rock-management":
+        router.push('/rockmanagement')
+        break
+      case "zone-management":
+        router.push('/zoneprofile')
         break
       case "faq-page":
         router.push('/faqmanagement')
@@ -638,9 +696,25 @@ export default function ApplicationsManagement() {
                     <div className="space-y-2">
                       {selectedApplication.attached_files && selectedApplication.attached_files.length > 0 ? (
                         selectedApplication.attached_files.map((file, index) => (
-                          <div key={index} className="flex items-center p-3 bg-gray-50 border border-gray-200 rounded-md">
-                            <FileTextIcon className="w-4 h-4 text-gray-500 mr-2" />
-                            <span className="text-gray-700">{file}</span>
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-md">
+                            <div className="flex items-center">
+                              <FileTextIcon className="w-4 h-4 text-gray-500 mr-2" />
+                              <span className="text-gray-700">{file.filename}</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => downloadFile(file.file_id, file.filename)}
+                              disabled={downloadingFileId === file.file_id}
+                              className="ml-2"
+                            >
+                              {downloadingFileId === file.file_id ? (
+                                <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                              ) : (
+                                <Download className="w-3 h-3 mr-1" />
+                              )}
+                              Download
+                            </Button>
                           </div>
                         ))
                       ) : (

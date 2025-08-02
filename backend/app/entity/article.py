@@ -227,6 +227,17 @@ class Article(db.Model):
             db.session.rollback()
             print(f"Error deleting article: {e}")
             return False, 500, f"Error deleting article: {str(e)}", None
+    
+    @classmethod
+    def getAllArticlesForAdmin(cls):
+        """Get all articles for admin view"""
+        try:
+            articles = cls.query.order_by(cls.date_created.desc()).all()
+            articles_data = [article.to_dict() for article in articles]
+            return articles_data, 200
+        except Exception as e:
+            print(f"Error fetching all articles for admin: {e}")
+            return None, 500
 
     # === Retrieval methods ===
     @classmethod

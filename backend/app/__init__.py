@@ -190,12 +190,14 @@ def create_app():
     from app.controller.zone.delete_zone_controller import delete_zone_blueprint
     from app.controller.zone.get_all_zone_controller import get_all_zones_blueprint
     from app.controller.zone.get_zone_by_location_controller import get_zone_by_location_blueprint
+    from app.controller.zone.view_zone_controller import view_zone_blueprint
 
     app.register_blueprint(create_zone_blueprint)
     app.register_blueprint(update_zone_blueprint)
     app.register_blueprint(delete_zone_blueprint)
     app.register_blueprint(get_all_zones_blueprint)
     app.register_blueprint(get_zone_by_location_blueprint)
+    app.register_blueprint(view_zone_blueprint)
 
     # COMMENT ROCK
     from .controller.comment.rock.comment_create_controller import create_comment_blueprint
