@@ -274,7 +274,7 @@ export default function BaseFeed({
                       source={
                         item.signed_url
                           ? { uri: item.signed_url }
-                          : item.image ?? require("../assets/images/rock.png")
+                          : item.image ?? require("../assets/images/no_image_rock.png")
                       }
                       className="w-14 h-14 rounded-md mr-4"
                     />
