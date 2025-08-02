@@ -34,43 +34,24 @@ class CreateFaqController:
             question = data.get('question')
             answer = data.get('answer')
             
-            # Basic validation
-            if not question or not question.strip():
-                return jsonify({
-                    'success': False,
-                    'message': 'Question is required'
-                }), 400
-            
-            if not answer or not answer.strip():
-                return jsonify({
-                    'success': False,
-                    'message': 'Answer is required'
-                }), 400
-            
-            # Create new FAQ
-            new_faq = Faq(
-                question=question.strip(),
-                answer=answer.strip(),
+            # Use the entity method to create FAQ
+            success, status_code, message, new_faq = Faq.createFaq(
+                question=question.strip() if question else "",
+                answer=answer.strip() if answer else "",
                 user_id=user_id
             )
             
-            # Save to database
-            try:
-                db.session.add(new_faq)
-                db.session.commit()
-                
+            if success and new_faq:
                 return jsonify({
                     'success': True,
-                    'message': 'FAQ created successfully',
+                    'message': message,
                     'faq': new_faq.to_dict()
-                }), 201
-                
-            except Exception as db_error:
-                db.session.rollback()
+                }), status_code
+            else:
                 return jsonify({
                     'success': False,
-                    'message': f'Database error: {str(db_error)}'
-                }), 500
+                    'message': message
+                }), status_code
                 
         except Exception as e:
             print(f"Error in create_faq controller: {e}")

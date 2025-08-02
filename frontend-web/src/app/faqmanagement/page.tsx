@@ -313,6 +313,12 @@ export default function FAQManagement() {
       case "landing-page":
         router.push('/landingpagemanagement')
         break
+      case "rock-management":
+        router.push('/rockmanagement')
+        break
+      case "zone-management":
+        router.push('/zoneprofile')
+        break
       case "faq-page":
         // Already on FAQ page
         break

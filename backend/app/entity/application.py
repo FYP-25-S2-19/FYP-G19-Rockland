@@ -1,4 +1,4 @@
-# application.py - Fixed version
+# application.py - Updated version with file download support
 from app.models import db
 from datetime import datetime
 from app.utils.gcs import generate_signed_url, upload_file_to_gcs
@@ -216,12 +216,17 @@ class Application(db.Model):
                 
                 detailed_data['questions'] = questions_data
             
-            # Get attached files
+            # Get attached files with download information
             if application.files:
                 for file in application.files:
                     # Extract just the filename from the full path
                     filename = file.file_path.split('/')[-1] if file.file_path else "Unknown file"
-                    detailed_data['attached_files'].append(filename)
+                    file_info = {
+                        'file_id': file.file_id,
+                        'filename': filename,
+                        'file_path': file.file_path
+                    }
+                    detailed_data['attached_files'].append(file_info)
             
             return detailed_data, 200
             

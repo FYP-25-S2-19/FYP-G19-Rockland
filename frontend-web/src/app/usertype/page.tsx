@@ -398,6 +398,12 @@ export default function UserTypeManagement() {
       case "landing-page":
         router.push('/landingpagemanagement')
         break
+      case "rock-management":
+        router.push('/rockmanagement')
+        break
+      case "zone-management":
+        router.push('/zoneprofile')
+        break
       case "faq-page":
         router.push('/faqmanagement')
         break
