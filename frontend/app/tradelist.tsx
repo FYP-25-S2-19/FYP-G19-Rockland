@@ -1,322 +1,311 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "expo-router";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  Image,
+  FlatList,
   TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
+  Image,
+  ActivityIndicator,
+  StyleSheet
 } from "react-native";
-import Amethyst from "../assets/images/Amethyst.jpg";
-import Quartz from "../assets/images/Quartz.webp";
-import Obsidian from "../assets/images/Obsidian.webp";
-import Granite from "../assets/images/Granite.webp";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import BackIcon from "../assets/images/back.svg";
 
-// Trade offer type definitions
-type TradeOffer = {
-  id: string;
-  traderName: string;
-  traderRockCount: number;
-  traderJoinDate: string;
-  youGive: {
-    rockName: string;
-    rockImage: any; // Changed from string to any to handle both imports and URIs
-  };
-  youReceive: {
-    rockName: string;
-    rockImage: any; // Changed from string to any to handle both imports and URIs
-  };
-  isMyOffer: boolean;
-};
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-export default function TradeCollectionScreen() {
+export default function TradeList() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"Available" | "MyOffers">(
-    "Available"
+  const params = useLocalSearchParams();
+  const [tab, setTab] = useState<"available" | "my">(
+    params.tab === "myoffers" ? "my" : "available"
   );
+  const [trades, setTrades] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample trade data
-  const tradeOffers: TradeOffer[] = [
-    {
-      id: "1",
-      traderName: "Annie",
-      traderRockCount: 47,
-      traderJoinDate: "Jan 2024",
-      youGive: {
-        rockName: "Granite",
-        rockImage: Granite, // Direct import
-      },
-      youReceive: {
-        rockName: "Obsidian",
-        rockImage: Obsidian, // Direct import
-      },
-      isMyOffer: false,
-    },
-    {
-      id: "2",
-      traderName: "Marie",
-      traderRockCount: 23,
-      traderJoinDate: "Dec 2023",
-      youGive: {
-        rockName: "Quartz",
-        rockImage: Quartz, // Direct import
-      },
-      youReceive: {
-        rockName: "Amethyst",
-        rockImage: Amethyst, // Direct import
-      },
-      isMyOffer: false,
-    },
-    {
-      id: "3",
-      traderName: "You",
-      traderRockCount: 0,
-      traderJoinDate: "",
-      youGive: {
-        rockName: "Basalt",
-        rockImage: Granite,
-      },
-      youReceive: {
-        rockName: "Limestone",
-        rockImage: Obsidian,
-      },
-      isMyOffer: true,
-    },
-    {
-      id: "4",
-      traderName: "You",
-      traderRockCount: 0,
-      traderJoinDate: "",
-      youGive: {
-        rockName: "Sandstone",
-        rockImage: Granite,
-      },
-      youReceive: {
-        rockName: "Marble",
-        rockImage: Obsidian,
-      },
-      isMyOffer: true,
-    },
-  ];
+  useEffect(() => {
+  const fetchTrades = async () => {
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      console.log("📦 Token from AsyncStorage:", token);
 
-  const handleBack = () => {
-    router.back();
-  };
+      if (!token) {
+        console.error("❌ No token found in storage!");
+        return;
+      }
 
-  const handleTabPress = (tab: "Available" | "MyOffers") => {
-    setActiveTab(tab);
-  };
+      const res = await axios.get(
+        `${API_URL}/trade-offer/${tab === "my" ? "my" : "all"}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-  const handleAcceptTrade = (tradeId: string) => {
-    router.push("/tradeaccept");
-  };
-
-  const handleCreateTradeOffer = () => {
-    router.push("/tradecreate");
-  };
-
-  // Filter trades based on active tab
-  const filteredTrades = tradeOffers.filter((trade) => {
-    if (activeTab === "Available") return !trade.isMyOffer;
-    return trade.isMyOffer;
-  });
-
-  // Get tab counts
-  const availableCount = tradeOffers.filter((t) => !t.isMyOffer).length;
-  const myOffersCount = tradeOffers.filter((t) => t.isMyOffer).length;
-
-  // Helper function to get image source
-  const getImageSource = (image: any) => {
-    if (typeof image === "string") {
-      return { uri: image };
+      console.log("✅ Trade offers fetched:", res.data);
+      setTrades(res.data);
+    } catch (error) {
+      console.error("⚠️ Failed to fetch trade offers:", error);
+    } finally {
+      setLoading(false);
     }
-    return image;
   };
 
-  // Render trade card
-  const renderTradeCard = (trade: TradeOffer) => {
-    return (
-      <View
-        key={trade.id}
-        className="bg-white rounded-xl p-4 mb-4 shadow-sm border border-gray-100"
-      >
-        {/* Trader info */}
-        {!trade.isMyOffer && (
-          <View className="flex-row items-center justify-between mb-4">
-            <View className="flex-row items-center">
-              <View className="w-10 h-10 bg-gray-200 rounded-full items-center justify-center mr-3">
-                <Text className="text-gray-600 font-semibold">
-                  {trade.traderName[0]}
-                </Text>
-              </View>
-              <View>
-                <Text className="text-gray-900 font-semibold text-base">
-                  {trade.traderName}
-                </Text>
-                <Text className="text-gray-500 text-sm">
-                  {trade.traderRockCount} rocks • Joined {trade.traderJoinDate}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              className="bg-green-500 px-4 py-2 rounded-lg"
-              onPress={() => handleAcceptTrade(trade.id)}
-            >
-              <Text className="text-white font-semibold text-sm">
-                Accept Trade
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
+  fetchTrades();
+}, [tab]);
 
-        {/* Trade details */}
-        <View className="flex-row items-center justify-between">
-          {/* You Give */}
-          <View className="flex-1 items-center">
-            <Text className="text-gray-500 text-sm mb-2">You Give</Text>
-            <View className="bg-gray-50 rounded-lg p-3 items-center w-full">
-              <Image
-                source={getImageSource(trade.youGive.rockImage)}
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 8,
-                  marginBottom: 8,
-                }}
-                resizeMode="cover"
-              />
-              <Text className="text-gray-900 font-medium text-sm text-center">
-                {trade.youGive.rockName}
-              </Text>
-            </View>
-          </View>
-
-          {/* Arrow */}
-          <View className="mx-4">
-            <Text className="text-gray-400 text-2xl">→</Text>
-          </View>
-
-          {/* You Receive */}
-          <View className="flex-1 items-center">
-            <Text className="text-gray-500 text-sm mb-2">You Receive</Text>
-            <View className="bg-gray-50 rounded-lg p-3 items-center w-full">
-              <Image
-                source={getImageSource(trade.youReceive.rockImage)}
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 8,
-                  marginBottom: 8,
-                }}
-                resizeMode="cover"
-              />
-              <Text className="text-gray-900 font-medium text-sm text-center">
-                {trade.youReceive.rockName}
-              </Text>
-            </View>
-          </View>
-        </View>
+const renderTrade = ({ item }: { item: any }) => (
+  <View style={styles.tradeCard}>
+    {/* Top Row: Trader Info + Accept Button */}
+    <View style={styles.traderRow}>
+      <View>
+        <Text style={styles.traderName}>{item.traderName}</Text>
+        <Text style={styles.traderMeta}>
+          {item.traderRockCount} Rocks Collected
+        </Text>
+        <Text style={styles.traderMeta}>
+          Joined since {item.traderJoinDate || "Unknown"}
+        </Text>
       </View>
-    );
-  };
+      {!item.isMyOffer && (
+        <TouchableOpacity
+          style={styles.acceptButton}
+          onPress={() => router.push(`/tradeaccept?tradeId=${item.id}`)}
+        >
+          <Text style={styles.acceptButtonText}>Accept Trade</Text>
+        </TouchableOpacity>
+      )}
+    </View>
 
-  return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      {/* App Bar */}
-      <View className="bg-white border-b border-gray-200">
-        <View className="flex-row items-center justify-between px-4 py-4">
-          <TouchableOpacity onPress={handleBack} className="p-2">
-            <BackIcon width={24} height={24} />
-          </TouchableOpacity>
-          <Text className="text-gray-900 font-semibold text-lg">Trade Collection</Text>
-          <View className="w-6" />
-        </View>
-
-        {/* Tabs */}
-        <View className="flex-row px-4">
-          <TouchableOpacity
-            className={`flex-1 py-3 border-b-2 ${
-              activeTab === "Available"
-                ? "border-green-500"
-                : "border-transparent"
-            }`}
-            onPress={() => handleTabPress("Available")}
-          >
-            <Text
-              className={`text-center font-medium ${
-                activeTab === "Available"
-                  ? "text-green-600 font-semibold"
-                  : "text-gray-600"
-              }`}
-            >
-              Available Trades ({availableCount})
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`flex-1 py-3 border-b-2 ${activeTab === "MyOffers" ? "border-green-500" : "border-transparent"}`}
-            onPress={() => handleTabPress("MyOffers")}
-          >
-            <Text
-              className={`text-center font-medium ${
-                activeTab === "MyOffers"
-                  ? "text-green-600 font-semibold"
-                  : "text-gray-600"
-              }`}
-            >
-              My Trade Offers ({myOffersCount})
-            </Text>
-          </TouchableOpacity>
-        </View>
+    {/* Bottom Row: Trade Barter */}
+    <View style={styles.tradeRow}>
+      <View style={styles.rockBox}>
+        <Image
+          source={{ uri: item.youGive.rockImage }}
+          style={styles.rockImage}
+        />
+        <Text style={styles.rockName}>{item.youGive.rockName}</Text>
+        <Text style={styles.rockLabel}>You Get</Text>
       </View>
 
-      {/* Content */}
-      <ScrollView
-        className="flex-1 px-4 py-4"
-        showsVerticalScrollIndicator={false}
+      <Text style={styles.arrow}>→</Text>
+
+      <View style={styles.rockBox}>
+        <Image
+          source={{ uri: item.youReceive.rockImage }}
+          style={styles.rockImage}
+        />
+        <Text style={styles.rockName}>{item.youReceive.rockName}</Text>
+        <Text style={styles.rockLabel}>You Receive</Text>
+      </View>
+    </View>
+  </View>
+);
+
+
+return (
+  <View style={styles.container}>
+    {/* Header with Back Button and Title */}
+    <View style={styles.header}>
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <BackIcon width={24} height={24} />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Trade Collection</Text>
+      {/* Spacer to balance back button */}
+      <View style={{ width: 24 }} />
+    </View>
+
+    {/* Tab Bar */}
+    <View style={styles.tabBar}>
+      <TouchableOpacity
+        style={[styles.tab, tab === "available" && styles.activeTab]}
+        onPress={() => setTab("available")}
       >
-        {filteredTrades.length > 0 ? (
-          <>
-            {filteredTrades.map(renderTradeCard)}
+        <Text style={[styles.tabText, tab === "available" && styles.activeTabText]}>
+          Available Trades
+        </Text>
+      </TouchableOpacity>
 
-            {/* Create Trade Offer Button - only show on My Offers tab */}
-            {activeTab === "MyOffers" && (
-              <TouchableOpacity
-                className="bg-green-500 rounded-xl py-4 items-center mt-4"
-                onPress={handleCreateTradeOffer}
-              >
-                <Text className="text-white font-semibold text-lg">
-                  Create Trade Offer
-                </Text>
-              </TouchableOpacity>
-            )}
-          </>
-        ) : (
-          <View className="items-center py-16">
-            <Text className="text-gray-500 text-center text-base">
-              {activeTab === "Available"
-                ? "No available trades at the moment"
-                : "You haven't created any trade offers yet"}
-            </Text>
-            {activeTab === "MyOffers" && (
-              <TouchableOpacity
-                className="bg-green-500 rounded-xl px-6 py-3 mt-4"
-                onPress={handleCreateTradeOffer}
-              >
-                <Text className="text-white font-semibold">
-                  Create Your First Trade
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+      <TouchableOpacity
+        style={[styles.tab, tab === "my" && styles.activeTab]}
+        onPress={() => setTab("my")}
+      >
+        <Text style={[styles.tabText, tab === "my" && styles.activeTabText]}>
+          My Trade Offers
+        </Text>
+      </TouchableOpacity>
+    </View>
 
-        {/* Bottom spacing */}
-        <View className="h-6" />
-      </ScrollView>
-    </SafeAreaView>
-  );
+    {/* Trade List */}
+    {loading ? (
+      <ActivityIndicator size="large" />
+    ) : (
+      <FlatList
+        data={trades}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderTrade}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No trades found.</Text>
+        }
+      />
+    )}
+
+    {/* Button to Create Trade */}
+    {tab === "my" && (
+    <TouchableOpacity
+    onPress={() => router.push("/tradecreate")}
+    style={styles.createButton}
+    >
+    <Text style={styles.createText}>Create Trade Offers</Text>
+    </TouchableOpacity>
+    )}
+  </View>
+);
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  backButton: {
+    padding: 8,
+  },
+  tabBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 12,
+  },
+  tab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  activeTab: {
+    borderBottomColor: "#000",
+  },
+  tabText: {
+    fontSize: 16,
+    color: "#555",
+  },
+  activeTabText: {
+    fontWeight: "bold",
+    color: "#000",
+  },
+  tabCount: {
+    fontSize: 12,
+    textAlign: "center",
+    color: "gray",
+  },
+  
+  arrow: {
+    fontSize: 20,
+    marginHorizontal: 10,
+    color: "#555",
+  },
+  emptyText: {
+    textAlign: "center",
+    marginTop: 20,
+    color: "gray",
+  },
+  createButton: {
+    backgroundColor: "#459B6C",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  createText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+    flex: 1,
+    color: "#000", // optional
+  },
+  tradeCard: {
+  backgroundColor: "#fff",
+  borderRadius: 12,
+  padding: 12,
+  marginVertical: 8,
+  marginHorizontal: 16,
+  shadowColor: "#000",
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 2,
+},
+
+traderRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 12,
+},
+
+traderName: {
+  fontSize: 16,
+  fontWeight: "bold",
+},
+
+traderMeta: {
+  fontSize: 12,
+  color: "gray",
+},
+
+tradeRow: {
+  flexDirection: "row",
+  justifyContent: "space-around",
+  alignItems: "center",
+},
+
+rockBox: {
+  alignItems: "center",
+  width: "40%",
+},
+
+rockImage: {
+  width: 60,
+  height: 60,
+  borderRadius: 8,
+  marginBottom: 4,
+},
+
+rockName: {
+  fontWeight: "bold",
+  fontSize: 13,
+},
+
+rockLabel: {
+  fontSize: 11,
+  color: "gray",
+},
+
+
+acceptButton: {
+  backgroundColor: "#fca311",
+  paddingVertical: 6,
+  paddingHorizontal: 14,
+  borderRadius: 20,
+},
+
+acceptButtonText: {
+  color: "white",
+  fontWeight: "bold",
+  fontSize: 14,
+},
+
+});
+
