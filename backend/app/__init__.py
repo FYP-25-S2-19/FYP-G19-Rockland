@@ -10,6 +10,7 @@ from flask import Flask
 from flask_cors import CORS
 from .models import db
 
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object('config.Config')
@@ -30,6 +31,11 @@ def create_app():
 
     db.init_app(app)
     CORS(app)
+
+    # TEST ROUTE
+    @app.route("/ping", methods=["GET"])
+    def ping():
+        return "pong", 200
 
     # USER CONTROLLER
     from .controller.authentication.login import login_blueprint
@@ -291,6 +297,7 @@ def create_app():
     from .controller.trade_offer.reject_trade_offer_controller import reject_trade_offer_bp
     from .controller.trade_offer.search_trade_offer_controller import search_trade_offer_bp
     from .controller.trade_offer.search_my_trade_offer_controller import search_my_trade_offer_bp
+    from .controller.trade_offer.get_trade_offer_controller import get_trade_offer_bp
 
     app.register_blueprint(accept_trade_offer_bp)
     app.register_blueprint(create_trade_offer_bp)
@@ -298,6 +305,8 @@ def create_app():
     app.register_blueprint(reject_trade_offer_bp)
     app.register_blueprint(search_trade_offer_bp)
     app.register_blueprint(search_my_trade_offer_bp)
+    app.register_blueprint(get_trade_offer_bp)
+
 
     # DASHBOARD
     from .controller.dashboard.dashboard_controller import dashboard_blueprint
