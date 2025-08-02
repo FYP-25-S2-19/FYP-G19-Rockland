@@ -327,3 +327,31 @@ class Rock(db.Model):
         except Exception as e:
             print(f"Error fetching rock type counts: {e}")
             return [], 500, f"Error: {str(e)}"
+        
+    @classmethod
+    def getAllRocksForAdmin(cls):
+        """Get all rocks for admin view - follows discussion pattern"""
+        try:
+            rocks = cls.query.order_by(cls.created_at.desc()).all()
+            rocks_data = [rock.to_dict() for rock in rocks]
+            return rocks_data, 200
+        except Exception as e:
+            print(f"Error fetching rocks for admin: {e}")
+            return None, 500
+
+
+    @classmethod
+    def deleteRockById(cls, rock_id: int):
+        """Delete rock by ID for admin - follows discussion pattern"""
+        try:
+            rock = cls.query.get(rock_id)
+            if not rock:
+                return False, 404, "Rock not found"
+
+            db.session.delete(rock)
+            db.session.commit()
+            return True, 200, "Rock deleted successfully"
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error deleting rock by ID: {e}")
+            return False, 500, f"Error deleting rock: {str(e)}"

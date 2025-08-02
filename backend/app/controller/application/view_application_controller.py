@@ -1,6 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, redirect
 from app.entity.application import Application
+from app.entity.application_file import ApplicationFile
 from app.controller.authentication.permission_required import permission_required
+from app.utils.gcs import generate_signed_url
 
 view_application_blueprint = Blueprint('view_application', __name__)
 
@@ -132,6 +134,99 @@ class ViewApplicationController:
             print(f"Error in view_application_by_param: {e}")
             return jsonify({
                 "success": False, 
+                "error": f"Error: {str(e)}"
+            }), 500
+
+    # NEW: Download file endpoint
+    @staticmethod
+    @view_application_blueprint.route('/api/applications/file/download/<int:file_id>', methods=['GET'])
+    @permission_required('has_admin_permission')
+    def download_application_file(file_id, **kwargs):
+        """Download a file attached to an application"""
+        try:
+            # Get the file record
+            application_file = ApplicationFile.query.get(file_id)
+            
+            if not application_file:
+                return jsonify({
+                    "success": False,
+                    "error": "File not found"
+                }), 404
+            
+            # Verify the admin has permission to access this application
+            application = Application.getApplicationById(application_file.application_id)
+            if not application:
+                return jsonify({
+                    "success": False,
+                    "error": "Application not found"
+                }), 404
+            
+            # Get signed URL for direct download
+            signed_url = generate_signed_url(application_file.file_path, expiration_minutes=5)
+            
+            if signed_url:
+                # Redirect to the signed URL for download
+                return redirect(signed_url)
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": "Failed to generate download link"
+                }), 500
+                
+        except Exception as e:
+            print(f"Error in download_application_file: {e}")
+            return jsonify({
+                "success": False,
+                "error": f"Error: {str(e)}"
+            }), 500
+
+    # NEW: Get file download URL endpoint
+    @staticmethod
+    @view_application_blueprint.route('/api/applications/file/url/<int:file_id>', methods=['GET'])
+    @permission_required('has_admin_permission')
+    def get_file_download_url(file_id, **kwargs):
+        """Get download URL for a file attached to an application"""
+        try:
+            # Get the file record
+            application_file = ApplicationFile.query.get(file_id)
+            
+            if not application_file:
+                return jsonify({
+                    "success": False,
+                    "error": "File not found"
+                }), 404
+            
+            # Verify the admin has permission to access this application
+            application = Application.getApplicationById(application_file.application_id)
+            if not application:
+                return jsonify({
+                    "success": False,
+                    "error": "Application not found"
+                }), 404
+            
+            # Get signed URL
+            signed_url = generate_signed_url(application_file.file_path, expiration_minutes=30)
+            
+            if signed_url:
+                # Extract filename from file_path
+                filename = application_file.file_path.split('/')[-1] if application_file.file_path else "unknown_file"
+                
+                return jsonify({
+                    "success": True,
+                    "download_url": signed_url,
+                    "filename": filename,
+                    "file_id": file_id
+                }), 200
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": "Failed to generate download link"
+                }), 500
+                
+        except Exception as e:
+            print(f"Error in get_file_download_url: {e}")
+            return jsonify({
+                "success": False,
                 "error": f"Error: {str(e)}"
             }), 500
 

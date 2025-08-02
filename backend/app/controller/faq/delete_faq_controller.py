@@ -3,8 +3,6 @@ from flask import Blueprint, request, jsonify
 
 # Local dependencies
 from app.entity.faq import Faq
-from app.models import db
-# Temporarily comment out the permission_required import
 from app.controller.authentication.permission_required import permission_required
 
 delete_faq_blueprint = Blueprint('delete_faq', __name__)
@@ -21,7 +19,7 @@ class DeleteFaqController:
             if current_user:
                 print(f"🎯 Admin user {current_user.email} is deleting FAQ ID: {faq_id}")
             
-            # Check if FAQ exists
+            # Get FAQ by ID using entity method
             existing_faq = Faq.getFaqById(faq_id)
             
             if not existing_faq:
@@ -30,22 +28,19 @@ class DeleteFaqController:
                     "message": "FAQ not found"
                 }), 404
             
-            # Delete the FAQ
-            try:
-                db.session.delete(existing_faq)
-                db.session.commit()
-                
+            # Use the entity method to delete FAQ
+            success, status_code, message = existing_faq.deleteFaq()
+            
+            if success:
                 return jsonify({
                     "success": True,
-                    "message": "FAQ deleted successfully"
-                }), 200
-                
-            except Exception as db_error:
-                db.session.rollback()
+                    "message": message
+                }), status_code
+            else:
                 return jsonify({
                     "success": False,
-                    "message": f"Database error: {str(db_error)}"
-                }), 500
+                    "message": message
+                }), status_code
                 
         except Exception as e:
             print(f"Error in delete_faq controller: {e}")

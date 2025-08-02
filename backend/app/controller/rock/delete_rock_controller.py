@@ -23,3 +23,25 @@ class DeleteRockController:
                 'success': False,
                 'message': f"Error deleting rock: {str(e)}"
             }), 500
+    
+    @staticmethod
+    @delete_rock_blueprint.route('/api/rocks/admin/delete/<int:rock_id>', methods=['DELETE'])
+    @permission_required(['has_admin_permission'])  # Admin only
+    def delete_rock_admin(rock_id, current_user=None):
+        """Admin delete rock for management page"""
+        try:
+            print(f"🗑️ Admin {current_user.email if current_user else 'Unknown'} is deleting rock {rock_id}")
+            
+            success, status_code, message = Rock.delete_rock(rock_id)
+
+            return jsonify({
+                'success': success,
+                'message': message
+            }), status_code
+
+        except Exception as e:
+            print(f"Error in delete_rock_admin controller: {e}")
+            return jsonify({
+                'success': False,
+                'message': f"Error deleting rock: {str(e)}"
+            }), 500
