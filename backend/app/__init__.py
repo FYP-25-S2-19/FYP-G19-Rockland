@@ -268,6 +268,8 @@ def create_app():
     from .controller.articles.get_article_by_id_controller import get_article_by_id_blueprint
     from app.controller.articles.get_articles_by_author_controller import get_articles_by_author_blueprint
     from .controller.articles.get_top_liked_articles_controller import get_top_liked_articles_blueprint
+    from .controller.articles.get_articles_by_user_interest_controller import get_articles_by_user_interest_blueprint
+    from app.controller.articles.get_articles_hybrid_controller import get_articles_hybrid_blueprint
 
     app.register_blueprint(delete_article_blueprint)
     app.register_blueprint(like_article_blueprint)
@@ -279,6 +281,8 @@ def create_app():
     app.register_blueprint(get_article_by_id_blueprint)
     app.register_blueprint(get_articles_by_author_blueprint)
     app.register_blueprint(get_top_liked_articles_blueprint)
+    app.register_blueprint(get_articles_by_user_interest_blueprint)
+    app.register_blueprint(get_articles_hybrid_blueprint)
 
     # TRADE OFFER
     from .controller.trade_offer.accept_trade_offer_controller import accept_trade_offer_bp

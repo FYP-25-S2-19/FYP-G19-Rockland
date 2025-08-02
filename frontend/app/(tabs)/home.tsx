@@ -18,12 +18,13 @@ import ArrowRightIcon from "../../assets/images/arrow_right.svg";
 import LikeIcon from "../../assets/images/like.svg";
 import { LinearGradient } from "expo-linear-gradient";
 
+// ...imports unchanged
 export default function HomeScreen() {
   const [role, setRole] = useState("free");
   const router = useRouter();
   const [topRocks, setTopRocks] = useState<any[]>([]);
   const [loadingRocks, setLoadingRocks] = useState(true);
-  const [topArticles, setTopArticles] = useState<any[]>([]);
+  const [recommendedArticles, setRecommendedArticles] = useState<any[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState("");
@@ -36,17 +37,20 @@ export default function HomeScreen() {
       try {
         const token = await AsyncStorage.getItem("accessToken");
 
+        // 🪨 Rocks
         const rockRes = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/rocks/top-commented`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const rockData = await rockRes.json();
         if (rockData.success) setTopRocks(rockData.rocks);
 
-        const articleRes = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/articles/top-liked`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // 📚 Articles by interest + likes
+        const articleRes = await fetch(
+          `${process.env.EXPO_PUBLIC_API_URL}/api/articles/by-user-interest?sort=interest-then-likes`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         const articleData = await articleRes.json();
-        if (articleData.success) setTopArticles(articleData.top_liked_articles);
+        if (articleData.success) setRecommendedArticles(articleData.articles);
       } catch (err) {
         console.error("⚠️ Error fetching home data:", err);
       } finally {
@@ -187,15 +191,15 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {/* Top Articles */}
+          {/* Recommended Articles */}
           <View className="px-5 mb-20">
-            <Text className="text-xl font-bold text-gray-900 mb-4">Top Articles</Text>
+            <Text className="text-xl font-bold text-gray-900 mb-4">Recommended for You</Text>
             {loadingArticles ? (
               <Text className="text-base text-gray-500">Loading...</Text>
-            ) : topArticles.length === 0 ? (
+            ) : recommendedArticles.length === 0 ? (
               <Text className="text-base text-gray-500">No articles found.</Text>
             ) : (
-              topArticles.map((article) => (
+              recommendedArticles.map((article) => (
                 <TouchableOpacity
                   key={article.article_id}
                   className="flex-row mb-4 bg-white rounded-2xl border border-gray-200"
@@ -262,8 +266,6 @@ export default function HomeScreen() {
             </View>
           </Modal>
         </ScrollView>
-        {/* Optional: Include BottomTabBar if needed */}
-        {/* <BottomTabBar /> */}
       </SafeAreaView>
     </LinearGradient>
   );

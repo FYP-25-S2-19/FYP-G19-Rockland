@@ -1,5 +1,9 @@
 {
   "node": {},
   "edge": {},
+<<<<<<< HEAD
   "encryptionKey": "qA8JVYNYLJUY12YF+WTgC9wQoniG+xQ3qqkQzvhfyEM="
+=======
+  "encryptionKey": "kZaPy9Itpx1xmdcRL8eQ7LJhlvHCe+ImVDUrNOSwVsk="
+>>>>>>> origin/features/recommendations
 }
