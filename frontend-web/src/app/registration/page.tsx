@@ -383,9 +383,9 @@ export default function RegistrationPage() {
           }
         } else {
           // Free user — go to login
-          setSuccess("Account created successfully! Redirecting to login...");
+          setSuccess("Account created successfully! Redirecting to landing page...");
           setTimeout(() => {
-            router.push("/login");
+            router.push("/");
           }, 2000);
         }
       } else {
