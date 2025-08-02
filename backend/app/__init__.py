@@ -139,6 +139,7 @@ def create_app():
 
     # QUIZ
     from app.controller.quiz.create_quizattempt_controller import create_quizattempt_blueprint
+    from app.controller.quiz.check_quiz_eligibility import quiz_eligibility_blueprint
     from app.controller.quiz.view_quiz_controller import view_quiz_blueprint
     from app.controller.quiz.view_quizhistory_controller import view_quizhistory_blueprint
     from app.controller.quiz.manage_quiz_controller import manage_quiz_blueprint
@@ -146,6 +147,7 @@ def create_app():
 
 
     app.register_blueprint(create_quizattempt_blueprint)
+    app.register_blueprint(quiz_eligibility_blueprint)
     app.register_blueprint(view_quiz_blueprint)
     app.register_blueprint(view_quizhistory_blueprint)
     app.register_blueprint(manage_quiz_blueprint)
