@@ -21,31 +21,20 @@ class DeleteSubscriptionPlanController:
             if current_user:
                 print(f"🎯 Admin user {current_user.email} is deleting subscription plan ID: {plan_id}")
             
-            # Check if subscription plan exists
-            existing_plan = SubscriptionPlan.getSubscriptionPlanById(plan_id)
+            # Use entity method to handle subscription plan deletion
+            success, status_code, message, plan_data = SubscriptionPlan.deleteSubscriptionPlanById(plan_id)
             
-            if not existing_plan:
-                return jsonify({
-                    "success": False,
-                    "message": "Subscription plan not found"
-                }), 404
-            
-            # Delete the subscription plan
-            try:
-                db.session.delete(existing_plan)
-                db.session.commit()
-                
+            if success:
                 return jsonify({
                     "success": True,
-                    "message": "Subscription plan deleted successfully"
-                }), 200
-                
-            except Exception as db_error:
-                db.session.rollback()
+                    "message": message,
+                    "deleted_plan": plan_data
+                }), status_code
+            else:
                 return jsonify({
                     "success": False,
-                    "message": f"Database error: {str(db_error)}"
-                }), 500
+                    "message": message
+                }), status_code
                 
         except Exception as e:
             print(f"Error in delete_subscription_plan controller: {e}")
