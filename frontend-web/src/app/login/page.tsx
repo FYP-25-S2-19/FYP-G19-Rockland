@@ -229,14 +229,6 @@ export default function LoginPage() {
             >
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
-
-            {/* Test Credentials Info */}
-            <div className="text-xs text-gray-500 text-center space-y-1">
-              <p className="font-medium">Test Credentials:</p>
-              <p>Admin: admin@rockland.com / admin123</p>
-              <p>Premium: premium@rockland.com / rock123</p>
-              <p className="text-orange-600">Suspended: admin@rocklands.com / admin123</p>
-            </div>
           </form>
         </div>
       </div>
