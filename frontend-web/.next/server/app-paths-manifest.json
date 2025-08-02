@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "/page": "app/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/login/page": "app/login/page.js",
@@ -6,4 +7,9 @@
   "/usertype/page": "app/usertype/page.js",
   "/applications/page": "app/applications/page.js",
   "/useraccount/page": "app/useraccount/page.js"
+=======
+  "/registration/page": "app/registration/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js"
+>>>>>>> origin/features/recommendations
 }

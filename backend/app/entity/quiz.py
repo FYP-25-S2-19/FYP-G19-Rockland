@@ -1,7 +1,6 @@
 from app.models import db
 from datetime import datetime
 
-
 class Quiz(db.Model):
     __tablename__ = 'quiz'
 
@@ -12,6 +11,10 @@ class Quiz(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'))  # Creator
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # 🆕 Link to Interest
+    interest_id = db.Column(db.Integer, db.ForeignKey('interest.interest_id'))
+    interest = db.relationship('Interest')
+
     questions = db.relationship('QuizQuestion', backref='quiz', cascade="all, delete-orphan")
     results = db.relationship('QuizResult', backref='quiz', cascade="all, delete-orphan")
 
@@ -21,6 +24,7 @@ class Quiz(db.Model):
             "title": self.title,
             "description": self.description,
             "total_points": self.total_points,
+            "interest": self.interest.title if self.interest else None,
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None
         }
 
@@ -30,6 +34,7 @@ class Quiz(db.Model):
             "title": self.title,
             "description": self.description,
             "total_points": self.total_points,
+            "interest": self.interest.title if self.interest else None,
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None,
             "questions": [
                 {
