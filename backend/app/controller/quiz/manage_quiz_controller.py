@@ -1,4 +1,3 @@
-
 from flask import Blueprint, request, jsonify
 from app.models import db
 from app.entity.quiz import Quiz, QuizQuestion, QuizOption
@@ -13,6 +12,7 @@ def create_quiz(current_user):
     data = request.get_json()
     title = data.get("title")
     description = data.get("description")
+    interest_id = data.get("interest_id")  # ✅ New field
 
     if not title:
         return jsonify({"success": False, "message": "Title is required"}), 400
@@ -20,6 +20,7 @@ def create_quiz(current_user):
     quiz = Quiz(
         title=title,
         description=description,
+        interest_id=interest_id,  # ✅ Assign interest
         user_id=current_user.user_id,
         total_points=0  # default to 0 initially
     )
@@ -113,6 +114,8 @@ def update_quiz(quiz_id, current_user):
 
     quiz.total_points = total_points
 
+    if "interest_id" in data:
+        quiz.interest_id = data["interest_id"]  # ✅ Update interest
     db.session.commit()
 
     return jsonify({"success": True, "message": "Quiz fully updated"}), 200

@@ -15,25 +15,24 @@ interface ArticleType {
   preview: string;
   likes: number;
   liked: boolean;
-  timeAgo: string; // ✅ already formatted when passed
+  timeAgo: string;
+  isRecommended?: boolean; // ✅ optional field added
 }
 
 type ArticleCardProps = {
-  article: any;
+  article: ArticleType;
   onLikeToggle: () => void;
   isPremiumUser: boolean;
   onUpgrade: () => void;
   updateLikeState?: (liked: boolean, likeCount: number) => void;
 };
 
-
-
 export default function ArticleCard({
   article,
   onLikeToggle,
   isPremiumUser,
   onUpgrade,
-  updateLikeState, 
+  updateLikeState,
 }: ArticleCardProps) {
   const router = useRouter();
 
@@ -52,14 +51,15 @@ export default function ArticleCard({
     if (article.isPremium && !isPremiumUser) {
       onUpgrade();
     } else {
-      onLikeToggle();  // triggers optimistic UI
+      onLikeToggle();
       if (typeof updateLikeState === "function") {
         const newLiked = !article.liked;
         const newLikes = article.likes + (newLiked ? 1 : -1);
-        updateLikeState(newLiked, newLikes); // ✅
+        updateLikeState(newLiked, newLikes);
       }
     }
   };
+
   const formatLikes = (count: number): string => {
     return count >= 1000
       ? (count / 1000).toFixed(count % 1000 === 0 ? 0 : 1) + "k"
@@ -114,6 +114,13 @@ export default function ArticleCard({
       />
 
       <View className="px-4 pt-4 pb-4">
+        {/* ✅ Recommended badge (only if article.isRecommended === true) */}
+        {article.isRecommended && (
+          <Text className="text-xs text-blue-800 bg-blue-100 px-2 py-1 mb-1 rounded-full self-start">
+            Recommended
+          </Text>
+        )}
+
         <Text className="text-2xl font-semibold text-gray-900 mb-2 leading-7">
           {article.title}
         </Text>
@@ -137,12 +144,7 @@ export default function ArticleCard({
             {article.liked ? (
               <LikeIcon width={21} height={21} style={{ marginRight: 6 }} />
             ) : (
-              <NoLikeIcon
-                width={24}
-                height={24}
-                style={{ marginRight: 6 }}
-                
-              />
+              <NoLikeIcon width={24} height={24} style={{ marginRight: 6 }} />
             )}
             <Text className="text-sm font-medium text-gray-500">
               {formatLikes(article.likes)}
