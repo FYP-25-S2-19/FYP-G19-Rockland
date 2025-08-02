@@ -9,12 +9,20 @@ create_trade_offer_bp = Blueprint("create_trade_offer_bp", __name__)
 def create_trade_offer(current_user):
     data = request.get_json()
 
-    success, code, message, new_offer = TradeOffer.create_offer(
-        user_id_offerer=current_user.user_id,
-        collection_id_offered=data.get("collection_id_offered"),
-        rock_id_requested=data.get("rock_id_requested")
-    )
+    offer_data = {
+        "user_id_offerer": current_user.user_id,
+        "collection_id_offered": data.get("collection_id_offered"),
+        "rock_id_requested": data.get("rock_id_requested"),
+    }
 
-    if success:
-        return jsonify({"message": message, "offer": new_offer.to_dict()}), code
-    return jsonify({"message": message}), code
+    try:
+        new_offer = TradeOffer.create_offer(offer_data)
+        return jsonify({
+            "message": "Trade offer created successfully.",
+            "offer": new_offer.to_dict()
+        }), 201
+    except Exception as e:
+        return jsonify({
+            "message": "Failed to create trade offer.",
+            "details": str(e)
+        }), 400
