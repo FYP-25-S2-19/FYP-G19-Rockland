@@ -13,7 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import LikeIcon from "../../assets/images/like.svg";
 import NoLikeIcon from "../../assets/images/nolike.svg";
 import BackIcon from "../../assets/images/back.svg";
-import { timeAgo } from "../../utils/timeAgo"; // ✅ Import reusable formatter
+import { timeAgo } from "../../utils/timeAgo"; 
 import EventBus from "../../utils/eventBus";
 
 
@@ -162,7 +162,7 @@ export default function ArticleDetail() {
 
       <Text className="text-base text-gray-700 leading-6">{article.content}</Text>
 
-      <View className="flex-row items-center justify-end mt-5">
+      <View className="flex-row items-center justify-end mt-5 mb-10">
         <TouchableOpacity onPress={handleLike} className="flex-row items-center">
           {isLiked ? (
             <LikeIcon width={21} height={21} style={{ marginRight: 6 }} />
