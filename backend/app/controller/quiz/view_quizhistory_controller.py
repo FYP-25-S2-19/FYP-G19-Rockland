@@ -1,3 +1,4 @@
+
 from flask import Blueprint, jsonify
 from app.entity.quiz import QuizResult
 from app.controller.authentication.permission_required import permission_required
@@ -7,8 +8,7 @@ view_quizhistory_blueprint = Blueprint('view_quizhistory', __name__)
 @view_quizhistory_blueprint.route('/api/quizhistory', methods=['GET'])
 @permission_required('has_freeuser_permission', 'has_premium_permission')
 def get_quiz_history(current_user):
-    attempts = QuizResult.query.filter_by(user_id=current_user.user_id).order_by(QuizResult.completed_at.desc()).all()
-
+    attempts = QuizResult.get_history_for_user(current_user.user_id)
     return jsonify({
         "success": True,
         "attempts": [

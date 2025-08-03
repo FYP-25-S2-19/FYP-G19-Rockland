@@ -73,7 +73,7 @@ export default function BaseFeed({
   const [articles, setArticles] = useState(incomingArticles);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Sort by Most Liked");
-  const [forceRefresh, setForceRefresh] = useState(false); // 👈 for forcing re-render
+  const [forceRefresh, setForceRefresh] = useState(false);
 
   const handleUpdateLike = (articleId: number, liked: boolean, likeCount: number) => {
     setArticles((prev) =>
@@ -97,23 +97,27 @@ export default function BaseFeed({
         { headers }
       );
       if (response.data.success) {
-        const fetched = response.data.articles.map((article: any) => ({
-          id: article.article_id,
-          title: article.title,
-          preview: article.content?.slice(0, 100),
-          category: article.category_title,
-          authorName: article.author_name,
-          authorImage: article.author_profile_picture
-            ? { uri: article.author_profile_picture }
-            : require("../assets/images/profilepicture.png"),
-          isPremium: !article.is_free,
-          thumbnail: { uri: article.signed_photo_url || article.photo_url },
-          likes: article.total_likes,
-          liked: !!article.liked_by_user,
-          timeAgo: article.date_created
-            ? require("../utils/timeAgo").timeAgo(new Date(article.date_created))
-            : "",
-        }));
+        const fetched = response.data.articles.map((article: any) => {
+          const prev = incomingArticles.find((a) => a.id === article.article_id);
+          return {
+            id: article.article_id,
+            title: article.title,
+            preview: article.content?.slice(0, 100),
+            category: article.category_title,
+            authorName: article.author_name,
+            authorImage: article.author_profile_picture
+              ? { uri: article.author_profile_picture }
+              : require("../assets/images/profilepicture.png"),
+            isPremium: !article.is_free,
+            thumbnail: { uri: article.signed_photo_url || article.photo_url },
+            likes: article.total_likes,
+            liked: !!article.liked_by_user,
+            timeAgo: article.date_created
+              ? require("../utils/timeAgo").timeAgo(new Date(article.date_created))
+              : "",
+            isRecommended: article.is_recommended ?? prev?.isRecommended ?? false,
+          };
+        });
         setArticles(fetched);
       }
     } catch (e) {
@@ -121,14 +125,12 @@ export default function BaseFeed({
     }
   };
 
-  // ✅ Refetch articles when searchQuery changes
   useEffect(() => {
     if (activeTab === "articles") {
       fetchArticles();
     }
   }, [searchQuery]);
 
-  // ✅ Re-sort discussions when sort changes
   const filteredDiscussions = useMemo(() => {
     const kw = searchQuery.toLowerCase();
     const sorted = [...discussions].sort((a, b) =>
@@ -167,7 +169,6 @@ export default function BaseFeed({
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Search bar */}
       <View className="flex-row px-4 py-3 items-center">
         <View className="flex-1 flex-row items-center bg-white rounded-xl px-4 h-12 mr-3 border-2 border-[#459B6C]">
           <SearchIcon width={20} height={20} style={{ marginRight: 10 }} />
@@ -193,7 +194,7 @@ export default function BaseFeed({
             if (activeTab === "discussions") {
               const newSort = discussionSort === "asc" ? "desc" : "asc";
               setDiscussionSort(newSort);
-              setForceRefresh((prev) => !prev); // 🔁 force re-render
+              setForceRefresh((prev) => !prev);
             } else {
               setFilterModalVisible(true);
             }
@@ -204,7 +205,6 @@ export default function BaseFeed({
         </TouchableOpacity>
       </View>
 
-      {/* Tabs */}
       <View className="flex-row justify-around border-b border-gray-200 px-4 mb-4">
         {tabs.map((tab) => (
           <TouchableOpacity key={tab.key} onPress={() => handleTabPress(tab.key)} className="flex-1">
@@ -215,7 +215,6 @@ export default function BaseFeed({
         ))}
       </View>
 
-      {/* Article List */}
       {activeTab === "articles" && (
         <FlatList
           data={articles}
@@ -239,7 +238,6 @@ export default function BaseFeed({
         />
       )}
 
-      {/* Discussions */}
       {activeTab === "discussions" && (
         <>
           <FlatList
@@ -260,7 +258,6 @@ export default function BaseFeed({
         </>
       )}
 
-      {/* Rocks */}
       {activeTab === "rocks" && (
         <FlatList
           data={filteredRocks}
@@ -295,7 +292,6 @@ export default function BaseFeed({
         />
       )}
 
-      {/* Upgrade Modal */}
       <Modal
         visible={showUpgradeModal}
         transparent
@@ -313,7 +309,6 @@ export default function BaseFeed({
         </View>
       </Modal>
 
-      {/* Filter Modals */}
       {activeTab === "articles" && (
         <FilterModal
           visible={filterModalVisible}
