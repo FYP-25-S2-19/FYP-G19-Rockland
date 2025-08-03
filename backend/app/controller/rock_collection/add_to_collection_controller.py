@@ -20,6 +20,7 @@ def add_to_collection(current_user):
             "latitude": data.get("latitude"),
             "longitude": data.get("longitude"),
             "location_name": data.get("location_name"),
+            "photo_url": data.get("photo_url")  # ✅ added
         }
 
         print("📥 Incoming rock data:", rock_data)

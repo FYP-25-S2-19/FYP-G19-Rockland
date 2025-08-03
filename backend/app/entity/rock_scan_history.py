@@ -11,7 +11,7 @@ class RockScanHistory(db.Model):
     rock_name = db.Column(db.String(100), nullable=False)
     rock_type = db.Column(db.String(100), nullable=False)
     rarity = db.Column(db.String(50), nullable=True)
-    image_url = db.Column(db.String(255), nullable=True)
+    image_url = db.Column(db.Text, nullable=True)
     scan_datetime = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Optional location data
