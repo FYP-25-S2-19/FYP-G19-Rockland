@@ -15,6 +15,7 @@ export default function ExpertFeed() {
   const [loading, setLoading] = useState(true);
   const [articles, setArticles] = useState<any[]>([]);
   const [rocks, setRocks] = useState<any[]>([]);
+  
 
   // Filters
   const [searchText, setSearchText] = useState("");
@@ -22,6 +23,8 @@ export default function ExpertFeed() {
   const [selectedRarities, setSelectedRarities] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Sort by A-Z");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [discussionSort, setDiscussionSort] = useState<"asc" | "desc">("desc");
 
   const fetchArticles = async () => {
     try {
@@ -167,34 +170,39 @@ export default function ExpertFeed() {
 
   return (
     <BaseFeed
-      userRole="expert"
-      articles={articles}
-      rocks={rocks}
-      tabs={[
-        { key: "articles", label: "Articles" },
-        { key: "rocks", label: "Rock Entries" },
-      ]}
-      onLikeToggle={onLikeToggle}
-      onUpgradeRequest={(msg) => Alert.alert("Upgrade", msg)}
-      updateArticleLike={(articleId, liked, likeCount) =>
-        setArticles((prev) =>
-          prev.map((a) =>
-            a.id === articleId ? { ...a, liked, likes: likeCount } : a,
-          ),
-        )
-      }
-      rockSearchOptions={{
-        searchText,
-        selectedTypes,
-        selectedRarities,
-        selectedLocations,
-        sortBy,
-        setSearchText,          // <-- already here
-        setSelectedTypes,
-        setSelectedRarities,
-        setSelectedLocations,
-        setSortBy,
-      }}
-    />
+  userRole="expert"
+  articles={articles}
+  rocks={rocks}
+  tabs={[
+    { key: "articles", label: "Articles" },
+    { key: "rocks", label: "Rock Entries" },
+  ]}
+  onLikeToggle={onLikeToggle}
+  onUpgradeRequest={(msg) => Alert.alert("Upgrade", msg)}
+  updateArticleLike={(articleId, liked, likeCount) =>
+    setArticles((prev) =>
+      prev.map((a) =>
+        a.id === articleId ? { ...a, liked, likes: likeCount } : a,
+      ),
+    )
+  }
+  searchQuery={searchQuery}
+  setSearchQuery={setSearchQuery}
+  discussionSort={discussionSort}
+  setDiscussionSort={setDiscussionSort}
+  rockSearchOptions={{
+    searchText,
+    selectedTypes,
+    selectedRarities,
+    selectedLocations,
+    sortBy,
+    setSearchText,
+    setSelectedTypes,
+    setSelectedRarities,
+    setSelectedLocations,
+    setSortBy,
+  }}
+/>
+
   );
 }
