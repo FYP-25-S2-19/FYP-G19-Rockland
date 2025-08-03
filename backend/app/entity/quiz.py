@@ -2,6 +2,10 @@
 from app.models import db
 from datetime import datetime
 from app.entity.interest import Interest
+from app.entity.user import User        
+from app.utils.user_activity_tracking_engine import update_user_quiz_count  
+from app.utils.achievement_tracking_engine import check_and_award_thresholds
+
 
 class Quiz(db.Model):
     __tablename__ = 'quiz'
@@ -38,7 +42,7 @@ class Quiz(db.Model):
             "total_points": self.total_points,
             "interest": self.interest.title if self.interest else None,
             "interest_id": self.interest_id,
-            "question_count": len(self.questions),  # <-- Add here too
+            "question_count": len(self.questions),  
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None,
             "questions": [
                 {
@@ -206,6 +210,9 @@ class QuizOption(db.Model):
     is_correct = db.Column(db.Boolean, default=False)
 
 
+# Configurable limit for Free users
+FREE_USER_DAILY_LIMIT = 3
+
 class QuizResult(db.Model):
     __tablename__ = 'quizresult'
 
@@ -216,25 +223,88 @@ class QuizResult(db.Model):
     points_earned = db.Column(db.Integer)
     completed_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # -------------------------
+    # Helper methods
+    # -------------------------
     @staticmethod
     def count_attempts_today(user_id):
+        """Count how many quizzes a user has completed today"""
         today = datetime.utcnow().date()
         return QuizResult.query.filter_by(user_id=user_id)\
             .filter(QuizResult.completed_at >= datetime(today.year, today.month, today.day))\
             .count()
 
     @staticmethod
-    def get_history_for_user(user_id):
-        return QuizResult.query.filter_by(user_id=user_id).order_by(QuizResult.completed_at.desc()).all()
+    def has_attempted_quiz(user_id, quiz_id):
+        """Check if the user has already attempted this quiz"""
+        return QuizResult.query.filter_by(user_id=user_id, quiz_id=quiz_id).first() is not None
 
     @staticmethod
-    def submit_result(user_id, quiz_id, selected_option_ids):
+    def get_history_for_user(user_id):
+        """Return all past quiz results for a user"""
+        return QuizResult.query.filter_by(user_id=user_id).order_by(QuizResult.completed_at.desc()).all()
+
+    # -------------------------
+    # Eligibility check
+    # -------------------------
+    @staticmethod
+    def check_quiz_eligibility(user_id, quiz_id, user_type):
+        """
+        Determine if the user can attempt a quiz:
+        - Prevent duplicate attempts
+        - Enforce daily limit for Free users
+        """
+        # 1. Already attempted this quiz?
+        if QuizResult.has_attempted_quiz(user_id, quiz_id):
+            return {
+                "eligible": False,
+                "message": "You have already attempted this quiz.",
+                "status": 200
+            }
+
+        # 2. Daily limit for Free users
+        attempts_today = QuizResult.count_attempts_today(user_id)
+        if user_type == "Free" and attempts_today >= FREE_USER_DAILY_LIMIT:
+            return {
+                "eligible": False,
+                "message": f"You have reached the daily limit of {FREE_USER_DAILY_LIMIT} quizzes for Free users.",
+                "status": 200
+            }
+
+        # 3. Eligible
+        return {
+            "eligible": True,
+            "message": "You are eligible to take this quiz.",
+            "status": 200
+        }
+
+    # -------------------------
+    # Quiz submission
+    # -------------------------
+    @staticmethod
+    def submit_quiz_attempt(user_id, quiz_id, selected_answers, user_type):
+        """
+        Handle quiz submission:
+        1. Validate eligibility (duplicate + daily limit)
+        2. Calculate score
+        3. Save result + update user points and achievements
+        """
+        # 1. Check eligibility first
+        eligibility = QuizResult.check_quiz_eligibility(user_id, quiz_id, user_type)
+        if not eligibility["eligible"]:
+            return eligibility  # Return same structure (eligible=False, message, status=200)
+
+        # 2. Extract selected option IDs
+        selected_ids = [a.get("selected_answer_id") for a in selected_answers if a.get("selected_answer_id")]
+
+        # 3. Calculate correct answers
         correct_count = 0
-        for selected_id in selected_option_ids:
+        for selected_id in selected_ids:
             option = QuizOption.query.get(selected_id)
             if option and option.is_correct:
                 correct_count += 1
 
+        # 4. Save result
         result = QuizResult(
             user_id=user_id,
             quiz_id=quiz_id,
@@ -242,4 +312,20 @@ class QuizResult(db.Model):
             points_earned=correct_count
         )
         db.session.add(result)
-        return result, correct_count
+
+        # 5. Update user points and achievements
+        user = User.query.get(user_id)
+        if user:
+            user.total_points += correct_count
+            update_user_quiz_count(user.user_id)
+            check_and_award_thresholds(user.user_id)
+
+        db.session.commit()
+
+        # 6. Return structured success response
+        return {
+            "success": True,
+            "score": correct_count,
+            "points_earned": correct_count,
+            "status": 200
+        }
