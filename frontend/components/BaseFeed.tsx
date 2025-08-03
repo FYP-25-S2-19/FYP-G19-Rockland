@@ -258,31 +258,60 @@ export default function BaseFeed({
         </>
       )}
 
-      {activeTab === "rocks" && (
+ {activeTab === "rocks" && (
         <FlatList
           data={filteredRocks}
           keyExtractor={(item) => (item.rock_id ?? item.id).toString()}
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => openRock(item)}>
-              <View className="bg-white rounded-xl p-4 mb-3 shadow-md">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center">
-                    <Image
-                      source={
-                        item.signed_url
-                          ? { uri: item.signed_url }
-                          : item.image ?? require("../assets/images/no_image_rock.png")
-                      }
-                      className="w-14 h-14 rounded-md mr-4"
-                    />
-                    <View>
-                      <Text className="font-bold text-base text-black">{item.rock_name ?? item.name}</Text>
-                      <Text className="text-gray-600 text-sm">{item.rock_type ?? item.type}</Text>
-                    </View>
+            <TouchableOpacity
+              onPress={() => openRock(item)}
+              style={{
+                backgroundColor: "#fff",
+                borderRadius: 12,
+                padding: 12,
+                marginBottom: 8,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+            >
+              <View className="flex-row justify-between items-center">
+                <View className="flex-row items-center">
+                  <Image
+                    source={
+                      item.signed_url
+                        ? { uri: item.signed_url }
+                        : item.image ?? require("../assets/images/picture.png")
+                    }
+                    className="w-14 h-14 mr-4 rounded-md"
+                  />
+                  <View>
+                    <Text className="text-base font-semibold text-gray-900">
+                      {item.rock_name ?? item.name}
+                    </Text>
+                    <Text className="text-sm text-gray-500">
+                      {(item.rock_type ?? item.type)}
+                    </Text>
                   </View>
-                  <View className="px-3 py-1 rounded-full" style={{ backgroundColor: item.rarity?.toLowerCase() === "rare" ? "#459B6C" : "#aaa" }}>
-                    <Text className="text-white text-xs">{item.rarity}</Text>
-                  </View>
+                </View>
+
+                <View
+                  className="px-3 py-1 rounded-full"
+                  style={{
+                    backgroundColor:
+                      item.rarity?.toLowerCase() === "common"
+                        ? "#6D6D6D"
+                        : item.rarity?.toLowerCase() === "rare"
+                        ? "#459B6C"
+                        : "#EF9E1C",
+                  }}
+                >
+                  <Text className="text-xs font-medium text-white">
+                    {(item.rarity ?? "").charAt(0).toUpperCase() +
+                      (item.rarity ?? "").slice(1)}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -291,6 +320,7 @@ export default function BaseFeed({
           showsVerticalScrollIndicator={false}
         />
       )}
+
 
       <Modal
         visible={showUpgradeModal}
