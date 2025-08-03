@@ -1,4 +1,3 @@
-
 from app.models import db
 from datetime import datetime
 from app.entity.interest import Interest
@@ -38,7 +37,7 @@ class Quiz(db.Model):
             "total_points": self.total_points,
             "interest": self.interest.title if self.interest else None,
             "interest_id": self.interest_id,
-            "question_count": len(self.questions),  # <-- Add here too
+            "question_count": len(self.questions),
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None,
             "questions": [
                 {
@@ -62,14 +61,13 @@ class Quiz(db.Model):
     def create_quiz(data, user_id):
         interest_id = data.get("interest_id")
 
-        # Allow quizzes without interest (treated as 'All')
         if interest_id and not Interest.query.get(interest_id):
-            return None  # Invalid interest provided
+            return None
 
         quiz = Quiz(
             title=data.get("title"),
             description=data.get("description"),
-            interest_id=interest_id,  # can be None
+            interest_id=interest_id,
             user_id=user_id,
             total_points=0
         )
@@ -229,17 +227,18 @@ class QuizResult(db.Model):
 
     @staticmethod
     def submit_result(user_id, quiz_id, selected_option_ids):
-        correct_count = 0
+        total_score = 0
         for selected_id in selected_option_ids:
             option = QuizOption.query.get(selected_id)
             if option and option.is_correct:
-                correct_count += 1
+                question = option.question
+                total_score += question.points if question and question.points else 0
 
         result = QuizResult(
             user_id=user_id,
             quiz_id=quiz_id,
-            score=correct_count,
-            points_earned=correct_count
+            score=total_score,
+            points_earned=total_score
         )
         db.session.add(result)
-        return result, correct_count
+        return result, total_score
