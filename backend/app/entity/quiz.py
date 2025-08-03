@@ -1,3 +1,4 @@
+
 from app.models import db
 from datetime import datetime
 
@@ -8,10 +9,9 @@ class Quiz(db.Model):
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     total_points = db.Column(db.Integer)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'))  # Creator
+    user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # 🆕 Link to Interest
     interest_id = db.Column(db.Integer, db.ForeignKey('interest.interest_id'))
     interest = db.relationship('Interest')
 
@@ -54,6 +54,127 @@ class Quiz(db.Model):
             ],
         }
 
+    @staticmethod
+    def create_quiz(data, user_id):
+        quiz = Quiz(
+            title=data.get("title"),
+            description=data.get("description"),
+            interest_id=data.get("interest_id"),
+            user_id=user_id,
+            total_points=0
+        )
+        db.session.add(quiz)
+        db.session.commit()
+        return quiz
+
+    def update_quiz(self, data):
+        from app.entity.quiz import QuizQuestion, QuizOption
+
+        self.title = data.get("title", self.title)
+        self.description = data.get("description", self.description)
+        total_points = 0
+
+        questions_data = data.get("questions", [])
+        for q_data in questions_data:
+            question_id = q_data.get("question_id")
+            options_data = q_data.get("options", [])
+
+            if question_id:
+                question = QuizQuestion.query.filter_by(question_id=question_id, quiz_id=self.quiz_id).first()
+                if question:
+                    question.question_text = q_data.get("question", question.question_text)
+                    question.points = q_data.get("points", question.points)
+                    total_points += question.points
+
+                    existing_options = QuizOption.query.filter_by(question_id=question.question_id).all()
+                    existing_option_ids = {opt.option_id for opt in existing_options}
+                    updated_option_ids = set()
+
+                    for opt_data in options_data:
+                        option_id = opt_data.get("option_id")
+                        if option_id:
+                            option = QuizOption.query.filter_by(option_id=option_id, question_id=question.question_id).first()
+                            if option:
+                                option.option_text = opt_data.get("option_text", option.option_text)
+                                option.is_correct = opt_data.get("is_correct", option.is_correct)
+                                updated_option_ids.add(option.option_id)
+                        else:
+                            new_option = QuizOption(
+                                question_id=question.question_id,
+                                option_text=opt_data.get("option_text"),
+                                is_correct=opt_data.get("is_correct", False),
+                            )
+                            db.session.add(new_option)
+                            db.session.flush()
+
+                    to_delete_ids = existing_option_ids - updated_option_ids
+                    if to_delete_ids:
+                        QuizOption.query.filter(QuizOption.option_id.in_(to_delete_ids)).delete(synchronize_session='fetch')
+            else:
+                new_question = QuizQuestion(
+                    quiz_id=self.quiz_id,
+                    question_text=q_data.get("question"),
+                    points=q_data.get("points", 1),
+                )
+                db.session.add(new_question)
+                db.session.flush()
+                total_points += new_question.points
+
+                for opt_data in options_data:
+                    new_option = QuizOption(
+                        question_id=new_question.question_id,
+                        option_text=opt_data.get("option_text"),
+                        is_correct=opt_data.get("is_correct", False),
+                    )
+                    db.session.add(new_option)
+
+        self.total_points = total_points
+        if "interest_id" in data:
+            self.interest_id = data["interest_id"]
+
+        db.session.commit()
+
+    def delete_quiz(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    @staticmethod
+    def search_quizzes_by_user(user_id, keyword=None):
+        query = Quiz.query.filter_by(user_id=user_id)
+        if keyword:
+            query = query.filter(Quiz.title.ilike(f"%{keyword}%"))
+        return query.order_by(Quiz.quiz_id.desc()).all()
+
+    def add_question(self, question_text, options, correct_index, points):
+        new_question = QuizQuestion(
+            quiz_id=self.quiz_id,
+            question_text=question_text,
+            points=points
+        )
+        db.session.add(new_question)
+        db.session.flush()
+
+        for idx, opt_text in enumerate(options):
+            opt = QuizOption(
+                question_id=new_question.question_id,
+                option_text=opt_text,
+                is_correct=(idx == correct_index)
+            )
+            db.session.add(opt)
+
+        self.total_points = (self.total_points or 0) + points
+        db.session.commit()
+        return new_question.question_id
+
+    @staticmethod
+    def get_filtered_by_interest(interest_id):
+        return Quiz.query.filter_by(interest_id=interest_id).order_by(Quiz.quiz_id.desc()).all()
+
+    @staticmethod
+    def get_sorted_by_user_interests(user_interest_ids):
+        all_quizzes = Quiz.query.order_by(Quiz.quiz_id.desc()).all()
+        return sorted(all_quizzes, key=lambda q: 0 if q.interest_id in user_interest_ids else 1)
+
 
 class QuizQuestion(db.Model):
     __tablename__ = 'quizquestion'
@@ -85,4 +206,30 @@ class QuizResult(db.Model):
     points_earned = db.Column(db.Integer)
     completed_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # ✅ No need for a relationship here — already linked via Quiz.results
+    @staticmethod
+    def count_attempts_today(user_id):
+        today = datetime.utcnow().date()
+        return QuizResult.query.filter_by(user_id=user_id)\
+            .filter(QuizResult.completed_at >= datetime(today.year, today.month, today.day))\
+            .count()
+
+    @staticmethod
+    def get_history_for_user(user_id):
+        return QuizResult.query.filter_by(user_id=user_id).order_by(QuizResult.completed_at.desc()).all()
+
+    @staticmethod
+    def submit_result(user_id, quiz_id, selected_option_ids):
+        correct_count = 0
+        for selected_id in selected_option_ids:
+            option = QuizOption.query.get(selected_id)
+            if option and option.is_correct:
+                correct_count += 1
+
+        result = QuizResult(
+            user_id=user_id,
+            quiz_id=quiz_id,
+            score=correct_count,
+            points_earned=correct_count
+        )
+        db.session.add(result)
+        return result, correct_count
