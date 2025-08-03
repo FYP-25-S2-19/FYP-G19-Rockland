@@ -19,6 +19,8 @@ class UserRockCollection(db.Model):
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
     location_name = db.Column(db.String(255), nullable=True)
+    trade_id = db.Column(db.Integer, db.ForeignKey("trade_offer.trade_id"), nullable=True)
+
 
     rock = db.relationship("Rock", backref="collections", lazy=True)
 

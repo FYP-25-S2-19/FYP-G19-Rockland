@@ -12,6 +12,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BackIcon from "../assets/images/back.svg";
+import { BackHandler } from "react-native";
+
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -57,113 +59,131 @@ export default function TradeList() {
   fetchTrades();
 }, [tab]);
 
-const renderTrade = ({ item }: { item: any }) => (
-  <View style={styles.tradeCard}>
-    {/* Top Row: Trader Info + Accept Button */}
-    <View style={styles.traderRow}>
-      <View>
-        <Text style={styles.traderName}>{item.traderName}</Text>
-        <Text style={styles.traderMeta}>
-          {item.traderRockCount} Rocks Collected
-        </Text>
-        <Text style={styles.traderMeta}>
-          Joined since {item.traderJoinDate || "Unknown"}
-        </Text>
+useEffect(() => {
+  const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+    if (params.from === "create") {
+      router.replace("/account");
+      return true; // prevent default back behavior
+    }
+    return false;
+  });
+
+  return () => backHandler.remove(); // cleanup on unmount
+}, [params.from]);
+
+const renderTrade = ({ item }: { item: any }) => {
+  const give = item.youGive;
+  const receive = item.youReceive;
+
+  return (
+    <View style={styles.tradeCard}>
+      {/* Top Row: Trader Info + Accept Button */}
+      <View style={styles.traderRow}>
+        <View>
+          <Text style={styles.traderName}>{item.offerer?.name}</Text>
+          <Text style={styles.traderMeta}>Trade ID #{item.trade_id}</Text>
+          <Text style={styles.traderMeta}>Status: {item.status}</Text>
+        </View>
+        {tab === "available" && !item.isMyOffer && (
+          <TouchableOpacity
+            style={styles.acceptButton}
+            onPress={() => router.push(`/tradeaccept?tradeId=${item.trade_id}`)}
+          >
+            <Text style={styles.acceptButtonText}>Accept Trade</Text>
+          </TouchableOpacity>
+        )}
       </View>
-      {!item.isMyOffer && (
+
+      {/* Bottom Row: Trade Barter */}
+      <View style={styles.tradeRow}>
+        <View style={styles.rockBox}>
+          {give?.rockImage ? (
+            <Image source={{ uri: give.rockImage }} style={styles.rockImage} />
+          ) : (
+            <Text style={styles.rockLabel}>No image</Text>
+          )}
+          <Text style={styles.rockName}>{give?.rockName ?? "Unknown"}</Text>
+          <Text style={styles.rockLabel}>You Give</Text>
+        </View>
+
+        <Text style={styles.arrow}>→</Text>
+
+        <View style={styles.rockBox}>
+          {receive?.rockImage ? (
+            <Image source={{ uri: receive.rockImage }} style={styles.rockImage} />
+          ) : (
+            <Text style={styles.rockLabel}>No image</Text>
+          )}
+          <Text style={styles.rockName}>{receive?.rockName ?? "Unknown"}</Text>
+          <Text style={styles.rockLabel}>You Receive</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+  return (
+    <View style={styles.container}>
+      {/* Header with Back Button and Title */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => {
+          if (params.from === "create") {
+            router.replace("/account");
+          } else {
+            router.back();
+          }
+        }}>
+          <BackIcon width={24} height={24} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Trade Collection</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      {/* Tab Bar */}
+      <View style={styles.tabBar}>
         <TouchableOpacity
-          style={styles.acceptButton}
-          onPress={() => router.push(`/tradeaccept?tradeId=${item.id}`)}
+          style={[styles.tab, tab === "available" && styles.activeTab]}
+          onPress={() => setTab("available")}
         >
-          <Text style={styles.acceptButtonText}>Accept Trade</Text>
+          <Text style={[styles.tabText, tab === "available" && styles.activeTabText]}>
+            Available Trades
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, tab === "my" && styles.activeTab]}
+          onPress={() => setTab("my")}
+        >
+          <Text style={[styles.tabText, tab === "my" && styles.activeTabText]}>
+            My Trade Offers
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Trade List */}
+      {loading ? (
+        <ActivityIndicator size="large" />
+      ) : (
+        <FlatList
+          data={trades}
+          keyExtractor={(item) => item.trade_id.toString()}
+          renderItem={renderTrade}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No trades found.</Text>
+          }
+        />
+      )}
+
+      {/* Button to Create Trade */}
+      {tab === "my" && (
+        <TouchableOpacity
+          onPress={() => router.push("/tradecreate")}
+          style={styles.createButton}
+        >
+          <Text style={styles.createText}>Create Trade Offers</Text>
         </TouchableOpacity>
       )}
     </View>
-
-    {/* Bottom Row: Trade Barter */}
-    <View style={styles.tradeRow}>
-      <View style={styles.rockBox}>
-        <Image
-          source={{ uri: item.youGive.rockImage }}
-          style={styles.rockImage}
-        />
-        <Text style={styles.rockName}>{item.youGive.rockName}</Text>
-        <Text style={styles.rockLabel}>You Get</Text>
-      </View>
-
-      <Text style={styles.arrow}>→</Text>
-
-      <View style={styles.rockBox}>
-        <Image
-          source={{ uri: item.youReceive.rockImage }}
-          style={styles.rockImage}
-        />
-        <Text style={styles.rockName}>{item.youReceive.rockName}</Text>
-        <Text style={styles.rockLabel}>You Receive</Text>
-      </View>
-    </View>
-  </View>
-);
-
-
-return (
-  <View style={styles.container}>
-    {/* Header with Back Button and Title */}
-    <View style={styles.header}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <BackIcon width={24} height={24} />
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>Trade Collection</Text>
-      {/* Spacer to balance back button */}
-      <View style={{ width: 24 }} />
-    </View>
-
-    {/* Tab Bar */}
-    <View style={styles.tabBar}>
-      <TouchableOpacity
-        style={[styles.tab, tab === "available" && styles.activeTab]}
-        onPress={() => setTab("available")}
-      >
-        <Text style={[styles.tabText, tab === "available" && styles.activeTabText]}>
-          Available Trades
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.tab, tab === "my" && styles.activeTab]}
-        onPress={() => setTab("my")}
-      >
-        <Text style={[styles.tabText, tab === "my" && styles.activeTabText]}>
-          My Trade Offers
-        </Text>
-      </TouchableOpacity>
-    </View>
-
-    {/* Trade List */}
-    {loading ? (
-      <ActivityIndicator size="large" />
-    ) : (
-      <FlatList
-        data={trades}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderTrade}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No trades found.</Text>
-        }
-      />
-    )}
-
-    {/* Button to Create Trade */}
-    {tab === "my" && (
-    <TouchableOpacity
-    onPress={() => router.push("/tradecreate")}
-    style={styles.createButton}
-    >
-    <Text style={styles.createText}>Create Trade Offers</Text>
-    </TouchableOpacity>
-    )}
-  </View>
-);
+  );
 }
 
 const styles = StyleSheet.create({

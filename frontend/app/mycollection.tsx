@@ -89,6 +89,10 @@ export default function MyCollectionScreen() {
           location: item.location_name || "Unknown",
           collectedDate: item.collected_date?.split("T")[0],
         }));
+        console.log("📦 Collection Image URLs:");
+        mapped.forEach((rock: any) => {
+          console.log("🖼️", rock.image?.uri);
+        });
         setRocks(mapped);
       }
     } catch (error) {
