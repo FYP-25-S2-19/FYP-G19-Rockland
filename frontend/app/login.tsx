@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import {
   View,
@@ -19,13 +19,29 @@ export default function LoginScreen() {
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const router = useRouter();
 
+  // --- Load saved credentials on mount ---
+  useEffect(() => {
+    const loadRemembered = async () => {
+      try {
+        const savedEmail = await AsyncStorage.getItem("rememberedEmail");
+        const savedPassword = await AsyncStorage.getItem("rememberedPassword");
+        if (savedEmail && savedPassword) {
+          setEmail(savedEmail);
+          setPassword(savedPassword);
+          setRememberMe(true);
+        }
+      } catch (err) {
+        console.error("Error loading remembered credentials:", err);
+      }
+    };
+    loadRemembered();
+  }, []);
+
   const handleLogin = async () => {
     try {
       const response = await fetch(`${API_URL}/api/login/user`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
@@ -44,6 +60,15 @@ export default function LoginScreen() {
           await AsyncStorage.setItem("userRole", role);
           await AsyncStorage.setItem("userData", JSON.stringify(user));
           await AsyncStorage.setItem("userId", user.user_id.toString());
+
+          // --- Save or clear remembered credentials ---
+          if (rememberMe) {
+            await AsyncStorage.setItem("rememberedEmail", email);
+            await AsyncStorage.setItem("rememberedPassword", password);
+          } else {
+            await AsyncStorage.removeItem("rememberedEmail");
+            await AsyncStorage.removeItem("rememberedPassword");
+          }
 
           // Navigate based on role
           if (role === "expert") {
