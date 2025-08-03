@@ -2,6 +2,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import { useState } from "react";
 
 const getRandomRarity = () => {
   const rarities = [
@@ -20,7 +24,56 @@ export default function ScanResult() {
   const image = typeof params.image === "string" ? params.image : undefined;
   const rockName = typeof params.rockName === "string" ? params.rockName : "Unknown";
   const rockType = typeof params.rockType === "string" ? params.rockType : "Unknown";
-  const rarity = getRandomRarity();
+  const [rarity] = useState(getRandomRarity());
+
+  const handleSaveToCollection = async () => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      if (!token) throw new Error("User not authenticated");
+
+      let latitude = null;
+      let longitude = null;
+      let location_name = null;
+
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const location = await Location.getCurrentPositionAsync({});
+        latitude = location.coords.latitude;
+        longitude = location.coords.longitude;
+
+        const geocode = await Location.reverseGeocodeAsync({
+          latitude,
+          longitude,
+        });
+        location_name = geocode?.[0]?.name || null;
+      }
+
+      const payload = {
+        rock_name: rockName,
+        rock_type: rockType,
+        rarity: rarity.label,
+        image_url: image,
+        latitude,
+        longitude,
+        location_name,
+      };
+
+      const res = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/scan/save`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.data.success) {
+        alert("✅ Saved to collection!");
+      } else {
+        alert("❌ Failed to save: " + res.data.message);
+      }
+    } catch (err) {
+      console.error("Save failed", err);
+      alert("❌ Save failed");
+    }
+  };
 
   return (
     <View className="flex-1 bg-white pt-[50px] items-center">
@@ -62,7 +115,11 @@ export default function ScanResult() {
       </View>
 
       <View className="mt-8 w-[295px] space-y-4">
-        <TouchableOpacity className="bg-green-600 py-3 rounded-lg items-center mb-4" activeOpacity={0.8}>
+        <TouchableOpacity
+          className="bg-green-600 py-3 rounded-lg items-center mb-4"
+          activeOpacity={0.8}
+          onPress={handleSaveToCollection}
+        >
           <Text className="text-white font-semibold text-[14px]">Save to Collection</Text>
         </TouchableOpacity>
 
