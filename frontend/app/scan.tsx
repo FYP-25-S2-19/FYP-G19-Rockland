@@ -1,3 +1,4 @@
+// scan.tsx
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
@@ -58,10 +59,10 @@ export default function Scan() {
       const result = await response.json();
 
       if (result.success) {
-        router.replace({
+        router.push({
           pathname: "/scan-result",
           params: {
-            image: uri,
+            image: result.image_url, // ✅ FIXED: use backend-hosted URL
             rockName: result.rock_type,
             rockType: inferRockCategory(result.rock_type),
           },

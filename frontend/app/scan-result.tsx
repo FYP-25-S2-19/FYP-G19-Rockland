@@ -1,11 +1,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { View, Text, TouchableOpacity } from "react-native";
-import { Image } from "expo-image";
+import { View, Text, TouchableOpacity, Image } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const getRandomRarity = () => {
   const rarities = [
@@ -26,6 +25,10 @@ export default function ScanResult() {
   const rockType = typeof params.rockType === "string" ? params.rockType : "Unknown";
   const [rarity] = useState(getRandomRarity());
 
+  useEffect(() => {
+    console.log("🖼️ Received image URL:", image);
+  }, [image]);
+
   const handleSaveToCollection = async () => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
@@ -41,10 +44,7 @@ export default function ScanResult() {
         latitude = location.coords.latitude;
         longitude = location.coords.longitude;
 
-        const geocode = await Location.reverseGeocodeAsync({
-          latitude,
-          longitude,
-        });
+        const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
         location_name = geocode?.[0]?.name || null;
       }
 
@@ -58,11 +58,11 @@ export default function ScanResult() {
         location_name,
       };
 
-      const res = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/scan/save`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/scan/save`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       if (res.data.success) {
         alert("✅ Saved to collection!");
@@ -76,59 +76,69 @@ export default function ScanResult() {
   };
 
   return (
-    <View className="flex-1 bg-white pt-[50px] items-center">
+    <View style={{ flex: 1, backgroundColor: "#fff", paddingTop: 50, alignItems: "center" }}>
       {/* Top Bar */}
-      <View className="flex-row items-center justify-between w-full px-5 mb-10">
-        <TouchableOpacity onPress={() => router.back()} className="p-1.5">
+      <View style={{ flexDirection: "row", justifyContent: "space-between", width: "100%", paddingHorizontal: 20, marginBottom: 20 }}>
+        <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text className="text-[18px] font-bold text-[#111827]">Scan Result</Text>
-        <View className="w-6" />
+        <Text style={{ fontSize: 18, fontWeight: "bold", color: "#111827" }}>Scan Result</Text>
+        <View style={{ width: 24 }} />
       </View>
 
-      {/* Image */}
+      {/* Image Preview */}
       <Image
         source={{ uri: image ?? "https://via.placeholder.com/200" }}
         style={{ width: 200, height: 200, borderRadius: 12 }}
-        contentFit="cover"
+        resizeMode="cover"
       />
 
-      {/* Rarity */}
+      {/* Rarity Badge */}
       <View
-        className="mt-5 h-5 rounded-full justify-center items-center"
-        style={{ backgroundColor: rarity.color, width: rarity.width }}
+        style={{
+          marginTop: 20,
+          height: 20,
+          borderRadius: 999,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: rarity.color,
+          width: rarity.width,
+        }}
       >
-        <Text className="text-white text-[12px] font-semibold">Rarity: {rarity.label}</Text>
+        <Text style={{ color: "#fff", fontSize: 12, fontWeight: "bold" }}>
+          Rarity: {rarity.label}
+        </Text>
       </View>
 
-      {/* Result Fields */}
-      <View className="mt-8">
-        <Text className="text-[12px] text-[#374151] mb-1.5">Rock Name</Text>
-        <View className="w-[295px] h-[46px] border border-[#D1D5DB] rounded-lg px-3 flex-row items-center">
-          <Text className="text-[14px] text-[#111827]">{rockName}</Text>
+      {/* Rock Info */}
+      <View style={{ marginTop: 30 }}>
+        <Text style={{ fontSize: 12, color: "#374151", marginBottom: 5 }}>Rock Name</Text>
+        <View style={{ width: 295, height: 46, borderColor: "#D1D5DB", borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, justifyContent: "center" }}>
+          <Text style={{ fontSize: 14, color: "#111827" }}>{rockName}</Text>
         </View>
 
-        <Text className="text-[12px] text-[#374151] mt-4 mb-1.5">Rock Type</Text>
-        <View className="w-[295px] h-[46px] border border-[#D1D5DB] rounded-lg px-3 flex-row items-center">
-          <Text className="text-[14px] text-[#111827]">{rockType}</Text>
+        <Text style={{ fontSize: 12, color: "#374151", marginTop: 20, marginBottom: 5 }}>Rock Type</Text>
+        <View style={{ width: 295, height: 46, borderColor: "#D1D5DB", borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, justifyContent: "center" }}>
+          <Text style={{ fontSize: 14, color: "#111827" }}>{rockType}</Text>
         </View>
       </View>
 
-      <View className="mt-8 w-[295px] space-y-4">
+      {/* Action Buttons */}
+      <View style={{ marginTop: 30, width: 295 }}>
         <TouchableOpacity
-          className="bg-green-600 py-3 rounded-lg items-center mb-4"
+          style={{ backgroundColor: "#16A34A", paddingVertical: 12, borderRadius: 8, alignItems: "center", marginBottom: 16 }}
           activeOpacity={0.8}
           onPress={handleSaveToCollection}
         >
-          <Text className="text-white font-semibold text-[14px]">Save to Collection</Text>
+          <Text style={{ color: "white", fontSize: 14, fontWeight: "600" }}>Save to Collection</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          className="bg-gray-200 py-3 rounded-lg items-center"
+          style={{ backgroundColor: "#E5E7EB", paddingVertical: 12, borderRadius: 8, alignItems: "center" }}
           activeOpacity={0.8}
           onPress={() => router.replace("/scan")}
         >
-          <Text className="text-[#111827] font-semibold text-[14px]">Retake Image</Text>
+          <Text style={{ color: "#111827", fontSize: 14, fontWeight: "600" }}>Retake Image</Text>
         </TouchableOpacity>
       </View>
     </View>

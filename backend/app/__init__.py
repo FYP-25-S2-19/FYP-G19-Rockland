@@ -12,7 +12,7 @@ from .models import db
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="static")
     app.config.from_object('config.Config')
 
     # Add environment variables to app config for debugging
@@ -335,5 +335,11 @@ def create_app():
     ## Email Verification
     from .controller.email.email_verification import email_verification_blueprint
     app.register_blueprint(email_verification_blueprint)
+    
+    from flask import send_from_directory
+
+    @app.route("/static/uploads/<path:filename>")
+    def serve_uploaded_file(filename):
+        return send_from_directory("static/uploads", filename)
 
     return app
