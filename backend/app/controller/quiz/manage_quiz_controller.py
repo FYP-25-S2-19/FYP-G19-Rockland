@@ -10,10 +10,15 @@ manage_quiz_blueprint = Blueprint("manage_quiz", __name__)
 @permission_required("has_expert_permission")
 def create_quiz(current_user):
     data = request.get_json()
+
     if not data.get("title"):
         return jsonify({"success": False, "message": "Title is required"}), 400
 
     quiz = Quiz.create_quiz(data, current_user.user_id)
+
+    if not quiz:
+        return jsonify({"success": False, "message": "Invalid interest selected"}), 400
+
     return jsonify({"success": True, "quiz_id": quiz.quiz_id}), 201
 
 # 2. Update Quiz

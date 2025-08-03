@@ -1,6 +1,7 @@
 
 from app.models import db
 from datetime import datetime
+from app.entity.interest import Interest
 
 class Quiz(db.Model):
     __tablename__ = 'quiz'
@@ -25,6 +26,7 @@ class Quiz(db.Model):
             "description": self.description,
             "total_points": self.total_points,
             "interest": self.interest.title if self.interest else None,
+            "question_count": len(self.questions),
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None
         }
 
@@ -35,6 +37,8 @@ class Quiz(db.Model):
             "description": self.description,
             "total_points": self.total_points,
             "interest": self.interest.title if self.interest else None,
+            "interest_id": self.interest_id,
+            "question_count": len(self.questions),  # <-- Add here too
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None,
             "questions": [
                 {
@@ -56,10 +60,16 @@ class Quiz(db.Model):
 
     @staticmethod
     def create_quiz(data, user_id):
+        interest_id = data.get("interest_id")
+
+        # Allow quizzes without interest (treated as 'All')
+        if interest_id and not Interest.query.get(interest_id):
+            return None  # Invalid interest provided
+
         quiz = Quiz(
             title=data.get("title"),
             description=data.get("description"),
-            interest_id=data.get("interest_id"),
+            interest_id=interest_id,  # can be None
             user_id=user_id,
             total_points=0
         )
