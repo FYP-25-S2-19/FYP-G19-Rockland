@@ -23,10 +23,10 @@ type HistoryItem = {
 const sortLabels = {
   earliest: "Earliest First",
   latest: "Latest First",
-  highestScore: "Highest Score",
-  lowestScore: "Lowest Score",
-  highestPoint: "Highest Point",
-  lowestPoint: "Lowest Point",
+  highestScore: "Highest % Score",
+  lowestScore: "Lowest % Score",
+  highestPoint: "Highest Points Earned",
+  lowestPoint: "Lowest Points Earned",
 } as const;
 
 type SortType = keyof typeof sortLabels;
