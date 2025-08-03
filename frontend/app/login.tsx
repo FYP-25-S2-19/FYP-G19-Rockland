@@ -5,7 +5,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
   SafeAreaView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -40,15 +39,13 @@ export default function LoginScreen() {
           const user = result.user;
           const role = user.user_type_name?.toLowerCase() || "free";
 
-          // ✅ Save token and user data
+          // Save token and user data
           await AsyncStorage.setItem("accessToken", result.access_token);
           await AsyncStorage.setItem("userRole", role);
           await AsyncStorage.setItem("userData", JSON.stringify(user));
           await AsyncStorage.setItem("userId", user.user_id.toString());
-          const testId = await AsyncStorage.getItem("userId");
-console.log("🔍 Stored userId in AsyncStorage:", testId);
 
-          // ✅ Navigate based on role
+          // Navigate based on role
           if (role === "expert") {
             router.replace("/(expert-tabs)/home");
           } else {
@@ -69,12 +66,12 @@ console.log("🔍 Stored userId in AsyncStorage:", testId);
 
   const handleRegister = () => console.log("Navigate to register");
   const handleForgotPassword = () => console.log("Navigate to forgot password");
-  const handleGoogleLogin = () => console.log("Google login pressed");
 
   return (
     <SafeAreaView className="flex-1 bg-green-600">
       <View className="flex-1 justify-center px-6">
         <View className="bg-white rounded-2xl p-6 shadow-lg shadow-black/10">
+          {/* Header */}
           <View className="items-center mb-8">
             <Text className="text-2xl font-bold text-gray-800 mb-2">Login</Text>
             <View className="flex-row items-center">
@@ -151,33 +148,11 @@ console.log("🔍 Stored userId in AsyncStorage:", testId);
 
           {/* Login Button */}
           <TouchableOpacity
-            className="bg-green-600 py-4 rounded-lg mb-6"
+            className="bg-green-600 py-4 rounded-lg mb-2"
             onPress={handleLogin}
             activeOpacity={0.8}
           >
             <Text className="text-white text-lg font-semibold text-center">Log In</Text>
-          </TouchableOpacity>
-
-          {/* Divider */}
-          <View className="flex-row items-center mb-6">
-            <View className="flex-1 h-px bg-gray-200" />
-            <Text className="mx-4 text-sm text-gray-500">Or</Text>
-            <View className="flex-1 h-px bg-gray-200" />
-          </View>
-
-          {/* Google Button */}
-          <TouchableOpacity
-            className="flex-row items-center justify-center bg-white border border-gray-300 py-4 rounded-lg"
-            onPress={handleGoogleLogin}
-            activeOpacity={0.8}
-          >
-            <Image
-              source={{ uri: "/placeholder.svg?height=20&width=20" }}
-              className="w-5 h-5 mr-3"
-            />
-            <Text className="text-base font-medium text-gray-700">
-              Continue with Google
-            </Text>
           </TouchableOpacity>
         </View>
       </View>
