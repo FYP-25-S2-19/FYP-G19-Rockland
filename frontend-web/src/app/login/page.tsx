@@ -142,6 +142,11 @@ export default function LoginPage() {
     }
   }
 
+  const handleForgotPassword = () => {
+    // Simply navigate to the forgot password page
+    router.push('/forgot-password')
+  }
+
   return (
     <div className="min-h-screen flex">
       {/* Left side - Login Form */}
@@ -191,9 +196,18 @@ export default function LoginPage() {
 
               {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  Password
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                    Password
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-sm text-green-600 hover:text-green-700 hover:underline focus:outline-none focus:underline transition-colors duration-200"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <Input
                   id="password"
                   type="password"
@@ -205,20 +219,6 @@ export default function LoginPage() {
                   disabled={isLoading}
                 />
               </div>
-            </div>
-
-            {/* Remember Me Checkbox */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="remember"
-                checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
-                disabled={isLoading}
-              />
-              <Label htmlFor="remember" className="text-sm text-gray-700 cursor-pointer">
-                Remember for 30 days
-              </Label>
             </div>
 
             {/* Login Button */}
