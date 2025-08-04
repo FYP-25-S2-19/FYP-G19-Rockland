@@ -7,17 +7,19 @@ import {
   Alert,
   TextInput,
   Modal,
-  StyleSheet,
   Pressable,
   ScrollView,
+  Image,
+  ActivityIndicator,
+  SafeAreaView,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BackIcon from "../assets/images/back.svg";
+import FilterIcon from "../assets/images/filter.svg";
+import { LinearGradient } from "expo-linear-gradient";
 import { Picker } from "@react-native-picker/picker";
-import { Image } from "react-native";
-import { BackHandler } from "react-native";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -47,6 +49,15 @@ export default function TradeCreate() {
   const [categories, setCategories] = useState<string[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [filterVisible, setFilterVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const shadowStyle = {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
+  };
 
   useEffect(() => {
     const fetchUserRocks = async () => {
@@ -68,6 +79,7 @@ export default function TradeCreate() {
 
       setUserRocks(normalized);
       setFilteredRocks(normalized);
+      setLoading(false);
     };
 
     const fetchAllRocks = async () => {
@@ -101,7 +113,9 @@ export default function TradeCreate() {
     );
 
     if (rarity) {
-      list = list.filter((rock) => (rock.rarity || "").toLowerCase() === rarity.toLowerCase());
+      list = list.filter(
+        (rock) => (rock.rarity || "").toLowerCase() === rarity.toLowerCase()
+      );
     }
 
     if (categories.length > 0) {
@@ -145,317 +159,271 @@ export default function TradeCreate() {
         },
       ]);
     } catch (err: any) {
-      console.error("\u274C Error response:", err.response?.data || err.message);
-      Alert.alert("Error", err.response?.data?.message || "Failed to create trade offer.");
-    }
-  };
-
-  const toggleChip = (value: string, list: string[], setList: Function) => {
-    if (list.includes(value)) {
-      setList(list.filter((item) => item !== value));
-    } else {
-      setList([...list, value]);
+      console.error("❌ Error response:", err.response?.data || err.message);
+      Alert.alert(
+        "Error",
+        err.response?.data?.message || "Failed to create trade offer."
+      );
     }
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => {
-            if (step === "give") {
-              router.replace("/tradelist?tab=myoffers&from=create");
-            } else {
-              setStep("give");
-            }
-          }}
-          style={styles.backButton}
-        >
-          <BackIcon width={30} height={24} />
-        </TouchableOpacity>
-
-        <Text style={styles.title}>
-          {step === "give" ? "Select A Rock to Give" : "Select A Rock to Receive"}
-        </Text>
-      </View>
-
-      <TextInput
-        style={styles.searchBox}
-        placeholder="Search..."
-        value={search}
-        onChangeText={setSearch}
-      />
-
-      <TouchableOpacity onPress={() => setFilterVisible(true)} style={styles.filterButton}>
-        <Text style={styles.filterText}>Filter</Text>
-      </TouchableOpacity>
-
-      <FlatList
-        data={filteredRocks}
-        keyExtractor={(item) => (item.id ?? item.rock_id ?? "").toString()}
-        renderItem={({ item }) => (
+    <LinearGradient
+      colors={["#91D29E", "#FFFFFF"]}
+      start={{ x: -1, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ flex: 1 }}
+    >
+      <SafeAreaView className="flex-1 bg-transparent">
+        {/* Header */}
+        <View className="flex-row items-center justify-between px-4 pt-4 pb-3">
           <TouchableOpacity
-            style={styles.rockItem}
             onPress={() => {
               if (step === "give") {
-                setSelectedGive(item);
+                router.replace("/tradelist?tab=myoffers&from=create");
               } else {
-                setSelectedReceive(item);
+                setStep("give");
               }
             }}
+            className="p-2"
           >
-            <Image source={{ uri: item.photo_url }} style={styles.rockImage} />
-            <View style={styles.rockInfo}>
-              <Text style={styles.rockName}>{item.name}</Text>
-              <Text style={styles.rockDetails}>Category: {item.type}</Text>
-              <Text style={styles.rockDetails}>Rarity: {item.rarity}</Text>
-            </View>
+            <BackIcon width={20} height={20} />
           </TouchableOpacity>
-        )}
-      />
-
-      {step === "give" && selectedGive && (
-        <TouchableOpacity onPress={() => setStep("receive")} style={styles.submitButton}>
-          <Text style={styles.submitText}>Select Rock to Giveaway</Text>
-        </TouchableOpacity>
-      )}
-
-      {step === "receive" && selectedReceive && (
-        <TouchableOpacity onPress={handleSubmitTrade} style={styles.submitButton}>
-          <Text style={styles.submitText}>Create Trade Offer</Text>
-        </TouchableOpacity>
-      )}
-
-      <Modal visible={filterVisible} animationType="slide">
-        <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
-          <View style={styles.filterHeader}>
-            <Text style={styles.modalTitle}>Filter</Text>
-            <TouchableOpacity
-              onPress={() => {
-                setRarity(null);
-                setSortBy("recent");
-                setCategories([]);
-                setLocations([]);
-              }}
-            >
-              <Text style={styles.resetText}>Reset</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.sectionLabel}>Rarity</Text>
-          <View style={styles.chipRow}>
-            {["Common", "Rare", "Legendary"].map((r) => (
-              <Pressable
-                key={r}
-                style={[styles.chip, rarity === r && styles.chipSelected]}
-                onPress={() => setRarity(r)}
-              >
-                <Text style={rarity === r ? styles.chipTextSelected : styles.chipText}>{r}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={styles.sectionLabel}>Sort By</Text>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={sortBy}
-              onValueChange={(itemValue) => setSortBy(itemValue)}
-              style={styles.picker}
-            >
-              <Picker.Item label="Sort by Most Recent" value="recent" />
-              <Picker.Item label="Sort by Alphabet (A-Z)" value="alphabet" />
-            </Picker>
+          <Text className="text-lg font-bold">
+            {step === "give" ? "Select A Rock to Give" : "Select A Rock to Receive"}
+          </Text>
+          <View className="w-10" />
         </View>
 
-          <TouchableOpacity
-            onPress={() => {
-              applyFilters();
-              setFilterVisible(false);
-            }}
-            style={styles.applyButton}
+        {/* Search + Filter */}
+        <View className="flex-row items-center px-4 py-3 mb-4 gap-x-3">
+          <View
+            className="flex-1 flex-row items-center bg-white rounded-xl px-4 h-12"
+            style={shadowStyle}
           >
-            <Text style={styles.applyButtonText}>Apply Filter</Text>
+            <TextInput
+              className="flex-1 text-base text-gray-800 p-0"
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search..."
+              placeholderTextColor="#9ca3af"
+              style={{ paddingVertical: 0 }}
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setFilterVisible(true)}
+            className="p-3 bg-white rounded-xl"
+            style={shadowStyle}
+          >
+            <FilterIcon width={20} height={20} />
           </TouchableOpacity>
-        </ScrollView>
-      </Modal>
-    </View>
+        </View>
+
+        {/* Rock List */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#459B6C" className="mt-10" />
+        ) : (
+          <FlatList
+            data={filteredRocks}
+            keyExtractor={(item) => (item.id ?? item.rock_id ?? "").toString()}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+            renderItem={({ item }) => {
+              const isSelected =
+                (step === "give" && selectedGive?.id === item.id) ||
+                (step === "receive" && selectedReceive?.rock_id === item.rock_id);
+
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (step === "give") {
+                      setSelectedGive(item);
+                    } else {
+                      setSelectedReceive(item);
+                    }
+                  }}
+                  style={{
+                    backgroundColor: isSelected ? "#459B6C" : "#fff",
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 8,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 4,
+                    elevation: 2,
+                  }}
+                >
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-row items-center">
+                      <Image
+                        source={{ uri: item.photo_url }}
+                        className="w-14 h-14 mr-4 rounded-md"
+                      />
+                      <View>
+                        <Text
+                          className={`text-base font-semibold ${
+                            isSelected ? "text-white" : "text-gray-900"
+                          }`}
+                        >
+                          {item.name}
+                        </Text>
+                        <Text
+                          className={`text-sm ${
+                            isSelected ? "text-white" : "text-gray-500"
+                          }`}
+                        >
+                          {item.type}
+                        </Text>
+                      </View>
+                    </View>
+                    <View
+                      className="px-3 py-1 rounded-full"
+                      style={{
+                        backgroundColor: isSelected
+                          ? "#fff"
+                          : item.rarity?.toLowerCase() === "common"
+                          ? "#6D6D6D"
+                          : item.rarity?.toLowerCase() === "rare"
+                          ? "#459B6C"
+                          : "#EF9E1C",
+                      }}
+                    >
+                      <Text
+                        className={`text-xs font-medium ${
+                          isSelected ? "text-green-600" : "text-white"
+                        }`}
+                      >
+                        {item.rarity
+                          ? item.rarity.charAt(0).toUpperCase() + item.rarity.slice(1)
+                          : "Unknown"}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        )}
+
+        {/* Next / Submit Buttons */}
+        {step === "give" && selectedGive && (
+          <TouchableOpacity
+            onPress={() => setStep("receive")}
+            className="mx-4 mb-4 bg-[#459B6C] py-3 rounded-xl items-center"
+            style={shadowStyle}
+          >
+            <Text className="text-white font-semibold text-base">
+              Select Rock to Giveaway
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {step === "receive" && selectedReceive && (
+          <TouchableOpacity
+            onPress={handleSubmitTrade}
+            className="mx-4 mb-4 bg-[#459B6C] py-3 rounded-xl items-center"
+            style={shadowStyle}
+          >
+            <Text className="text-white font-semibold text-base">
+              Create Trade Offer
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Filter Modal */}
+        <Modal visible={filterVisible} animationType="slide">
+          <ScrollView
+            contentContainerStyle={{ padding: 20 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Header */}
+            <View className="flex-row justify-between items-center mb-4 mt-10">
+              <TouchableOpacity onPress={() => setFilterVisible(false)}>
+                <BackIcon width={20} height={20} />
+              </TouchableOpacity>
+              <Text className="text-lg font-bold">Filter</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setRarity(null);
+                  setSortBy("recent");
+                  setCategories([]);
+                  setLocations([]);
+                }}
+              >
+                <Text className="text-red-500 font-bold">Reset</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Rarity */}
+            <Text className="text-base font-bold mb-2">Rarity</Text>
+            <View className="flex-row flex-wrap gap-3 mb-4">
+              {["Common", "Rare", "Legendary"].map((r) => (
+                <Pressable
+                  key={r}
+                  onPress={() => setRarity(r)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: rarity === r ? "#459B6C" : "#ccc",
+                    backgroundColor: rarity === r ? "#459B6C" : "white",
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    borderRadius: 20,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: rarity === r ? "white" : "black",
+                      fontWeight: "500",
+                    }}
+                  >
+                    {r}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Sort */}
+            <Text className="text-base font-bold mb-2">Sort By</Text>
+            <View
+              style={{
+                height: 50,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: "#ccc",
+                backgroundColor: "white",
+                overflow: "hidden",
+                marginBottom: 16,
+              }}
+            >
+              <Picker
+                selectedValue={sortBy}
+                onValueChange={(itemValue) => setSortBy(itemValue)}
+                style={{ height: 50, width: "100%", color: "black" }}
+              >
+                <Picker.Item label="Sort by Most Recent" value="recent" />
+                <Picker.Item label="Sort by Alphabet (A-Z)" value="alphabet" />
+              </Picker>
+            </View>
+
+            {/* Apply Button */}
+            <TouchableOpacity
+              onPress={() => {
+                applyFilters();
+                setFilterVisible(false);
+              }}
+              style={{
+                backgroundColor: "#459B6C",
+                padding: 12,
+                borderRadius: 8,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "bold" }}>Apply Filter</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </Modal>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    flex: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  searchBox: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 8,
-    marginBottom: 8,
-  },
-  filterButton: {
-    alignSelf: "flex-end",
-    marginBottom: 8,
-  },
-  filterText: {
-    color: "blue",
-  },
-  submitButton: {
-    backgroundColor: "#459B6C",
-    padding: 12,
-    marginTop: 10,
-    alignItems: "center",
-  },
-  submitText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  backText: {
-    fontSize: 16,
-    color: "blue",
-    marginLeft: 8,
-  },
-   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  sectionHeader: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginVertical: 10,
-  },
-  chipContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 12,
-  },
-  modalContent: {
-    padding: 20,
-    flexGrow: 1,
-  },
-  filterHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-    marginTop: 40,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  resetText: {
-    color: "red",
-    fontWeight: "bold",
-  },
-  sectionLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 16,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: "gray",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  chipSelected: {
-    backgroundColor: "gray",
-    borderColor: "gray",
-  },
-  chipText: {
-    color: "black",
-  },
-  chipTextSelected: {
-    color: "white",
-  },
-  pickerContainer: {
-  borderWidth: 1,
-  borderColor: "#ccc",
-  borderRadius: 10,
-  overflow: "hidden",
-  marginBottom: 20,
-  backgroundColor: "white", // ensures visibility
-  height: 50, // ensure Picker has space
-  },
-  picker: {
-  flex: 1,           // let it fill the parent container
-  height: 50,
-  width: "100%",
-  color: "black",    // ensures text is visible
-  backgroundColor: "white", // for visibility on white modal
-},
-  applyButton: {
-    backgroundColor: "#459B6C",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  applyButtonText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  rockItem: {
-  flexDirection: "row",
-  alignItems: "center",
-  padding: 10,
-  borderBottomWidth: 1,
-  borderBottomColor: "#ccc",
-  gap: 12,
-},
-
-rockImage: {
-  width: 60,
-  height: 60,
-  borderRadius: 8,
-  backgroundColor: "#eee",
-},
-
-rockInfo: {
-  flex: 1,
-  flexDirection: "column",
-  justifyContent: "center",
-},
-
-rockName: {
-  fontSize: 16,
-  fontWeight: "bold",
-  marginBottom: 4,
-},
-
-rockDetails: {
-  fontSize: 14,
-  color: "#555",
-},
-pickerWrapper: {
-  height: 50,
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: "#ccc",
-  backgroundColor: "white",
-  overflow: "hidden",
-  marginBottom: 16,
-},
-});
-

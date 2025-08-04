@@ -62,7 +62,7 @@ export default function TradeList() {
 useEffect(() => {
   const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
     if (params.from === "create") {
-      router.replace("/account");
+      router.replace("/(tabs)/account");
       return true; // prevent default back behavior
     }
     return false;
@@ -127,7 +127,7 @@ const renderTrade = ({ item }: { item: any }) => {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => {
           if (params.from === "create") {
-            router.replace("/account");
+            router.replace("/(tabs)/account");
           } else {
             router.back();
           }
