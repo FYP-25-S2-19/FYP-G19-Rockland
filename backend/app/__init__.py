@@ -343,6 +343,10 @@ def create_app():
     from .controller.email.email_verification import email_verification_blueprint
     app.register_blueprint(email_verification_blueprint)
     
+    ##Forgot Password
+    from app.routes.password.forgot_password_routes import forgot_password_bp
+    app.register_blueprint(forgot_password_bp)
+    
     from flask import send_from_directory
 
     @app.route("/static/uploads/<path:filename>")
