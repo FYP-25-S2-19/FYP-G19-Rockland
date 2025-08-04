@@ -274,6 +274,7 @@ def create_app():
 
     # ARTICLES
     from .controller.articles.delete_article_controller import delete_article_blueprint
+    from .controller.articles.update_article_controller import update_article_blueprint
     from .controller.articles.like_article_controller import like_article_blueprint
     from .controller.articles.unlike_article_controller import unlike_article_blueprint
     from .controller.articles.post_article_controller import post_article_blueprint
@@ -286,6 +287,7 @@ def create_app():
     from .controller.articles.get_articles_by_user_interest_controller import get_articles_by_user_interest_blueprint
     from app.controller.articles.get_articles_hybrid_controller import get_articles_hybrid_blueprint
 
+    app.register_blueprint(update_article_blueprint)
     app.register_blueprint(delete_article_blueprint)
     app.register_blueprint(like_article_blueprint)
     app.register_blueprint(unlike_article_blueprint)
