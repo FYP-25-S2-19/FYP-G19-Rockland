@@ -11,7 +11,7 @@ def search_rocks():
         query_params = request.args
 
         filters = {
-            "rock_name": query_params.get("rock_name", ""),  # ✅ Add this line
+            "rock_name": query_params.get("rock_name", ""),  
             "rock_type": query_params.getlist('rock_type[]'),
             "rarity": query_params.getlist('rarity[]'),
             "common_location": query_params.getlist('location[]'),
