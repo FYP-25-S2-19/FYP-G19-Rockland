@@ -195,6 +195,75 @@ class Article(db.Model):
             db.session.rollback()
             print(f"Error creating article: {e}")
             return False, 500, f"Error creating article: {str(e)}", None
+        
+    @classmethod
+    def updateArticle(cls, article_id, user_id, title=None, content=None, categories_id=None, is_free=None, photo_file=None):
+        """
+        Update an existing article. Only the author (Expert) or Admin can update.
+        """
+        try:
+            article = cls.query.get(article_id)
+            if not article:
+                return False, 404, "Article not found", None
+
+            from app.entity.user import User
+            user = User.queryUserById(user_id)
+            if not user:
+                return False, 404, "User not found", None
+            if user.status != "Active":
+                return False, 403, "User is not active", None
+
+            # Permission: Must be Admin or the author
+            is_admin = user.user_type and user.user_type.name == "Admin"
+            is_author = article.user_id == user.user_id
+            if not (is_admin or is_author):
+                return False, 403, "You are not allowed to update this article", None
+
+            # Update fields if provided
+            if title is not None:
+                if len(title.strip()) < 5:
+                    return False, 400, "Title must be at least 5 characters long", None
+                article.title = title.strip()
+
+            if content is not None:
+                if len(content.strip()) < 50:
+                    return False, 400, "Content must be at least 50 characters long", None
+                article.content = content.strip()
+
+            if categories_id is not None:
+                from app.entity.categories import Categories
+                category = Categories.query.get(categories_id)
+                if not category:
+                    return False, 404, f"Category with ID {categories_id} not found", None
+                article.categories_id = categories_id
+
+            if is_free is not None:
+                article.is_free = is_free
+
+            # Handle photo update
+            if photo_file and (getattr(photo_file, 'filename', None) or getattr(photo_file, 'name', None)):
+                filename = secure_filename(getattr(photo_file, 'filename', getattr(photo_file, 'name')))
+                if filename:
+                    # Delete old photo if exists
+                    if article.photo:
+                        delete_file_from_gcs(article.photo)
+
+                    # Upload new photo
+                    new_path, new_url = cls._upload_photo_to_cloud(photo_file, filename)
+                    if not new_path:
+                        return False, 500, "Failed to upload new photo", None
+
+                    article.photo = new_path
+                    article.photo_url = new_url
+
+            db.session.commit()
+            return True, 200, "Article updated successfully", article
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error updating article: {e}")
+            return False, 500, f"Error updating article: {str(e)}", None
+
 
     @classmethod
     def deleteArticle(cls, article_id, user_id):

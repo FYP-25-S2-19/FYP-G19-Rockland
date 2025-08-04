@@ -33,6 +33,7 @@ export default function SearchRockScreen() {
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Sort by A-Z");
 
+  // Fetch rocks
   const fetchRocks = async () => {
     setLoading(true);
     try {
@@ -59,26 +60,30 @@ export default function SearchRockScreen() {
         default:
           params.sort_by = "";
       }
-      console.log("Search params:", params);
 
       const res = await axios.get(`${API_URL}/api/rocks/search`, { params });
-      if (res.data.success) {
+
+      if (res.data.success && Array.isArray(res.data.rocks)) {
         setRocks(res.data.rocks);
+      } else {
+        setRocks([]); // fallback to empty array
       }
     } catch (err) {
       console.error("Failed to fetch rocks:", err);
+      setRocks([]); // ensure empty state still works
     } finally {
       setLoading(false);
     }
   };
 
+  // Debounced search & filter updates
   useEffect(() => {
     const debounced = debounce(() => {
       fetchRocks();
-    }, 500); 
-  
+    }, 500);
+
     debounced();
-    return () => debounced.cancel(); 
+    return () => debounced.cancel();
   }, [searchText, selectedTypes, selectedRarities, selectedLocations, sortBy]);
 
   const applyFilters = ({
@@ -134,7 +139,7 @@ export default function SearchRockScreen() {
             <TextInput
               className="flex-1 text-base text-gray-800 p-0"
               value={searchText}
-              onChangeText={(text) => setSearchText(text)} 
+              onChangeText={(text) => setSearchText(text)}
               placeholder="Search..."
               placeholderTextColor="#9ca3af"
               style={{ paddingVertical: 0 }}
@@ -157,7 +162,24 @@ export default function SearchRockScreen() {
           <FlatList
             data={rocks}
             keyExtractor={(item) => item.rock_id.toString()}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingBottom: 100,
+              flexGrow: 1,
+              justifyContent: rocks.length === 0 ? "center" : "flex-start",
+            }}
+            ListEmptyComponent={
+              <View style={{ alignItems: "center", marginTop: 40 }}>
+                <Text className="text-base text-gray-500">
+                  {searchText ||
+                  selectedTypes.length ||
+                  selectedRarities.length ||
+                  selectedLocations.length
+                    ? "No rock matches your search"
+                    : "No rocks available"}
+                </Text>
+              </View>
+            }
             renderItem={({ item }) => (
               <TouchableOpacity
                 onPress={() =>
