@@ -21,25 +21,45 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/page.js"
     ],
-    "/usertype/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/usertype/page.js"
-    ],
     "/applications/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/applications/page.js"
     ],
-    "/registration/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/registration/page.js"
-    ],
     "/useraccount/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/useraccount/page.js"
+    ],
+    "/usertype/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/usertype/page.js"
+    ],
+    "/userprofiling/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/userprofiling/page.js"
+    ],
+    "/forummanagement/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/forummanagement/page.js"
+    ],
+    "/landingpagemanagement/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/landingpagemanagement/page.js"
+    ],
+    "/rockmanagement/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/rockmanagement/page.js"
+    ],
+    "/zoneprofile/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/zoneprofile/page.js"
     ]
   }
 }
