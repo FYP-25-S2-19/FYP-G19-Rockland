@@ -78,7 +78,7 @@ export default function ExpertQuizHome() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FDF3E3]">
+    <SafeAreaView className="flex-1 bg-[#FFFFFF]">
       {/* Header */}
       <View className="border-b border-gray-100 px-4 py-4 bg-white">
         <View className="flex-row items-center justify-center">
@@ -111,7 +111,14 @@ export default function ExpertQuizHome() {
           {filteredQuizzes.map((quiz) => (
             <View
               key={`quiz-${quiz.quiz_id}`}
-              className="bg-white rounded-xl shadow-md mb-4 p-4"
+              className="bg-white rounded-xl mb-4 p-4"
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.2,
+                shadowRadius: 6,
+                elevation: 4, // Android
+              }}
             >
               <Text className="text-lg font-bold text-black mb-1">{quiz.title}</Text>
              <Text className="text-xs text-green-700 mb-1">

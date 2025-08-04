@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   Keyboard,
+  StyleSheet,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,21 +24,10 @@ export default function EditArticleScreen() {
   const [categories, setCategories] = useState<{ categories_id: number, title: string }[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState<{ uri: string; width: number; height: number }[]>([]);
   const [visibility, setVisibility] = useState<'Free' | 'Premium' | null>(null);
-  const [isKeyboardOpen, setKeyboardOpen] = useState(false);
-
-  useEffect(() => {
-    const showSub = Keyboard.addListener("keyboardDidShow", () => setKeyboardOpen(true));
-    const hideSub = Keyboard.addListener("keyboardDidHide", () => setKeyboardOpen(false));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,111 +97,289 @@ export default function EditArticleScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-white"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
     >
       <ScrollView
-        className="flex-1 px-4 pt-12"
-        contentContainerStyle={{ paddingBottom: isKeyboardOpen ? 300 : 160 }}
+        style={styles.container}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* Top bar */}
-        <View className="flex-row justify-between mb-4">
+        <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text className="text-base text-black">Cancel</Text>
+            <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleUpdate}>
-            <Text className="text-base font-bold text-green-600">Update</Text>
+            <Text style={styles.postText}>Update</Text>
           </TouchableOpacity>
         </View>
 
         {/* Title */}
         <TextInput
-          className="text-2xl font-bold text-black mb-4 border-b border-gray-300"
+          style={styles.rockNameInput}
           placeholder="Article Title..."
-          placeholderTextColor="#888"
+          placeholderTextColor="#A9A9A9"
           value={title}
           onChangeText={setTitle}
+          underlineColorAndroid="transparent"
         />
 
-        {/* Image */}
-        <View className={`rounded-md ${photos.length ? '' : 'border border-gray-300'} items-center justify-center py-4`}>
-          {photos.length > 0 ? (
-            <Image source={{ uri: photos[0].uri }} style={{ width: '100%', aspectRatio: photos[0].width / photos[0].height, borderRadius: 8 }} />
+        {/* Photos */}
+        <View style={[styles.photosContainer, photos.length > 0 && styles.photosContainerNoBorder]}>
+          {photos.length === 0 ? (
+            <Text style={{ color: '#999', fontStyle: 'italic' }}>
+              Image preview will appear here
+            </Text>
           ) : (
-            <Text className="text-gray-400 italic">Image preview will appear here</Text>
+            <Image
+              source={{ uri: photos[0].uri }}
+              style={{
+                width: '100%',
+                aspectRatio: photos[0].width / photos[0].height,
+                borderRadius: 8,
+              }}
+              resizeMode="contain"
+            />
           )}
         </View>
 
-        {/* Upload icons */}
-        <View className="flex-row justify-end mt-3 space-x-4">
-          <TouchableOpacity onPress={takePhoto}>
-            <Image source={require('../../../../assets/images/camera.png')} className="w-5 h-5" />
+        {/* Camera & Upload buttons */}
+        <View style={styles.iconRow}>
+          <TouchableOpacity style={styles.iconButton} onPress={takePhoto}>
+            <Image source={require('../../../../assets/images/camera.png')} style={styles.icon} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={pickImage}>
-            <Image source={require('../../../../assets/images/picture.png')} className="w-5 h-5" />
+          <TouchableOpacity style={styles.iconButton} onPress={pickImage}>
+            <Image source={require('../../../../assets/images/picture.png')} style={styles.icon} />
           </TouchableOpacity>
         </View>
 
+        {/* Category Dropdown */}
+        <View style={{ marginTop: 20 }}>
+          <TouchableOpacity style={styles.dropdownContainer} onPress={toggleDropdown}>
+            <Text style={styles.dropdownText}>
+              {selectedCategoryId
+                ? categories.find(cat => cat.categories_id === selectedCategoryId)?.title
+                : 'Select Category'}
+            </Text>
+            <Text style={styles.dropdownArrow}>{dropdownOpen ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
 
-        <Text className="mt-4 font-semibold">Category </Text>
-        {/* Dropdown */}
-        <TouchableOpacity onPress={toggleDropdown} className="flex-row justify-between items-center border border-gray-400 px-4 py-3 mt-2 rounded-md">
-          <Text className="text-base text-black">
-            {selectedCategoryId
-              ? categories.find(c => c.categories_id === selectedCategoryId)?.title
-              : 'Select Category'}
-          </Text>
-          <Text className="text-base text-black">{dropdownOpen ? '▲' : '▼'}</Text>
-        </TouchableOpacity>
-
-        {dropdownOpen && (
-          <View className="mt-2 border border-gray-300 rounded-md">
-            {categories.map((c) => (
-              <TouchableOpacity
-                key={c.categories_id}
-                onPress={() => {
-                  setSelectedCategoryId(c.categories_id);
-                  setDropdownOpen(false);
-                }}
-                className="px-4 py-3"
-              >
-                <Text className={`text-base ${c.categories_id === selectedCategoryId ? 'font-bold' : ''}`}>{c.title}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+          {dropdownOpen && (
+            <View style={styles.dropdownList}>
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.categories_id}
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    setSelectedCategoryId(category.categories_id);
+                    setDropdownOpen(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.dropdownItemText,
+                    category.categories_id === selectedCategoryId && { fontWeight: 'bold' },
+                  ]}>
+                    {category.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
 
         {/* Visibility */}
-        <Text className="mt-6 font-semibold">Who can see:</Text>
-        <View className="flex-row space-x-6 mt-2">
-          {['Free', 'Premium'].map((opt) => (
+        <Text style={{ marginTop: 20, marginBottom: 10, fontWeight: 'bold', fontSize: 16, marginLeft: 16 }}>
+          Who can see:
+        </Text>
+        <View style={styles.checkboxRow}>
+          {['Free', 'Premium'].map((option) => (
             <TouchableOpacity
-              key={opt}
-              className="flex-row items-center"
-              onPress={() => setVisibility(opt as 'Free' | 'Premium')}
+              key={option}
+              style={styles.checkboxContainer}
+              onPress={() => setVisibility(option as 'Free' | 'Premium')}
+              activeOpacity={0.7}
             >
-              <View className={`w-5 h-5 rounded-full border-2 mr-4 items-center justify-center ${visibility === opt ? 'bg-green-600 border-green-600' : 'border-green-600'}`}>
-                {visibility === opt && <Text className="text-white text-xs font-bold">✓</Text>}
+              <View style={[
+                styles.checkbox,
+                { borderColor: '#76472D' },
+                visibility === option && styles.checkboxChecked,
+              ]}>
+                {visibility === option && <Text style={styles.checkmark}>✓</Text>}
               </View>
-              <Text className={`${visibility === opt ? 'font-bold text-green-700' : 'text-green-700'}`}>{opt}</Text>
+              <Text style={[
+                styles.checkboxLabel,
+                { color: '#76472D' },
+                visibility === option && styles.checkboxLabelBold,
+              ]}>
+                {option}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text className="mt-8 font-semibold">Content: </Text>
         {/* Description */}
         <TextInput
-          className="mt-2 min-h-[120px] p-4 border border-gray-300 rounded-md text-base text-black"
+          style={styles.descriptionInput}
           placeholder="Description..."
           placeholderTextColor="#999"
+          multiline
           value={description}
           onChangeText={setDescription}
-          multiline
           textAlignVertical="top"
         />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: 30,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  cancelText: {
+    fontSize: 16,
+    color: '#000000',
+    marginLeft: 20,
+  },
+  postText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#459B6C',
+    marginRight: 20,
+  },
+  rockNameInput: {
+    marginTop: 20,
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#000',
+    paddingVertical: 8,
+    marginLeft: 20,
+  },
+  photosContainer: {
+    marginTop: 20,
+    minHeight: 100,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    padding: 10,
+    width: '93%',
+    alignSelf: 'center',
+  },
+  photosContainerNoBorder: {
+    borderWidth: 0,
+  },
+  iconRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    marginRight: 10,
+  },
+  iconButton: {
+    marginLeft: 12,
+    padding: 6,
+    borderRadius: 8,
+  },
+  icon: {
+    width: 18,
+    height: 18,
+  },
+  dropdownContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '93%',
+    alignSelf: 'center',
+    borderColor: '#000000',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+  },
+  dropdownText: {
+    color: '#000000',
+    fontSize: 16,
+  },
+  dropdownArrow: {
+    color: '#000000',
+    fontSize: 16,
+  },
+  dropdownList: {
+    marginTop: 4,
+    borderColor: '#000000',
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    elevation: 3,
+    width: '93%',
+    alignSelf: 'center',
+  },
+  dropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  dropdownItemText: {
+    color: '#000000',
+    fontSize: 16,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 10,
+    width: '90%',
+    alignSelf: 'center',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 16,
+    height: 16,
+    borderWidth: 1,
+    borderRadius: 4,
+    marginRight: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#76472D',
+  },
+  checkmark: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+    lineHeight: 18,
+  },
+  checkboxLabel: {
+    fontSize: 16,
+  },
+  checkboxLabelBold: {
+    fontWeight: 'bold',
+  },
+  descriptionInput: {
+    marginTop: 20,
+    fontSize: 16,
+    color: '#000',
+    minHeight: 100,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    textAlignVertical: 'top',
+    marginLeft: 15,
+    marginRight: 15,
+  },
+});
