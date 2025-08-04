@@ -355,3 +355,39 @@ class Rock(db.Model):
             db.session.rollback()
             print(f"Error deleting rock by ID: {e}")
             return False, 500, f"Error deleting rock: {str(e)}"
+    
+    @classmethod
+    def getAllRocksForAdminWithImages(cls):
+        """Get all rocks for admin view with processed signed URLs"""
+        try:
+            from app.utils.gcs import generate_signed_url
+            
+            # Get basic rock data using existing method
+            rocks_data, status_code = cls.getAllRocksForAdmin()
+            
+            if rocks_data is None:
+                return None, status_code
+            
+            # Process each rock to add signed URLs
+            processed_rocks = []
+            for rock_data in rocks_data:
+                if rock_data.get('photo_url'):
+                    try:
+                        print(f"🔍 Processing rock {rock_data['rock_id']} with photo_url: {rock_data['photo_url']}")
+                        signed_url = generate_signed_url(rock_data['photo_url'])
+                        rock_data['signed_url'] = signed_url
+                        print(f"✅ Generated signed URL for rock {rock_data['rock_id']}")
+                    except Exception as e:
+                        print(f"❌ Failed to generate signed URL for rock {rock_data['rock_id']}: {e}")
+                        rock_data['signed_url'] = None
+                else:
+                    print(f"📷 No photo_url for rock {rock_data['rock_id']}")
+                    rock_data['signed_url'] = None
+                
+                processed_rocks.append(rock_data)
+            
+            return processed_rocks, status_code
+            
+        except Exception as e:
+            print(f"❌ Error in getAllRocksForAdminWithImages: {e}")
+            return None, 500

@@ -92,7 +92,7 @@ export default function LoginScreen() {
 
   const handleRegister = () => {
     Linking.openURL(
-      "https://rockland-6cf4cyfj4-kenneths-projects-07a9aabf.vercel.app/"
+      "https://rockland-pi.vercel.app/"
     );
   };
 
