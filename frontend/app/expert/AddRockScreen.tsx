@@ -184,7 +184,7 @@ export default function AddRockScreen() {
               <Text style={{ fontSize: 16, color: 'black' }}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleSubmit}>
-              <Text style={{ fontSize: 16, color: 'green', fontWeight: 'bold' }}>Save</Text>
+              <Text style={{ fontSize: 16, color: 'green', fontWeight: 'bold' }}>Post</Text>
             </TouchableOpacity>
           </View>
           {/* Photo Section */}
