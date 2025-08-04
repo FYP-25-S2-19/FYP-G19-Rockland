@@ -61,7 +61,7 @@ class UserRockSpawn(db.Model):
             db.session.flush()  # needed for auto IDs
 
             # Add to UserRockCollection with location details
-            UserRockCollection.add_to_collection(
+            success, status, msg, _ = UserRockCollection.add_to_collection(
                 user_id=user_id,
                 rock_id=spawn.rock_id,
                 source="discovered",
@@ -69,6 +69,10 @@ class UserRockSpawn(db.Model):
                 longitude=spawn.longitude,
                 location_name=spawn.location_name
             )
+
+            if not success:
+                db.session.rollback()
+                return False, status, msg, None
 
             db.session.commit()
             return True, 200, "Rock collected", new_entry
