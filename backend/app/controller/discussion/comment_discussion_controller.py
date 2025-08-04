@@ -1,5 +1,6 @@
+# app/controller/comment_discussion_controller.py
+
 from flask import Blueprint, request, jsonify
-from app.models import db
 from app.entity.discussion_comment import DiscussionComment
 from app.controller.authentication.permission_required import permission_required
 
@@ -15,14 +16,14 @@ def add_comment(discussion_id, current_user):
     if not text:
         return jsonify({"success": False, "message": "Comment text is required"}), 400
 
-    comment = DiscussionComment(
+    success, status_code, message, comment_data = DiscussionComment.add_comment(
         discussion_id=discussion_id,
         user_id=current_user.user_id,
         text=text,
         reply_to=reply_to
     )
 
-    db.session.add(comment)
-    db.session.commit()
-
-    return jsonify({"success": True, "comment": comment.to_dict()}), 201
+    if success:
+        return jsonify({"success": True, "comment": comment_data}), status_code
+    else:
+        return jsonify({"success": False, "message": message}), status_code

@@ -15,6 +15,7 @@ import ArticleCard from "./ArticleCard";
 import DiscussionCard from "./DiscussionCard";
 import FilterModal from "./FilterModalFeed";
 import FilterModalRock from "./FilterModalRock";
+import FilterModalDiscussion from "./FilterModalDiscussion"; // ✅ NEW
 
 import FilterIcon from "../assets/images/filter.svg";
 import SearchIcon from "../assets/images/search.svg";
@@ -70,6 +71,7 @@ export default function BaseFeed({
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [discussionModalVisible, setDiscussionModalVisible] = useState(false); // ✅ NEW
   const [articles, setArticles] = useState(incomingArticles);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Sort by Most Liked");
@@ -129,7 +131,7 @@ export default function BaseFeed({
     if (activeTab === "articles") {
       fetchArticles();
     }
-  }, [searchQuery]);
+  }, [searchQuery, selectedCategories, sortBy, forceRefresh]);
 
   const filteredDiscussions = useMemo(() => {
     const kw = searchQuery.toLowerCase();
@@ -158,6 +160,9 @@ export default function BaseFeed({
       return;
     }
     setActiveTab(tabKey);
+    if (tabKey === "discussions") {
+      setForceRefresh(prev => !prev);
+    }
   };
 
   const openRock = (rock: any) => {
@@ -192,9 +197,7 @@ export default function BaseFeed({
         <TouchableOpacity
           onPress={() => {
             if (activeTab === "discussions") {
-              const newSort = discussionSort === "asc" ? "desc" : "asc";
-              setDiscussionSort(newSort);
-              setForceRefresh((prev) => !prev);
+              setDiscussionModalVisible(true); // ✅ open modal instead of toggling
             } else {
               setFilterModalVisible(true);
             }
@@ -258,7 +261,7 @@ export default function BaseFeed({
         </>
       )}
 
- {activeTab === "rocks" && (
+      {activeTab === "rocks" && (
         <FlatList
           data={filteredRocks}
           keyExtractor={(item) => (item.rock_id ?? item.id).toString()}
@@ -321,7 +324,6 @@ export default function BaseFeed({
         />
       )}
 
-
       <Modal
         visible={showUpgradeModal}
         transparent
@@ -348,7 +350,19 @@ export default function BaseFeed({
             setSelectedCategories(selectedCategories);
             setSortBy(sortBy);
             setFilterModalVisible(false);
-            fetchArticles();
+            setForceRefresh((prev) => !prev);
+          }}
+        />
+      )}
+
+      {activeTab === "discussions" && (
+        <FilterModalDiscussion
+          visible={discussionModalVisible}
+          onClose={() => setDiscussionModalVisible(false)}
+          currentSort={discussionSort}
+          onApply={(sort) => {
+            setDiscussionSort(sort);
+            setForceRefresh((prev) => !prev);
           }}
         />
       )}
