@@ -698,7 +698,7 @@ export default function RocklandLanding(): JSX.Element {
       {/* App Demo Section - Made responsive */}
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">App Demo</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-black">App Demo</h2>
           <p className="text-gray-600 mb-6 sm:mb-8">Let's see virtually how it works</p>
 
           <div className="bg-gray-900 rounded-xl sm:rounded-2xl aspect-video overflow-hidden shadow-2xl relative">
@@ -1047,7 +1047,7 @@ export default function RocklandLanding(): JSX.Element {
       {/* Pricing Section - Made responsive */}
       <section id="pricing" className="py-12 sm:py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Subscription Plan</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-black">Subscription Plan</h2>
           <p className="text-gray-600 mb-8 sm:mb-12 text-sm sm:text-base">
             With lots of unique blocks, you can easily build a<br className="hidden sm:block" />
             page easily without any coding.
@@ -1176,7 +1176,7 @@ export default function RocklandLanding(): JSX.Element {
                       {subscriptionPlans.free?.name.toUpperCase() || 'BASIC'}
                     </span>
                   </div>
-                  <div className="text-4xl sm:text-5xl font-bold mb-1">
+                  <div className="text-4xl sm:text-5xl font-bold mb-1 text-black">
                     {subscriptionPlans.free?.currency || '$'
                 }{subscriptionPlans.free?.price || 0}
                     <span className="text-base font-normal text-gray-500">/month</span>
