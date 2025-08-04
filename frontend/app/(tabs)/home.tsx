@@ -236,7 +236,7 @@ export default function HomeScreen() {
                     </View>
                     <View className="flex-row justify-end items-center space-x-4">
                       <Text className="text-xs text-gray-500">
-                        {article.like_count ?? 0} Likes
+                        {article.total_likes ?? 0} Likes
                       </Text>
                     </View>
                   </View>

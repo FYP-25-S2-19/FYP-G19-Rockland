@@ -5,6 +5,7 @@ from sqlalchemy import or_, case
 from app.models import db
 from app.entity.rock import Rock
 from app.utils.gcs import generate_signed_url
+import math
 
 
 class UserRockCollection(db.Model):
@@ -25,9 +26,32 @@ class UserRockCollection(db.Model):
 
     rock = db.relationship("Rock", backref="collections", lazy=True)
 
+    # Configurable proximity threshold
+    PROXIMITY_THRESHOLD_METERS = 200
+
+    @staticmethod
+    def _is_within_proximity(lat1, lon1, lat2, lon2, threshold_meters=None):
+        """Check if two coordinates are within threshold meters (default 200m)."""
+        if lat1 is None or lon1 is None or lat2 is None or lon2 is None:
+            return False
+
+        if threshold_meters is None:
+            threshold_meters = UserRockCollection.PROXIMITY_THRESHOLD_METERS
+
+        R = 6371000  # Earth radius in meters
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlambda = math.radians(lon2 - lon1)
+
+        a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+        return R * c <= threshold_meters
+
     @property
     def signed_url(self):
-        # ✅ Prefer scanned image if available, fallback to default rock image
+        # Prefer scanned image if available, fallback to default rock image
         if self.photo_url:
             return generate_signed_url(self.photo_url)
         return generate_signed_url(self.rock.photo_url) if self.rock and self.rock.photo_url else None
@@ -41,7 +65,7 @@ class UserRockCollection(db.Model):
             "rock_name": self.rock.rock_name if self.rock else None,
             "rock_type": self.rock.rock_type if self.rock else None,
             "rock_rarity": self.rock.rarity if self.rock else None,
-            "rock_description": self.rock.description if self.rock else None, 
+            "rock_description": self.rock.description if self.rock else None,
             "signed_url": self.signed_url,
             "collected_date": self.collected_date.isoformat() if self.collected_date else None,
             "latitude": self.latitude,
@@ -53,23 +77,56 @@ class UserRockCollection(db.Model):
     @classmethod
     def add_to_collection(cls, **kwargs) -> Tuple[bool, int, str, Optional["UserRockCollection"]]:
         try:
-            exists = cls.query.filter_by(
-                user_id=kwargs["user_id"],
-                rock_id=kwargs["rock_id"],
-                source=kwargs["source"]
-            ).first()
-            if exists:
-                return True, 200, "Rock already in collection", exists
-        
+            source = kwargs.get("source")
+            user_id = kwargs["user_id"]
+            rock_id = kwargs["rock_id"]
+            lat = kwargs.get("latitude")
+            lon = kwargs.get("longitude")
+            loc_name = kwargs.get("location_name")
+
+            # Normalize location_name
+            normalized_loc_name = loc_name.strip().lower() if loc_name else None
+
+            # --- If DISCOVERED: block duplicates by rock_id only ---
+            if source == "discovered":
+                exists = cls.query.filter_by(
+                    user_id=user_id,
+                    rock_id=rock_id,
+                    source="discovered"
+                ).first()
+                if exists:
+                    return False, 400, "You have already discovered this rock", None
+
+            # --- If SCANNED: allow multiple, but check for location duplicates ---
+            elif source == "scanned":
+                existing_entries = cls.query.filter_by(
+                    user_id=user_id,
+                    rock_id=rock_id,
+                    source="scanned"
+                ).all()
+
+                for entry in existing_entries:
+                    # 1. Proximity check (200m default)
+                    if cls._is_within_proximity(entry.latitude, entry.longitude, lat, lon):
+                        return False, 400, "You already scanned this rock nearby", None
+
+                    # 2. Fallback: location name check
+                    if entry.location_name and normalized_loc_name:
+                        if entry.location_name.strip().lower() == normalized_loc_name:
+                            return False, 400, "You already scanned this rock at this location", None
+
+            # Add new entry
             new_entry = cls(**kwargs)
             db.session.add(new_entry)
             db.session.commit()
+
             return True, 201, "Rock added to collection", new_entry
 
         except Exception as e:
             db.session.rollback()
             print(f"❌ Error adding to user collection: {e}")
             return False, 500, f"Error: {str(e)}", None
+
 
     @classmethod
     def get_user_collection(cls, user_id: int) -> List[dict]:
