@@ -29,7 +29,6 @@ export default function QuizCompleteScreen() {
         const storedAnswers = await AsyncStorage.getItem("quizAnswers");
         const parsed = JSON.parse(storedAnswers || "[]");
 
-        // Convert boolean answers to option_id payloads
         const formattedAnswers = parsed.map((ans: any) => ({
           selected_answer_id: ans.selected_answer_id ?? -1,
         }));
@@ -48,7 +47,13 @@ export default function QuizCompleteScreen() {
         const result = await res.json();
         setScore(result.score);
         setPoints(result.points_earned);
-        setTotal(formattedAnswers.length);
+
+        // ✅ Fetch actual total points of the quiz
+        const quizRes = await fetch(`${API_URL}/api/quizzes/${quizId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const quizData = await quizRes.json();
+        setTotal(quizData.quiz?.total_points || formattedAnswers.length);
 
         await AsyncStorage.removeItem("quizAnswers");
       } catch (err) {
