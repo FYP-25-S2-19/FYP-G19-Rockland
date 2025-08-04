@@ -35,6 +35,7 @@ class UserRockCollection(db.Model):
             "rock_name": self.rock.rock_name if self.rock else None,
             "rock_type": self.rock.rock_type if self.rock else None,
             "rock_rarity": self.rock.rarity if self.rock else None,
+            "rock_description": self.rock.description if self.rock else None, 
             "signed_url": self.signed_url,
             "collected_date": self.collected_date.isoformat() if self.collected_date else None,
             "latitude": self.latitude,

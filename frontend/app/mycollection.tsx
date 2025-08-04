@@ -8,6 +8,7 @@ import {
   Modal,
   FlatList,
   Dimensions,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import BackIcon from "../assets/images/back.svg";
@@ -17,6 +18,7 @@ import SavedRockCard from "../components/SavedRockCard";
 import FilterModalMyCollection from "../components/FilterModalCollection";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import MapView, { Marker } from "react-native-maps";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -37,6 +39,9 @@ type Rock = {
   location: string;
   collectedDate: string;
   image: any;
+  latitude: number;
+  longitude: number;
+  description: string;
 };
 
 export default function MyCollectionScreen() {
@@ -47,6 +52,8 @@ export default function MyCollectionScreen() {
   const [rocks, setRocks] = useState<Rock[]>([]);
   const [selectedRockId, setSelectedRockId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedRock, setSelectedRock] = useState<Rock | null>(null);
 
   const [selectedFilters, setSelectedFilters] = useState<{
     rarities: Rarity[];
@@ -69,6 +76,11 @@ export default function MyCollectionScreen() {
   const totalSpacing = gap * (numColumns - 1) + horizontalMargin * 2;
   const cardWidth = (screenWidth - totalSpacing) / numColumns;
 
+  const openDetailModal = (rock: Rock) => {
+    setSelectedRock(rock);
+    setDetailModalVisible(true);
+  };
+
   const fetchCollection = async () => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
@@ -80,15 +92,18 @@ export default function MyCollectionScreen() {
 
       if (res.data.success) {
         const mapped = res.data.collection.map((item: any) => ({
-          id: item.collection_id,
-          image: { uri: item.signed_url },
-          name: item.rock_name,
-          type: item.rock_type,
-          rarity: capitalize(item.rock_rarity),
-          method: capitalize(item.source), 
-          location: item.location_name || "Unknown",
-          collectedDate: item.collected_date?.split("T")[0],
-        }));
+        id: item.collection_id,
+        image: { uri: item.signed_url },
+        name: item.rock_name,
+        type: item.rock_type,
+        rarity: capitalize(item.rock_rarity),
+        description: item.rock_description || "",
+        method: capitalize(item.source),
+        location: item.location_name || "Unknown",
+        collectedDate: item.collected_date?.split("T")[0],
+        latitude: item.latitude,
+        longitude: item.longitude,
+      }));
         setRocks(mapped);
       }
     } catch (error) {
@@ -223,10 +238,18 @@ export default function MyCollectionScreen() {
                 className="items-center pb-2 border-b-2"
                 style={{ borderBottomColor: activeTab === tab ? "#459B6C" : "transparent" }}
               >
-                <Text className={`text-base font-semibold ${activeTab === tab ? "text-[#459B6C]" : "text-gray-400"}`}>
+                <Text
+                  className={`text-base font-semibold ${
+                    activeTab === tab ? "text-[#459B6C]" : "text-gray-400"
+                  }`}
+                >
                   {tab}
                 </Text>
-                <Text className={`text-sm ${activeTab === tab ? "text-[#459B6C] font-bold" : "text-gray-400"}`}>
+                <Text
+                  className={`text-sm ${
+                    activeTab === tab ? "text-[#459B6C] font-bold" : "text-gray-400"
+                  }`}
+                >
                   {count}
                 </Text>
               </View>
@@ -271,6 +294,7 @@ export default function MyCollectionScreen() {
                   method={item.method}
                   location={item.location}
                   collectedDate={item.collectedDate}
+                  onPress={() => openDetailModal(item)}
                   onDelete={() => confirmDelete(item.id)}
                 />
               </View>
@@ -317,6 +341,136 @@ export default function MyCollectionScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Detail Modal */}
+      <Modal
+        visible={detailModalVisible}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={() => setDetailModalVisible(false)}
+      >
+        <SafeAreaView className="flex-1 bg-white">
+          {/* Header */}
+          <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
+            <Text className="text-lg font-bold">Rock Details</Text>
+            <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
+              <Text className="text-blue-500 text-base">Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          {selectedRock && (
+            <View className="flex-1 p-4">
+              {/* Image */}
+              <Image
+                source={selectedRock.image}
+                className="w-full h-64 rounded-xl mb-4"
+                resizeMode="cover"
+              />
+
+              {/* Name & Type */}
+              <Text className="text-2xl font-bold">{selectedRock.name}</Text>
+              <Text className="text-base text-gray-600 mb-2">{selectedRock.type}</Text>
+
+              {/* Rarity & Method Tags */}
+              <View className="flex-row space-x-2 mb-2">
+                <Text
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: "600",
+                    backgroundColor:
+                      selectedRock.rarity === "Common"
+                        ? "#D1D5DB"
+                        : selectedRock.rarity === "Rare"
+                        ? "#16A34A"
+                        : "#EF9E1C",
+                    color: selectedRock.rarity === "Common" ? "#000000" : "#FFFFFF",
+                  }}
+                >
+                  {selectedRock.rarity}
+                </Text>
+                <Text
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: "600",
+                    backgroundColor:
+                      selectedRock.method === "Scanned" ? "#3B82F6" : "#8B5CF6",
+                    color: "#FFFFFF",
+                  }}
+                >
+                  {selectedRock.method}
+                </Text>
+              </View>
+
+               {/* Description */}
+              {selectedRock.description ? (
+                <View className="mt-3">
+                  <Text className="text-lg font-semibold text-gray-900 mb-1">Description</Text>
+                  <Text className="text-gray-700 leading-5 mb-5">{selectedRock.description}</Text>
+                </View>
+              ) : null}
+
+              {/* Location */}
+              <Text className="text-gray-600 mb-1">
+                <Text className="font-semibold">Location:</Text> {selectedRock.location}
+              </Text>
+
+              {/* Collected Date */}
+              <Text className="text-gray-600 mb-4">
+                <Text className="font-semibold">Collected:</Text> {selectedRock.collectedDate}
+              </Text>
+
+             
+
+              {/* Map Preview */}
+              {selectedRock.latitude && selectedRock.longitude ? (
+              <TouchableOpacity
+                className="mt-4 rounded-lg overflow-hidden border border-gray-300"
+                style={{ height: 150 }}
+                onPress={() =>
+                  router.push({
+                    pathname: "/collection/map",
+                    params: {
+                      lat: String(selectedRock.latitude),   // convert to string
+                      lng: String(selectedRock.longitude),  // convert to string
+                      name: String(selectedRock.name),      // convert to string
+                    },
+                  })
+                }
+              >
+                <MapView
+                  style={{ flex: 1 }}
+                  pointerEvents="none"
+                  region={{
+                    latitude: selectedRock.latitude,
+                    longitude: selectedRock.longitude,
+                    latitudeDelta: 0.0025,
+                    longitudeDelta: 0.0025,
+                  }}
+                >
+                  <Marker
+                    coordinate={{
+                      latitude: selectedRock.latitude,
+                      longitude: selectedRock.longitude,
+                    }}
+                    title={String(selectedRock.name)} // ensure string
+                  />
+                </MapView>
+              </TouchableOpacity>
+            ) : (
+              <View className="mt-6 h-32 bg-gray-200 rounded-lg justify-center items-center">
+                <Text className="text-gray-600">No location available</Text>
+              </View>
+            )}
+            </View>
+          )}
+        </SafeAreaView>
       </Modal>
 
       {/* Filter Modal */}
