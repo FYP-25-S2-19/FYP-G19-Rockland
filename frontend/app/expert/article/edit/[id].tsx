@@ -12,11 +12,13 @@ import {
   Keyboard,
   StyleSheet,
 } from 'react-native';
+
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function EditArticleScreen() {
+  const [updating, setUpdating] = useState(false);
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -90,10 +92,79 @@ export default function EditArticleScreen() {
     }
   };
 
-  const handleUpdate = () => {
-    Alert.alert("Success", "Article updated!");
-    router.back();
-  };
+const handleUpdate = async () => {
+  setUpdating(true);
+  try {
+    // Validation
+    if (!title.trim()) {
+      Alert.alert("Error", "Title is required.");
+      return;
+    }
+    if (!description.trim()) {
+      Alert.alert("Error", "Description is required.");
+      return;
+    }
+    if (!selectedCategoryId) {
+      Alert.alert("Error", "Please select a category.");
+      return;
+    }
+    if (!visibility) {
+      Alert.alert("Error", "Please select visibility (Free/Premium).");
+      return;
+    }
+
+    const token = await AsyncStorage.getItem("accessToken");
+    if (!token) {
+      Alert.alert("Error", "You are not logged in.");
+      return;
+    }
+
+    // Prepare FormData
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("content", description);
+    formData.append("categories_id", selectedCategoryId.toString());
+    formData.append("is_free", visibility === "Free" ? "true" : "false");
+
+    // Append photo only if new one is chosen (uri not starting with https means newly picked)
+    if (photos.length > 0 && !photos[0].uri.startsWith("https")) {
+      const uriParts = photos[0].uri.split(".");
+      const fileType = uriParts[uriParts.length - 1];
+
+      formData.append("photo", {
+        uri: photos[0].uri,
+        name: `article_photo.${fileType}`,
+        type: `image/${fileType}`,
+      } as any);
+    }
+
+    // API request
+    const response = await fetch(`${API_URL}/api/articles/update/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // Don't set Content-Type manually, let fetch handle it for multipart/form-data
+      },
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      Alert.alert("Success", "Article updated successfully!", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } else {
+      Alert.alert("Error", result.message || "Failed to update article");
+    }
+  } catch (err) {
+    console.error("Update article error:", err);
+    Alert.alert("Error", "Something went wrong while updating the article.");
+  }
+  finally {
+    setUpdating(false);
+  }
+};
 
   return (
     <KeyboardAvoidingView
