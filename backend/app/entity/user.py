@@ -656,8 +656,6 @@ class User(db.Model):
 
                     user.profile_picture = new_blob_path
 
-            if password is not None and password.strip():
-                user.set_password(password)
 
             # Admin-only status update
             if status is not None and getattr(current_user.user_type, "name", None) == "Admin":
@@ -685,6 +683,38 @@ class User(db.Model):
             db.session.rollback()
             print(f"❌ Error updating user account: {e}")
             return False, 500, f"An error occurred while updating user: {str(e)}", None
+        
+    @classmethod
+    def changePassword(cls, current_user, current_password: str, new_password: str):
+        """
+        Handle password change: verify old password, validate new password, update.
+        """
+        try:
+            # Check if current password is correct
+            if not current_user.check_password(current_password):
+                return False, 400, "Current password is incorrect", None
+
+            # Validate new password (basic example — can expand rules)
+            if len(new_password) < 6:
+                return False, 400, "New password must be at least 8 characters long", None
+
+            # Prevent reusing the same password
+            if current_user.check_password(new_password):
+                return False, 400, "New password cannot be the same as current password", None
+
+            # Update password
+            current_user.set_password(new_password)
+
+            from app.models import db
+            db.session.commit()
+
+            return True, 200, "Password updated successfully", current_user
+
+        except Exception as e:
+            from app.models import db
+            db.session.rollback()
+            print(f"❌ Error changing password: {e}")
+            return False, 500, f"An error occurred: {str(e)}", None
 
 
         
