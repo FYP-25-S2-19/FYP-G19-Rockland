@@ -94,6 +94,9 @@ with app.app_context():
         print("3. rockland_user exists with password 'rockland123'")
         exit(1)
 
+# Only run the server when this file is executed directly (for local testing)
+# Cloud Run will use main.py instead
 if __name__ == '__main__':
-    print(f"🌐 Server starting on http://0.0.0.0:5000")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"🌐 Local development server starting on http://0.0.0.0:{port}")
+    app.run(host="0.0.0.0", port=port, debug=True)
