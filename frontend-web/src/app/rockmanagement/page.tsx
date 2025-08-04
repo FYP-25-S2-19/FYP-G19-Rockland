@@ -38,6 +38,7 @@ interface Rock {
   common_location?: string
   fun_fact?: string
   photo_url?: string
+  signed_url?: string     // Backend provides this
   created_at: string
   user_id: number
 }
@@ -93,7 +94,7 @@ export default function RockManagementPage() {
   const [rocks, setRocks] = useState<Rock[]>([])
   const [selectedRock, setSelectedRock] = useState<Rock | null>(null)
 
-  // Fetch rocks from API
+  // Fetch rocks from API - Updated to use new endpoint
   const fetchRocks = async () => {
     try {
       setLoading(true)
@@ -107,7 +108,8 @@ export default function RockManagementPage() {
         return
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/rocks/admin/all`, {
+      // Change this line to use the new endpoint with image processing
+      const response = await fetch(`${API_BASE_URL}/api/rocks/admin/all-with-images`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${authInfo.token}`,
@@ -122,7 +124,7 @@ export default function RockManagementPage() {
       const data = await response.json()
       
       if (data.success) {
-        setRocks(data.rocks)
+        setRocks(data.rocks) // Now includes signed_url from backend
       } else {
         setError(data.error || 'Failed to fetch rocks')
       }
@@ -133,8 +135,6 @@ export default function RockManagementPage() {
       setLoading(false)
     }
   }
-
-
 
   // Delete rock
   const deleteRock = async (rockId: string) => {
@@ -482,22 +482,52 @@ export default function RockManagementPage() {
                 </div>
               )}
 
-              {/* Photo */}
-              {selectedRock.photo_url && (
+              {/* Photo section - simplified since backend handles URLs */}
+              {selectedRock?.signed_url ? (
                 <div>
                   <label className="text-sm font-semibold text-gray-700">Photo</label>
                   <div className="mt-2">
                     <img 
-                      src={selectedRock.photo_url} 
+                      src={selectedRock.signed_url}
                       alt={selectedRock.rock_name}
                       className="max-w-full h-auto rounded-lg border border-gray-200"
                       onError={(e) => {
+                        console.error('Rock image failed to load:', selectedRock.signed_url)
                         e.currentTarget.style.display = 'none'
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Rock image loaded successfully')
                       }}
                     />
                   </div>
                 </div>
+              ) : selectedRock?.photo_url ? (
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">Photo</label>
+                  <div className="mt-2 p-8 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                    <div className="text-yellow-600">
+                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.812c.932 0 1.684-.846 1.562-1.766L18.626 5.056c-.103-.812-.847-1.434-1.671-1.434H7.045c-.824 0-1.568.622-1.671 1.434L3.554 17.234C3.432 18.154 4.184 19 5.116 19z" />
+                      </svg>
+                      <p className="text-sm">Image processing failed</p>
+                      <p className="text-xs mt-1">Photo exists but couldn't generate secure URL</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">Photo</label>
+                  <div className="mt-2 p-8 bg-gray-100 rounded-lg text-center">
+                    <div className="text-gray-400">
+                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p>No image available</p>
+                    </div>
+                  </div>
+                </div>
               )}
+
             </div>
           )}
 
