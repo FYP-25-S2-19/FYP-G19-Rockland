@@ -66,6 +66,7 @@ export default function Scan() {
             rockName: result.rock_type,
             rockType: inferRockCategory(result.rock_type),
             rarity: result.rarity,
+            rockId: String(result.rock_id), // Pass actual rock_id
           },
         });
       } else {

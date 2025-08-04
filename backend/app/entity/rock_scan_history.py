@@ -200,7 +200,7 @@ class RockScanHistory(db.Model):
             rock = Rock.query.filter_by(rock_name=rock_name).first()
             if rock:
                 blob_path = cls.extract_blob_path(image_url) if image_url else None
-                UserRockCollection.add_to_collection(
+                success_add, code_add, message_add, collection_entry = UserRockCollection.add_to_collection(
                     user_id=user_id,
                     rock_id=rock.rock_id,
                     source="scanned",
@@ -210,7 +210,9 @@ class RockScanHistory(db.Model):
                     photo_url=blob_path
                 )
 
-            return True, 201, "Scan saved successfully", scan
+                # If duplicate or error in adding to collection
+                if not success_add:
+                    return False, code_add, message_add, None
 
         except Exception as e:
             db.session.rollback()

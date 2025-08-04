@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
@@ -14,6 +15,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BackIcon from '../assets/images/back.svg';
+import HistoryIcon from '../assets/images/history.svg';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -134,9 +136,9 @@ export default function QuizListScreen() {
             <BackIcon width={24} height={24} />
           </TouchableOpacity>
           <Text className="text-xl font-semibold text-gray-800">Quizzes</Text>
-          <TouchableOpacity onPress={() => router.push('/quizhistory')}>
-            <Text className="text-sm font-semibold text-gray-700">📜 History</Text>
-          </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/quizhistory')} activeOpacity={0.7}>
+          <HistoryIcon width={24} height={24} />
+        </TouchableOpacity>
         </View>
       </View>
 
@@ -197,9 +199,14 @@ export default function QuizListScreen() {
               </Text>
               
               <Text className="text-sm text-gray-700 mb-4">{quiz.description}</Text>
-              <Text className="text-sm text-green-700 mb-1">
-                Total Points: {quiz.total_points || 0}
-              </Text>
+              <View className="flex-row justify-between mb-1">
+                <Text className="text-sm text-green-700">
+                  Total Points: {quiz.total_points || 0}
+                </Text>
+                <Text className="text-sm text-green-700">
+                  Total Questions: {quiz.question_count || 0}
+                </Text>
+              </View>
               <TouchableOpacity
                 className="bg-green-600 py-2 px-4 rounded-xl"
                 onPress={() => {

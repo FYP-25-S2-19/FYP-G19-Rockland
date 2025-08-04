@@ -20,6 +20,7 @@ export default function ScanResult() {
   const rockName = typeof params.rockName === "string" ? params.rockName : "Unknown";
   const rockType = typeof params.rockType === "string" ? params.rockType : "Unknown";
   const rarity = typeof params.rarity === "string" ? params.rarity : "Common";
+  const rockId = params.rockId ? parseInt(params.rockId as string) : null;
 
   const rarityStyle = rarityColors[rarity] || rarityColors["Common"];
 
@@ -52,56 +53,69 @@ export default function ScanResult() {
     }, [])
   );
 
-  const handleSaveToCollection = async () => {
-    try {
-      const token = await AsyncStorage.getItem("accessToken");
-      if (!token) throw new Error("User not authenticated");
+const handleSaveToCollection = async () => {
+  try {
+    const token = await AsyncStorage.getItem("accessToken");
+    if (!token) throw new Error("User not authenticated");
 
-      let latitude = null;
-      let longitude = null;
-      let location_name = null;
+    let latitude = null;
+    let longitude = null;
+    let location_name = null;
 
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const location = await Location.getCurrentPositionAsync({});
-        latitude = location.coords.latitude;
-        longitude = location.coords.longitude;
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status === "granted") {
+      const location = await Location.getCurrentPositionAsync({});
+      latitude = location.coords.latitude;
+      longitude = location.coords.longitude;
 
-        const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
-        location_name = geocode?.[0]?.name || null;
-      }
-
-      const payload = {
-        rock_name: rockName,
-        rock_type: rockType,
-        rarity: rarity,
-        image_url: image,
-        latitude,
-        longitude,
-        location_name,
-      };
-
-      const res = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/scan/save`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (res.data.success) {
-        alert("✅ Saved to collection!");
-        router.replace("/(tabs)/home");
-      } else {
-        if (res.status === 403) {
-          setShowUpgradeModal(true);
-        } else {
-          alert("❌ Failed to save: " + res.data.message);
-        }
-      }
-    } catch (err) {
-      console.error("Save failed", err);
-      alert("❌ Save failed");
+      const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+      location_name = geocode?.[0]?.name || null;
     }
-  };
+
+    const payload = {
+      rock_id: rockId,
+      rock_name: rockName,
+      rock_type: rockType,
+      rarity: rarity,
+      image_url: image,
+      latitude,
+      longitude,
+      location_name,
+    };
+
+    const res = await axios.post(
+      `${process.env.EXPO_PUBLIC_API_URL}/api/scan/save`,
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // Success flow
+    if (res.data.success) {
+      alert("✅ Saved to collection!");
+      router.replace("/(tabs)/home");
+    } else {
+      // Handle known backend messages
+      if (res.data.message?.toLowerCase().includes("already")) {
+        alert(`⚠️ ${res.data.message}`);
+      } else if (res.status === 403 || res.data.message === "limit_reached") {
+        setShowUpgradeModal(true);
+      } else {
+        alert("❌ Failed to save: " + (res.data.message || "Unknown error"));
+      }
+    }
+  } catch (err: any) {
+    // Handle errors thrown by axios (status 400/500)
+    if (err.response?.data?.message?.toLowerCase().includes("already")) {
+      alert(`⚠️ ${err.response.data.message}`);
+    } else if (err.response?.status === 403 || err.response?.data?.message === "limit_reached") {
+      setShowUpgradeModal(true);
+    } else {
+      alert("❌ Save failed: " + (err.response?.data?.message || err.message));
+    }
+    console.error("Save failed", err);
+  }
+};
+
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff", paddingTop: 50, alignItems: "center" }}>
