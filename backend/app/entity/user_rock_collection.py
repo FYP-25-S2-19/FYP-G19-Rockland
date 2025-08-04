@@ -19,11 +19,15 @@ class UserRockCollection(db.Model):
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
     location_name = db.Column(db.String(255), nullable=True)
+    photo_url = db.Column(db.Text, nullable=True)
 
     rock = db.relationship("Rock", backref="collections", lazy=True)
 
     @property
     def signed_url(self):
+        # ✅ Prefer scanned image if available, fallback to default rock image
+        if self.photo_url:
+            return generate_signed_url(self.photo_url)
         return generate_signed_url(self.rock.photo_url) if self.rock and self.rock.photo_url else None
 
     def to_dict(self) -> dict:
@@ -41,19 +45,12 @@ class UserRockCollection(db.Model):
             "latitude": self.latitude,
             "longitude": self.longitude,
             "location_name": self.location_name,
+            "photo_url": self.photo_url
         }
 
     @classmethod
     def add_to_collection(cls, **kwargs) -> Tuple[bool, int, str, Optional["UserRockCollection"]]:
         try:
-            exists = cls.query.filter_by(
-                user_id=kwargs["user_id"],
-                rock_id=kwargs["rock_id"],
-                source=kwargs["source"]
-            ).first()
-            if exists:
-                return True, 200, "Rock already in collection", exists
-
             new_entry = cls(**kwargs)
             db.session.add(new_entry)
             db.session.commit()

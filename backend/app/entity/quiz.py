@@ -1,4 +1,3 @@
-
 from app.models import db
 from datetime import datetime
 from app.entity.interest import Interest
@@ -66,14 +65,13 @@ class Quiz(db.Model):
     def create_quiz(data, user_id):
         interest_id = data.get("interest_id")
 
-        # Allow quizzes without interest (treated as 'All')
         if interest_id and not Interest.query.get(interest_id):
-            return None  # Invalid interest provided
+            return None
 
         quiz = Quiz(
             title=data.get("title"),
             description=data.get("description"),
-            interest_id=interest_id,  # can be None
+            interest_id=interest_id,
             user_id=user_id,
             total_points=0
         )
@@ -282,50 +280,20 @@ class QuizResult(db.Model):
     # Quiz submission
     # -------------------------
     @staticmethod
-    def submit_quiz_attempt(user_id, quiz_id, selected_answers, user_type):
-        """
-        Handle quiz submission:
-        1. Validate eligibility (duplicate + daily limit)
-        2. Calculate score
-        3. Save result + update user points and achievements
-        """
-        # 1. Check eligibility first
-        eligibility = QuizResult.check_quiz_eligibility(user_id, quiz_id, user_type)
-        if not eligibility["eligible"]:
-            return eligibility  # Return same structure (eligible=False, message, status=200)
-
-        # 2. Extract selected option IDs
-        selected_ids = [a.get("selected_answer_id") for a in selected_answers if a.get("selected_answer_id")]
-
-        # 3. Calculate correct answers
-        correct_count = 0
-        for selected_id in selected_ids:
+    def submit_result(user_id, quiz_id, selected_option_ids):
+        total_score = 0
+        for selected_id in selected_option_ids:
             option = QuizOption.query.get(selected_id)
             if option and option.is_correct:
-                correct_count += 1
+                question = option.question
+                total_score += question.points if question and question.points else 0
 
         # 4. Save result
         result = QuizResult(
             user_id=user_id,
             quiz_id=quiz_id,
-            score=correct_count,
-            points_earned=correct_count
+            score=total_score,
+            points_earned=total_score
         )
         db.session.add(result)
-
-        # 5. Update user points and achievements
-        user = User.query.get(user_id)
-        if user:
-            user.total_points += correct_count
-            update_user_quiz_count(user.user_id)
-            check_and_award_thresholds(user.user_id)
-
-        db.session.commit()
-
-        # 6. Return structured success response
-        return {
-            "success": True,
-            "score": correct_count,
-            "points_earned": correct_count,
-            "status": 200
-        }
+        return result, total_score
