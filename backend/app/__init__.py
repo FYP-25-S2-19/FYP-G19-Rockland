@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Load environment variables at the module level (before create_app)
 load_dotenv()
 
-from flask import Flask
+from flask import Flask, app
 from flask_cors import CORS
 from .models import db
 
@@ -146,6 +146,9 @@ def create_app():
     app.register_blueprint(view_discussion_blueprint)
     app.register_blueprint(comment_discussion_blueprint)
     app.register_blueprint(delete_discussion_blueprint)
+    
+    from .controller.discussion.comment_like_controller import comment_like_blueprint
+    app.register_blueprint(comment_like_blueprint)
 
     # QUIZ
     from app.controller.quiz.create_quizattempt_controller import create_quizattempt_blueprint
