@@ -21,6 +21,8 @@ type CommentType = {
   text: string;
   replyTo: number | null;
   time: string;
+  likes: number;
+  liked_by_user: boolean;
 };
 
 type DiscussionType = {
@@ -40,7 +42,7 @@ export default function DiscussionDetail() {
   const [discussion, setDiscussion] = useState<DiscussionType | null>(null);
   const [comments, setComments] = useState<CommentType[]>([]);
   const [newComment, setNewComment] = useState("");
-  const [replyTo, setReplyTo] = useState<number | null>(null); // 🔧 NEW
+  const [replyTo, setReplyTo] = useState<number | null>(null);
 
   const fetchDiscussionDetail = async () => {
     try {
@@ -72,7 +74,7 @@ export default function DiscussionDetail() {
         },
         body: JSON.stringify({
           text: newComment,
-          reply_to: replyTo, // 🔧 support replies
+          reply_to: replyTo,
         }),
       });
 
@@ -80,12 +82,43 @@ export default function DiscussionDetail() {
       if (json.success) {
         setComments((prev) => [...prev, json.comment]);
         setNewComment("");
-        setReplyTo(null); // 🔧 reset reply
+        setReplyTo(null);
       } else {
         alert("❌ Failed to post comment");
       }
     } catch (e) {
       console.error("Error posting comment", e);
+    }
+  };
+
+  const toggleCommentLike = async (commentId: number, currentlyLiked: boolean) => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      const method = currentlyLiked ? "DELETE" : "POST";
+
+      const res = await fetch(
+        `${API_URL}/api/discussions/comments/${commentId}/${currentlyLiked ? "unlike" : "like"}`,
+        {
+          method,
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const json = await res.json();
+      if (json.success && json.data) {
+        const { liked, like_count } = json.data;
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === commentId
+              ? { ...c, liked_by_user: liked, likes: like_count }
+              : c
+          )
+        );
+      } else {
+        alert("❌ Failed to update like");
+      }
+    } catch (e) {
+      console.error("Error toggling comment like", e);
     }
   };
 
@@ -148,7 +181,14 @@ export default function DiscussionDetail() {
               </Text>
               <Text className="text-sm text-gray-700 mb-1">{comment.text}</Text>
               <View className="flex-row items-center mb-2">
-                <Text className="text-xs text-gray-500 mr-2">👍 0</Text>
+                <TouchableOpacity
+                  className="mr-3"
+                  onPress={() => toggleCommentLike(comment.id, comment.liked_by_user)}
+                >
+                  <Text className={`text-xs ${comment.liked_by_user ? "text-green-700" : "text-gray-500"}`}>
+                    👍 {comment.likes}
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => {
                   setReplyTo(comment.id);
                   setNewComment(`@${comment.user} `);
@@ -176,7 +216,15 @@ export default function DiscussionDetail() {
                       <Text className="text-sm text-gray-700 mb-1">
                         {reply.text}
                       </Text>
-                      <Text className="text-xs text-gray-500">👍 0</Text>
+                      <TouchableOpacity
+                        onPress={() =>
+                          toggleCommentLike(reply.id, reply.liked_by_user)
+                        }
+                      >
+                        <Text className={`text-xs ${reply.liked_by_user ? "text-green-700" : "text-gray-500"}`}>
+                          👍 {reply.likes}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </View>
