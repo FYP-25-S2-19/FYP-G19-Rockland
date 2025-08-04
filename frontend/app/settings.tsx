@@ -32,9 +32,13 @@ export default function SettingsScreen() {
     router.back();
   };
 
-  const handleUpdateInfo = () => {
-    router.push("/profile");
-  };
+ const handleUpdateInfo = () => {
+  if (userRole === "expert") {
+    router.push("/(expert-tabs)/profile");
+  } else {
+    router.push("/(tabs)/profile");
+  }
+};
 
   const handleUpgrade = () => {
     router.push("/subscribe-premium");
