@@ -24,3 +24,20 @@ class DiscussionComment(db.Model):
             'replyTo': self.reply_to,
             'time': self.timestamp.isoformat()
         }
+
+    @classmethod
+    def add_comment(cls, discussion_id, user_id, text, reply_to=None):
+        try:
+            new_comment = cls(
+                discussion_id=discussion_id,
+                user_id=user_id,
+                text=text,
+                reply_to=reply_to,
+                timestamp=datetime.utcnow()
+            )
+            db.session.add(new_comment)
+            db.session.commit()
+            return True, 201, "Comment posted successfully", new_comment.to_dict()
+        except Exception as e:
+            db.session.rollback()
+            return False, 500, f"Failed to post comment: {str(e)}", None

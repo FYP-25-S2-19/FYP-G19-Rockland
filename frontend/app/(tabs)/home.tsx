@@ -18,7 +18,6 @@ import ArrowRightIcon from "../../assets/images/arrow_right.svg";
 import LikeIcon from "../../assets/images/like.svg";
 import { LinearGradient } from "expo-linear-gradient";
 
-// ...imports unchanged
 export default function HomeScreen() {
   const [role, setRole] = useState("free");
   const router = useRouter();
@@ -37,20 +36,30 @@ export default function HomeScreen() {
       try {
         const token = await AsyncStorage.getItem("accessToken");
 
-        // 🪨 Rocks
+        // 🪨 Top Rocks
         const rockRes = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/rocks/top-commented`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const rockData = await rockRes.json();
         if (rockData.success) setTopRocks(rockData.rocks);
 
-        // 📚 Articles by interest + likes
+        // 📚 Articles: Interest-based first
         const articleRes = await fetch(
           `${process.env.EXPO_PUBLIC_API_URL}/api/articles/by-user-interest?sort=interest-then-likes`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const articleData = await articleRes.json();
-        if (articleData.success) setRecommendedArticles(articleData.articles);
+
+        if (articleData.success && articleData.articles.length > 0) {
+          setRecommendedArticles(articleData.articles);
+        } else {
+          // 🔁 Fallback: Top liked articles
+          const fallbackRes = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/articles/top-liked`);
+          const fallbackData = await fallbackRes.json();
+          if (fallbackData.success) {
+            setRecommendedArticles(fallbackData.top_liked_articles);
+          }
+        }
       } catch (err) {
         console.error("⚠️ Error fetching home data:", err);
       } finally {
@@ -151,8 +160,48 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Top Rocks */}
+          <View className="px-5 mb-6">
+            <Text className="text-xl font-bold text-gray-900 mb-4">Popular on Rockland</Text>
+
+            {loadingRocks ? (
+              <Text className="text-base text-gray-500">Loading...</Text>
+            ) : topRocks.length === 0 ? (
+              <Text className="text-base text-gray-500">No rocks found.</Text>
+            ) : (
+              [0, 1].map((rowIndex) => (
+                <View className="flex-row mt-2" key={`row-${rowIndex}`}>
+                  {topRocks
+                    .slice(rowIndex * 2, rowIndex * 2 + 2)
+                    .map((rock, index) => (
+                      <TouchableOpacity
+                        key={rock.rock_id}
+                        className={`flex-1 bg-white rounded-2xl ${index === 0 ? "mr-2" : "ml-2"}`}
+                        activeOpacity={0.85}
+                        onPress={() => router.push(`/viewrock/${rock.rock_id}`)}
+                        style={shadowStyle}
+                      >
+                        <Image
+                          source={{ uri: rock.signed_url }}
+                          className="w-full h-32 rounded-t-2xl"
+                          resizeMode="cover"
+                        />
+                        <View className="p-3">
+                          <Text className="text-lg font-semibold text-gray-900">{rock.rock_name}</Text>
+                          <Text className="text-sm text-gray-500">{rock.rock_type}</Text>
+                          <Text className="text-sm text-gray-600">
+                            💬 {rock.comment_count ?? 0} Comments
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              ))
+            )}
+          </View>
+
           {/* Recommended Articles */}
-          <View className="px-5 mb-4">
+          <View className="px-5 mb-20">
             <Text className="text-xl font-bold text-gray-900 mb-4">Recommended for You</Text>
             {loadingArticles ? (
               <Text className="text-base text-gray-500">Loading...</Text>
@@ -196,7 +245,7 @@ export default function HomeScreen() {
                     </View>
                     <View className="flex-row justify-end items-center space-x-4">
                       <Text className="text-xs text-gray-500">
-                        {article.total_likes ?? 0} Likes
+                        {article.like_count ?? 0} Likes
                       </Text>
                     </View>
                   </View>
@@ -204,48 +253,6 @@ export default function HomeScreen() {
               ))
             )}
           </View>
-
-          {/* Top Rocks */}
-          <View className="px-5 mt-6 mb-20">
-            <Text className="text-xl font-bold text-gray-900 mb-4">Popular on Rockland</Text>
-
-            {loadingRocks ? (
-              <Text className="text-base text-gray-500">Loading...</Text>
-            ) : topRocks.length === 0 ? (
-              <Text className="text-base text-gray-500">No rocks found.</Text>
-            ) : (
-              [0, 1].map((rowIndex) => (
-                <View className="flex-row mt-2" key={`row-${rowIndex}`}>
-                  {topRocks
-                    .slice(rowIndex * 2, rowIndex * 2 + 2)
-                    .map((rock, index) => (
-                      <TouchableOpacity
-                        key={rock.rock_id}
-                        className={`flex-1 bg-white rounded-2xl ${index === 0 ? "mr-2" : "ml-2"}`}
-                        activeOpacity={0.85}
-                        onPress={() => router.push(`/viewrock/${rock.rock_id}`)}
-                        style={shadowStyle}
-                      >
-                        <Image
-                          source={{ uri: rock.signed_url }}
-                          className="w-full h-32 rounded-t-2xl"
-                          resizeMode="cover"
-                        />
-                        <View className="p-3">
-                          <Text className="text-lg font-semibold text-gray-900">{rock.rock_name}</Text>
-                          <Text className="text-sm text-gray-500">{rock.rock_type}</Text>
-                          <Text className="text-sm text-gray-600">
-                            💬 {rock.comment_count ?? 0} Comments
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                </View>
-              ))
-            )}
-          </View>
-
-          
 
           {/* Upgrade Modal */}
           <Modal
