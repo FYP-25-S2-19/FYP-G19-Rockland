@@ -147,7 +147,18 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleBack = () => router.push("/account");
+const handleBack = () => {
+  if (router.canGoBack()) {
+    router.back();
+  } else {
+    // Fallback to account tab depending on role
+    if (userRole === "expert") {
+      router.replace("/(expert-tabs)/account");
+    } else {
+      router.replace("/(tabs)/account");
+    }
+  }
+};
 
   const handleEdit = () => setIsEditing(true);
 

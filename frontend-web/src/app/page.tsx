@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Play, Plus, Minus, Loader2 } from "lucide-react"
+import { Check, Play, Plus, Minus, Loader2, Menu, X } from "lucide-react"
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -79,6 +79,7 @@ export default function RocklandLanding(): JSX.Element {
   const [demoVideo, setDemoVideo] = useState<Video | null>(null)
   const [videoLoading, setVideoLoading] = useState(true)
   const [videoError, setVideoError] = useState<string | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
   // New states for dynamic FAQ
   const [faqData, setFaqData] = useState<FAQItem[]>([])
@@ -378,6 +379,10 @@ export default function RocklandLanding(): JSX.Element {
     setOpenFAQIndex(openFAQIndex === index ? null : index)
   }
 
+  const toggleMobileMenu = (): void => {
+    setMobileMenuOpen(!mobileMenuOpen)
+  }
+
   const formatFileSize = (bytes: number): string => {
     const mb = bytes / (1024 * 1024)
     return `${mb.toFixed(1)} MB`
@@ -403,7 +408,7 @@ export default function RocklandLanding(): JSX.Element {
     return features
   }
 
-  // AppStoreButton component
+  // AppStoreButton component - made more mobile-friendly
   const AppStoreButton = ({ 
     platform, 
     link, 
@@ -420,11 +425,11 @@ export default function RocklandLanding(): JSX.Element {
     // If loading, show skeleton
     if (loading) {
       return (
-        <div className="bg-gray-300 animate-pulse rounded-lg px-4 py-2 flex items-center space-x-2 min-w-[140px]">
-          <div className="w-6 h-6 bg-gray-400 rounded"></div>
+        <div className="bg-gray-300 animate-pulse rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px]">
+          <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-400 rounded"></div>
           <div className="space-y-1">
-            <div className="w-16 h-2 bg-gray-400 rounded"></div>
-            <div className="w-12 h-3 bg-gray-400 rounded"></div>
+            <div className="w-12 sm:w-16 h-2 bg-gray-400 rounded"></div>
+            <div className="w-10 sm:w-12 h-3 bg-gray-400 rounded"></div>
           </div>
         </div>
       )
@@ -433,14 +438,14 @@ export default function RocklandLanding(): JSX.Element {
     // If error or no link, show disabled state
     if (error || !link || !link.link_attached) {
       return (
-        <div className="bg-gray-500 text-gray-300 rounded-lg px-4 py-2 flex items-center space-x-2 min-w-[140px] cursor-not-allowed opacity-50">
+        <div className="bg-gray-500 text-gray-300 rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px] cursor-not-allowed opacity-50">
           <div>
             {isIOS ? (
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
               </svg>
             ) : (
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
               </svg>
             )}
@@ -449,7 +454,7 @@ export default function RocklandLanding(): JSX.Element {
             <div className="text-xs">
               {isIOS ? 'Download on the' : 'Get it on'}
             </div>
-            <div className="text-sm font-semibold">
+            <div className="text-xs sm:text-sm font-semibold">
               {isIOS ? 'App Store' : 'Google Play'}
             </div>
           </div>
@@ -465,14 +470,14 @@ export default function RocklandLanding(): JSX.Element {
         rel="noopener noreferrer"
         className="hover:opacity-80 transition-opacity"
       >
-        <div className="bg-black text-white rounded-lg px-4 py-2 flex items-center space-x-2 min-w-[140px]">
+        <div className="bg-black text-white rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px]">
           <div>
             {isIOS ? (
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
               </svg>
             ) : (
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
               </svg>
             )}
@@ -481,7 +486,7 @@ export default function RocklandLanding(): JSX.Element {
             <div className="text-xs">
               {isIOS ? 'Download on the' : 'Get it on'}
             </div>
-            <div className="text-sm font-semibold">
+            <div className="text-xs sm:text-sm font-semibold">
               {isIOS ? 'App Store' : 'Google Play'}
             </div>
           </div>
@@ -492,10 +497,12 @@ export default function RocklandLanding(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="bg-green-600 px-4 py-4">
+      {/* Navigation - Made responsive */}
+      <nav className="bg-green-600 px-4 py-4 relative">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="text-white text-xl font-bold">ROCKLAND</div>
+          
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <a href="#" className="text-white hover:text-green-100">
               Home
@@ -510,33 +517,71 @@ export default function RocklandLanding(): JSX.Element {
               FAQ
             </Link>
           </div>
-          <Link href="/registration">
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden text-white p-2"
+            aria-label="Toggle mobile menu"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+
+          {/* Desktop Register Button */}
+          <Link href="/registration" className="hidden md:block">
             <Button className="bg-white hover:bg-gray-100 text-green-600 font-semibold px-6 py-2 rounded-full border border-white hover:border-gray-200 transition-all duration-200">
               Register
             </Button>
           </Link>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-green-600 border-t border-green-500 z-50">
+            <div className="px-4 py-2 space-y-2">
+              <a href="#" className="block text-white hover:text-green-100 py-2">
+                Home
+              </a>
+              <Link href="/features" className="block text-white hover:text-green-100 py-2">
+                Feature
+              </Link>
+              <Link href="/pricing" className="block text-white hover:text-green-100 py-2">
+                Pricing
+              </Link>
+              <Link href="/faq" className="block text-white hover:text-green-100 py-2">
+                FAQ
+              </Link>
+              <Link href="/registration" className="block py-2">
+                <Button className="w-full bg-white hover:bg-gray-100 text-green-600 font-semibold px-6 py-2 rounded-full">
+                  Register
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section - Made responsive */}
       <section className="bg-gradient-to-br from-green-600 to-green-700 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 py-16 lg:py-24">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="text-white">
+        <div className="max-w-7xl mx-auto px-4 py-12 sm:py-16 lg:py-24">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div className="text-white text-center lg:text-left">
               <div className="text-sm mb-4">#1 Rock Learning Platform</div>
-              <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">Explore the World of Rocks</h1>
-              <p className="text-lg mb-8 text-emerald-100">
+              <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-6 leading-tight">
+                Explore the World of Rocks
+              </h1>
+              <p className="text-base sm:text-lg mb-8 text-emerald-100 max-w-lg mx-auto lg:mx-0">
                 Rockland helps you explore and learn about rocks interactively using AI, maps, and gamification.
               </p>
               <Link href="/registration">
-                <Button className="bg-white hover:bg-gray-100 text-green-600 font-semibold px-6 py-2 rounded-full border border-white hover:border-gray-200 transition-all duration-200">
+                <Button className="bg-white hover:bg-gray-100 text-green-600 font-semibold px-6 py-3 rounded-full border border-white hover:border-gray-200 transition-all duration-200 mb-8 lg:mb-0">
                   Register Now!
                 </Button>
               </Link>
 
               <div className="space-y-4 mt-8">
                 <div className="text-sm font-medium">DOWNLOAD OUR APP</div>
-                <div className="flex space-x-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-center lg:justify-start">
                   <AppStoreButton 
                     platform="ios" 
                     link={appLinks.ios} 
@@ -557,84 +602,119 @@ export default function RocklandLanding(): JSX.Element {
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-white rounded-t-3xl"></div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-16 bg-white">
+      {/* Features Section - Made responsive */}
+      <section id="features" className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="relative flex justify-center">
-              {/* Main phone mockup using uploaded image */}
-              <div className="relative z-10 transform rotate-1 hover:rotate-0 transition-transform duration-500">
-                <div className="w-[300px] h-[600px] relative overflow-hidden rounded-[3rem] shadow-2xl">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Mobile-first approach for phone mockup */}
+            <div className="relative flex justify-center order-2 lg:order-1">
+              {/* Main phone mockup */}
+              <div className="relative z-10 transform hover:rotate-0 transition-transform duration-500">
+                <div className="w-[250px] sm:w-[300px] h-[500px] sm:h-[600px] relative overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] shadow-2xl">
                   <Image
                     src="/5.jpg"
                     alt="Rockland app interface on phone"
                     fill
-                    className="object-cover rounded-[3rem]"
+                    className="object-cover rounded-[2.5rem] sm:rounded-[3rem]"
                   />
                 </div>
               </div>
 
-              {/* Feature callouts positioned around the phone with enhanced styling */}
-              {/* Rock Identifier - top left */}
-              <div className="absolute top-8 -left-40 bg-gradient-to-br from-white to-gray-50 rounded-2xl px-5 py-3 shadow-xl border border-gray-200 z-20 transform -rotate-2 hover:rotate-0 transition-transform duration-300 max-w-[180px]">
-                <div className="text-sm font-bold text-gray-800">🔍 1. Rock Identifier</div>
-                <div className="text-xs text-gray-500 mt-1">AI-powered scanning</div>
-              </div>
+              {/* Feature callouts - Hidden on mobile, shown on desktop */}
+              <div className="hidden lg:block">
+                {/* Rock Identifier - top left */}
+                <div className="absolute top-8 -left-40 bg-gradient-to-br from-white to-gray-50 rounded-2xl px-5 py-3 shadow-xl border border-gray-200 z-20 transform -rotate-2 hover:rotate-0 transition-transform duration-300 max-w-[180px]">
+                  <div className="text-sm font-bold text-gray-800">🔍 1. Rock Identifier</div>
+                  <div className="text-xs text-gray-500 mt-1">AI-powered scanning</div>
+                </div>
 
-              {/* Interactive Map - top right */}
-              <div className="absolute top-8 -right-40 bg-gradient-to-br from-green-600 to-green-700 text-white rounded-2xl px-5 py-3 shadow-xl z-20 transform rotate-2 hover:rotate-0 transition-transform duration-300 max-w-[180px]">
-                <div className="text-sm font-bold">🗺️ 2. Interactive Map</div>
-                <div className="text-xs text-green-100 mt-1">Discover locations</div>
-              </div>
+                {/* Interactive Map - top right */}
+                <div className="absolute top-8 -right-40 bg-gradient-to-br from-green-600 to-green-700 text-white rounded-2xl px-5 py-3 shadow-xl z-20 transform rotate-2 hover:rotate-0 transition-transform duration-300 max-w-[180px]">
+                  <div className="text-sm font-bold">🗺️ 2. Interactive Map</div>
+                  <div className="text-xs text-green-100 mt-1">Discover locations</div>
+                </div>
 
-              {/* Daily Quiz - bottom left */}
-              <div className="absolute bottom-32 -left-40 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl px-5 py-3 shadow-xl z-20 transform rotate-1 hover:rotate-0 transition-transform duration-300 max-w-[180px]">
-                <div className="text-sm font-bold">📝 3. Daily Quiz</div>
-                <div className="text-xs text-blue-100 mt-1">Test your knowledge</div>
-              </div>
+                {/* Daily Quiz - bottom left */}
+                <div className="absolute bottom-32 -left-40 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl px-5 py-3 shadow-xl z-20 transform rotate-1 hover:rotate-0 transition-transform duration-300 max-w-[180px]">
+                  <div className="text-sm font-bold">📝 3. Daily Quiz</div>
+                  <div className="text-xs text-blue-100 mt-1">Test your knowledge</div>
+                </div>
 
-              {/* Social - bottom right */}
-              <div className="absolute bottom-32 -right-40 bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-2xl px-5 py-3 shadow-xl z-20 transform -rotate-1 hover:rotate-0 transition-transform duration-300 max-w-[180px]">
-                <div className="text-sm font-bold">👥 4. Social</div>
-                <div className="text-xs text-purple-100 mt-1">Connect & share</div>
+                {/* Social - bottom right */}
+                <div className="absolute bottom-32 -right-40 bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-2xl px-5 py-3 shadow-xl z-20 transform -rotate-1 hover:rotate-0 transition-transform duration-300 max-w-[180px]">
+                  <div className="text-sm font-bold">👥 4. Social</div>
+                  <div className="text-xs text-purple-100 mt-1">Connect & share</div>
+                </div>
               </div>
             </div>
 
-            <div className="text-center lg:text-left">
-              <h2 className="text-5xl lg:text-6xl font-bold text-gray-900">
+            <div className="text-center lg:text-left order-1 lg:order-2">
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900">
                 Rockland
               </h2>
-              <h3 className="text-4xl lg:text-5xl font-bold mt-2 text-gray-700">
+              <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold mt-2 text-gray-700">
                 Special Features
               </h3>
-              <p className="text-lg text-gray-600 mt-4 max-w-md">
+              <p className="text-base sm:text-lg text-gray-600 mt-4 max-w-md mx-auto lg:mx-0">
                 Discover our innovative features designed to enhance your rock learning experience
               </p>
+
+              {/* Mobile feature list - shown only on mobile */}
+              <div className="lg:hidden mt-8 space-y-4">
+                <div className="flex items-center justify-center space-x-3 p-3 bg-gradient-to-r from-gray-50 to-white rounded-xl shadow-sm">
+                  <span className="text-2xl">🔍</span>
+                  <div className="text-left">
+                    <div className="font-semibold text-gray-800">Rock Identifier</div>
+                    <div className="text-sm text-gray-600">AI-powered scanning</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center space-x-3 p-3 bg-gradient-to-r from-green-50 to-green-100 rounded-xl shadow-sm">
+                  <span className="text-2xl">🗺️</span>
+                  <div className="text-left">
+                    <div className="font-semibold text-green-800">Interactive Map</div>
+                    <div className="text-sm text-green-600">Discover locations</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center space-x-3 p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow-sm">
+                  <span className="text-2xl">📝</span>
+                  <div className="text-left">
+                    <div className="font-semibold text-blue-800">Daily Quiz</div>
+                    <div className="text-sm text-blue-600">Test your knowledge</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center space-x-3 p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl shadow-sm">
+                  <span className="text-2xl">👥</span>
+                  <div className="text-left">
+                    <div className="font-semibold text-purple-800">Social</div>
+                    <div className="text-sm text-purple-600">Connect & share</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* App Demo Section */}
-      <section className="py-16 bg-white">
+      {/* App Demo Section - Made responsive */}
+      <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-4">App Demo</h2>
-          <p className="text-gray-600 mb-8">Let's see virtually how it works</p>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">App Demo</h2>
+          <p className="text-gray-600 mb-6 sm:mb-8">Let's see virtually how it works</p>
 
-          <div className="bg-gray-900 rounded-2xl aspect-video overflow-hidden shadow-2xl relative">
+          <div className="bg-gray-900 rounded-xl sm:rounded-2xl aspect-video overflow-hidden shadow-2xl relative">
             {videoLoading ? (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center text-white">
-                  <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
-                  <p>Loading demo video...</p>
+                  <Loader2 className="w-8 sm:w-12 h-8 sm:h-12 animate-spin mx-auto mb-4" />
+                  <p className="text-sm sm:text-base">Loading demo video...</p>
                 </div>
               </div>
             ) : videoError ? (
               <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center text-white">
+                <div className="text-center text-white px-4">
                   <div className="text-red-400 mb-2">⚠️</div>
-                  <p className="text-red-300">{videoError}</p>
-                  <p className="text-sm text-gray-400 mt-2">Please check back later</p>
+                  <p className="text-red-300 text-sm sm:text-base">{videoError}</p>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-2">Please check back later</p>
                 </div>
               </div>
             ) : demoVideo ? (
@@ -649,8 +729,8 @@ export default function RocklandLanding(): JSX.Element {
                 </video>
                 
                 {/* Video Info Overlay */}
-                <div className="absolute bottom-4 left-4 bg-black bg-opacity-70 text-white rounded-lg px-3 py-2 text-sm">
-                  <div className="font-medium">{demoVideo.name}</div>
+                <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 bg-black bg-opacity-70 text-white rounded-lg px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm max-w-[80%]">
+                  <div className="font-medium truncate">{demoVideo.name}</div>
                   {demoVideo.description && (
                     <div className="text-xs text-gray-300 mt-1">{demoVideo.description}</div>
                   )}
@@ -662,8 +742,8 @@ export default function RocklandLanding(): JSX.Element {
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center text-white">
-                  <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p>No demo video available</p>
+                  <Play className="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm sm:text-base">No demo video available</p>
                 </div>
               </div>
             )}
@@ -679,21 +759,21 @@ export default function RocklandLanding(): JSX.Element {
         </div>
       </section>
 
-      {/* Articles Section */}
-      <section className="py-16 bg-green-600">
+      {/* Articles Section - Made responsive */}
+      <section className="py-12 sm:py-16 bg-green-600">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-4xl font-bold text-white text-center mb-12">Our Articles</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-8 sm:mb-12">Our Articles</h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {articlesLoading ? (
-              <div className="col-span-3 flex items-center justify-center py-8">
+              <div className="col-span-full flex items-center justify-center py-8">
                 <div className="text-center text-white">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
                   <p>Loading articles...</p>
                 </div>
               </div>
             ) : articlesError && articlesData.length === 0 ? (
-              <div className="col-span-3 text-center py-8">
+              <div className="col-span-full text-center py-8">
                 <div className="text-yellow-300 mb-2">⚠️</div>
                 <p className="text-white">{articlesError}</p>
                 <p className="text-sm text-gray-300 mt-2">Please check back later</p>
@@ -714,7 +794,7 @@ export default function RocklandLanding(): JSX.Element {
                 return (
                   <Card key={article.article_id} className="overflow-hidden bg-white">
                     <div className="relative">
-                      <div className="w-full h-48 relative overflow-hidden">
+                      <div className="w-full h-40 sm:h-48 relative overflow-hidden">
                         {article.signed_photo_url || article.photo_url ? (
                           <Image
                             src={article.signed_photo_url || article.photo_url}
@@ -733,34 +813,32 @@ export default function RocklandLanding(): JSX.Element {
                           </span>
                         </div>
                       </div>
-                      <Badge className={`absolute top-4 right-4 ${article.is_free ? 'bg-green-600' : 'bg-blue-600'}`}>
+                      <Badge className={`absolute top-3 sm:top-4 right-3 sm:right-4 ${article.is_free ? 'bg-green-600' : 'bg-blue-600'} text-xs`}>
                         {article.is_free ? 'Free' : 'Premium'}
                       </Badge>
                     </div>
-                    <CardContent className="p-4 bg-white">
+                    <CardContent className="p-3 sm:p-4 bg-white">
                       <div className="flex items-center mb-3">
-                        <div className={`w-8 h-8 bg-gradient-to-br ${authorColorClass} rounded-full mr-3 flex items-center justify-center`}>
+                        <div className={`w-7 sm:w-8 h-7 sm:h-8 bg-gradient-to-br ${authorColorClass} rounded-full mr-2 sm:mr-3 flex items-center justify-center`}>
                           <span className="text-white text-xs font-bold">{authorInitials}</span>
                         </div>
-                        <div>
-                          <div className="text-sm font-medium">{article.author_name || 'Unknown Author'}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium truncate">{article.author_name || 'Unknown Author'}</div>
                           <div className="text-xs text-gray-500">
                             {new Date(article.date_created).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
-                      <h3 className="font-bold mb-2">{article.title}</h3>
+                      <h3 className="font-bold mb-2 text-sm sm:text-base">{article.title}</h3>
                       <p className="text-sm text-gray-600 mb-3">
-                        {truncateContent(article.content)}
+                        {truncateContent(article.content, 100)}
                       </p>
-                      <div className="flex items-center mt-4">
+                      <div className="flex items-center justify-between mt-4">
                         <div className="text-sm text-gray-500">{article.total_likes} likes</div>
                         {article.category_title && (
-                          <div className="ml-auto">
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              {article.category_title}
-                            </span>
-                          </div>
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded truncate max-w-[100px]">
+                            {article.category_title}
+                          </span>
                         )}
                       </div>
                     </CardContent>
@@ -773,7 +851,7 @@ export default function RocklandLanding(): JSX.Element {
                 {/* Featured Article */}
                 <Card className="overflow-hidden bg-white">
                   <div className="relative">
-                    <div className="w-full h-48 relative overflow-hidden">
+                    <div className="w-full h-40 sm:h-48 relative overflow-hidden">
                       <Image
                         src="/1.png"
                         alt="Igneous Rock Sample"
@@ -784,11 +862,11 @@ export default function RocklandLanding(): JSX.Element {
                         <span className="text-white font-semibold text-sm">Igneous Rock Sample</span>
                       </div>
                     </div>
-                    <Badge className="absolute top-4 right-4 bg-green-600">Free</Badge>
+                    <Badge className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-green-600 text-xs">Free</Badge>
                   </div>
-                  <CardContent className="p-4 bg-white">
+                  <CardContent className="p-3 sm:p-4 bg-white">
                     <div className="flex items-center mb-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mr-3 flex items-center justify-center">
+                      <div className="w-7 sm:w-8 h-7 sm:h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mr-2 sm:mr-3 flex items-center justify-center">
                         <span className="text-white text-xs font-bold">SK</span>
                       </div>
                       <div>
@@ -796,7 +874,7 @@ export default function RocklandLanding(): JSX.Element {
                         <div className="text-xs text-gray-500">2 days ago</div>
                       </div>
                     </div>
-                    <h3 className="font-bold mb-2">Understanding the Three Types of Geological Rocks</h3>
+                    <h3 className="font-bold mb-2 text-sm sm:text-base">Understanding the Three Types of Geological Rocks</h3>
                     <p className="text-sm text-gray-600 mb-3">Explore igneous, sedimentary, and metamorphic rocks and learn how they form through Earth's geological processes.</p>
                     <div className="flex items-center mt-4">
                       <div className="text-sm text-gray-500">1.5k likes</div>
@@ -807,7 +885,7 @@ export default function RocklandLanding(): JSX.Element {
                 {/* Rock Identification Guide */}
                 <Card className="overflow-hidden bg-white">
                   <div className="relative">
-                    <div className="w-full h-48 relative overflow-hidden">
+                    <div className="w-full h-40 sm:h-48 relative overflow-hidden">
                       <Image
                         src="/2.jpg"
                         alt="Sedimentary Layers"
@@ -818,11 +896,11 @@ export default function RocklandLanding(): JSX.Element {
                         <span className="text-white font-semibold text-sm">Sedimentary Layers</span>
                       </div>
                     </div>
-                    <Badge className="absolute top-4 right-4 bg-blue-600">Premium</Badge>
+                    <Badge className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-blue-600 text-xs">Premium</Badge>
                   </div>
-                  <CardContent className="p-4 bg-white">
+                  <CardContent className="p-3 sm:p-4 bg-white">
                     <div className="flex items-center mb-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full mr-3 flex items-center justify-center">
+                      <div className="w-7 sm:w-8 h-7 sm:h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full mr-2 sm:mr-3 flex items-center justify-center">
                         <span className="text-white text-xs font-bold">MJ</span>
                       </div>
                       <div>
@@ -830,7 +908,7 @@ export default function RocklandLanding(): JSX.Element {
                         <div className="text-xs text-gray-500">1 week ago</div>
                       </div>
                     </div>
-                    <h3 className="font-bold mb-2">Complete Rock Identification Field Guide</h3>
+                    <h3 className="font-bold mb-2 text-sm sm:text-base">Complete Rock Identification Field Guide</h3>
                     <p className="text-sm text-gray-600 mb-3">Master the art of identifying rocks in the field using texture, color, crystal structure, and formation clues.</p>
                     <div className="flex items-center mt-4">
                       <div className="text-sm text-gray-500">1.5k likes</div>
@@ -839,9 +917,9 @@ export default function RocklandLanding(): JSX.Element {
                 </Card>
 
                 {/* Crystal Formation Article */}
-                <Card className="overflow-hidden bg-white">
+                <Card className="overflow-hidden bg-white sm:col-span-2 lg:col-span-1">
                   <div className="relative">
-                    <div className="w-full h-48 relative overflow-hidden">
+                    <div className="w-full h-40 sm:h-48 relative overflow-hidden">
                       <Image
                         src="/3.png"
                         alt="Crystal Structure"
@@ -852,11 +930,11 @@ export default function RocklandLanding(): JSX.Element {
                         <span className="text-white font-semibold text-sm">Crystal Structure</span>
                       </div>
                     </div>
-                    <Badge className="absolute top-4 right-4 bg-blue-600">Premium</Badge>
+                    <Badge className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-blue-600 text-xs">Premium</Badge>
                   </div>
-                  <CardContent className="p-4 bg-white">
+                  <CardContent className="p-3 sm:p-4 bg-white">
                     <div className="flex items-center mb-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mr-3 flex items-center justify-center">
+                      <div className="w-7 sm:w-8 h-7 sm:h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mr-2 sm:mr-3 flex items-center justify-center">
                         <span className="text-white text-xs font-bold">AL</span>
                       </div>
                       <div>
@@ -864,7 +942,7 @@ export default function RocklandLanding(): JSX.Element {
                         <div className="text-xs text-gray-500">3 days ago</div>
                       </div>
                     </div>
-                    <h3 className="font-bold mb-2">The Science of Crystal Formation and Growth</h3>
+                    <h3 className="font-bold mb-2 text-sm sm:text-base">The Science of Crystal Formation and Growth</h3>
                     <p className="text-sm text-gray-600 mb-3">Dive deep into crystallography and understand how temperature, pressure, and chemical composition create stunning crystal formations.</p>
                     <div className="flex items-center mt-4">
                       <div className="text-sm text-gray-500">1.5k likes</div>
@@ -877,24 +955,24 @@ export default function RocklandLanding(): JSX.Element {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-16 bg-white">
+      {/* Testimonials Section - Made responsive */}
+      <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">What Our Users Say</h2>
-            <p className="text-lg text-gray-600">Join thousands of rock enthusiasts who love using Rockland</p>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">What Our Users Say</h2>
+            <p className="text-base sm:text-lg text-gray-600">Join thousands of rock enthusiasts who love using Rockland</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {testimonialsLoading ? (
-              <div className="col-span-3 flex items-center justify-center py-8">
+              <div className="col-span-full flex items-center justify-center py-8">
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
                   <p className="text-gray-600">Loading testimonials...</p>
                 </div>
               </div>
             ) : testimonialsError && testimonialsData.length === 0 ? (
-              <div className="col-span-3 text-center py-8">
+              <div className="col-span-full text-center py-8">
                 <div className="text-yellow-600 mb-2">⚠️</div>
                 <p className="text-gray-600">{testimonialsError}</p>
                 <p className="text-sm text-gray-400 mt-2">Please check back later</p>
@@ -913,13 +991,13 @@ export default function RocklandLanding(): JSX.Element {
                 const colorClass = colors[index % 3]
 
                 return (
-                  <Card key={testimonial.testimonials_id} className="p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <Card key={testimonial.testimonials_id} className="p-4 sm:p-6 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
                     <div className="flex items-center mb-4">
-                      <div className={`w-12 h-12 bg-gradient-to-br ${colorClass} rounded-full mr-4 flex items-center justify-center`}>
-                        <span className="text-white font-bold">{initials}</span>
+                      <div className={`w-10 sm:w-12 h-10 sm:h-12 bg-gradient-to-br ${colorClass} rounded-full mr-3 sm:mr-4 flex items-center justify-center`}>
+                        <span className="text-white font-bold text-sm sm:text-base">{initials}</span>
                       </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{testimonial.name}</h4>
                         <p className="text-xs text-gray-500">
                           {new Date(testimonial.date_created).toLocaleDateString()}
                         </p>
@@ -932,46 +1010,46 @@ export default function RocklandLanding(): JSX.Element {
                         </svg>
                       ))}
                     </div>
-                    <p className="text-gray-600 italic">"{testimonial.testimony}"</p>
+                    <p className="text-gray-600 italic text-sm sm:text-base">"{testimonial.testimony}"</p>
                   </Card>
                 )
               })
             ) : (
               // Fallback content when no testimonials are available
-              <div className="col-span-3 text-center py-8">
+              <div className="col-span-full text-center py-8">
                 <p className="text-gray-600">No testimonials available at the moment.</p>
               </div>
             )}
           </div>
 
-          {/* Stats Section */}
-          <div className="mt-16 grid md:grid-cols-4 gap-8 text-center">
-            <div className="p-6">
-              <div className="text-3xl font-bold text-green-600 mb-2">25K+</div>
-              <p className="text-gray-600">Active Users</p>
+          {/* Stats Section - Made responsive */}
+          <div className="mt-12 sm:mt-16 grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 text-center">
+            <div className="p-4 sm:p-6">
+              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">25K+</div>
+              <p className="text-gray-600 text-sm sm:text-base">Active Users</p>
             </div>
-            <div className="p-6">
-              <div className="text-3xl font-bold text-green-600 mb-2">500K+</div>
-              <p className="text-gray-600">Rocks Identified</p>
+            <div className="p-4 sm:p-6">
+              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">500K+</div>
+              <p className="text-gray-600 text-sm sm:text-base">Rocks Identified</p>
             </div>
-            <div className="p-6">
-              <div className="text-3xl font-bold text-green-600 mb-2">4.8</div>
-              <p className="text-gray-600">App Store Rating</p>
+            <div className="p-4 sm:p-6">
+              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">4.8</div>
+              <p className="text-gray-600 text-sm sm:text-base">App Store Rating</p>
             </div>
-            <div className="p-6">
-              <div className="text-3xl font-bold text-green-600 mb-2">150+</div>
-              <p className="text-gray-600">Countries</p>
+            <div className="p-4 sm:p-6">
+              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">150+</div>
+              <p className="text-gray-600 text-sm sm:text-base">Countries</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Section - Updated with Dynamic Data */}
-      <section id="pricing" className="py-16 bg-white">
+      {/* Pricing Section - Made responsive */}
+      <section id="pricing" className="py-12 sm:py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-4">Subscription Plan</h2>
-          <p className="text-gray-600 mb-12">
-            With lots of unique blocks, you can easily build a<br />
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Subscription Plan</h2>
+          <p className="text-gray-600 mb-8 sm:mb-12 text-sm sm:text-base">
+            With lots of unique blocks, you can easily build a<br className="hidden sm:block" />
             page easily without any coding.
           </p>
 
@@ -989,9 +1067,9 @@ export default function RocklandLanding(): JSX.Element {
               <p className="text-sm text-gray-400 mt-2">Showing default plans</p>
               
               {/* Fallback to static plans */}
-              <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto mt-8">
+              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-3xl mx-auto mt-8">
                 {/* Static Basic Plan */}
-                <Card className="p-8 relative">
+                <Card className="p-6 sm:p-8 relative">
                   <div>
                     <div className="flex items-center justify-center gap-2 mb-4">
                       <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -999,13 +1077,13 @@ export default function RocklandLanding(): JSX.Element {
                       </svg>
                       <span className="text-sm font-medium text-gray-700">BASIC</span>
                     </div>
-                    <div className="text-5xl font-bold mb-1">
+                    <div className="text-4xl sm:text-5xl font-bold mb-1">
                       $0<span className="text-base font-normal text-gray-500">/month</span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-8">Perfect for casual rock enthusiasts</p>
+                    <p className="text-sm text-gray-600 mb-6 sm:mb-8">Perfect for casual rock enthusiasts</p>
 
                     <Link href="/registration">
-                      <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white mb-8">
+                      <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white mb-6 sm:mb-8">
                         Get Started Free
                       </Button>
                     </Link>
@@ -1021,10 +1099,6 @@ export default function RocklandLanding(): JSX.Element {
                       </div>
                       <div className="flex items-start">
                         <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">Basic rock database (1,000+ rocks)</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
                         <span className="text-sm text-gray-700">Community forum access</span>
                       </div>
                       <div className="flex items-start">
@@ -1036,7 +1110,7 @@ export default function RocklandLanding(): JSX.Element {
                 </Card>
 
                 {/* Static Premium Plan */}
-                <Card className="p-8 relative border-green-600 border-2">
+                <Card className="p-6 sm:p-8 relative border-green-600 border-2">
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <div className="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -1053,13 +1127,13 @@ export default function RocklandLanding(): JSX.Element {
                       </svg>
                       <span className="text-sm font-medium text-green-600">PREMIUM</span>
                     </div>
-                    <div className="text-5xl font-bold mb-1">
+                    <div className="text-4xl sm:text-5xl font-bold mb-1">
                       $5<span className="text-base font-normal text-gray-500">/month</span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-8">For serious rock collectors and students</p>
+                    <p className="text-sm text-gray-600 mb-6 sm:mb-8">For serious rock collectors and students</p>
 
                     <Link href="/registration">
-                      <Button className="w-full bg-green-600 hover:bg-green-700 text-white mb-8">
+                      <Button className="w-full bg-green-600 hover:bg-green-700 text-white mb-6 sm:mb-8">
                         Start Premium Plan
                       </Button>
                     </Link>
@@ -1091,8 +1165,8 @@ export default function RocklandLanding(): JSX.Element {
               </div>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-              <Card className="p-8 relative">
+            <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-3xl mx-auto">
+              <Card className="p-6 sm:p-8 relative">
                 <div>
                   <div className="flex items-center justify-center gap-2 mb-4">
                     <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1102,16 +1176,17 @@ export default function RocklandLanding(): JSX.Element {
                       {subscriptionPlans.free?.name.toUpperCase() || 'BASIC'}
                     </span>
                   </div>
-                  <div className="text-5xl font-bold mb-1">
-                    {subscriptionPlans.free?.currency || '$'}{subscriptionPlans.free?.price || 0}
+                  <div className="text-4xl sm:text-5xl font-bold mb-1">
+                    {subscriptionPlans.free?.currency || '$'
+                }{subscriptionPlans.free?.price || 0}
                     <span className="text-base font-normal text-gray-500">/month</span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-8">
+                  <p className="text-sm text-gray-600 mb-6 sm:mb-8">
                     {subscriptionPlans.free?.description || 'Perfect for casual rock enthusiasts'}
                   </p>
 
                   <Link href="/registration">
-                    <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white mb-8">
+                    <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white mb-6 sm:mb-8">
                       Get Started Free
                     </Button>
                   </Link>
@@ -1149,7 +1224,7 @@ export default function RocklandLanding(): JSX.Element {
                 </div>
               </Card>
               {/* Dynamic Premium Plan */}
-              <Card className="p-8 relative border-green-600 border-2">
+              <Card className="p-6 sm:p-8 relative border-green-600 border-2">
                 {/* Most Popular Badge */}
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <div className="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
@@ -1169,16 +1244,17 @@ export default function RocklandLanding(): JSX.Element {
                       {subscriptionPlans.premium?.name.toUpperCase() || 'PREMIUM'}
                     </span>
                   </div>
-                  <div className="text-5xl font-bold mb-1">
-                    {subscriptionPlans.premium?.currency || '$'}{subscriptionPlans.premium?.price || 5}
+                  <div className="text-4xl sm:text-5xl font-bold mb-1">
+                    {subscriptionPlans.premium?.currency || '$'
+                }{subscriptionPlans.premium?.price || 5}
                     <span className="text-base font-normal text-gray-500">/month</span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-8">
+                  <p className="text-sm text-gray-600 mb-6 sm:mb-8">
                     {subscriptionPlans.premium?.description || 'For serious rock collectors and students'}
                   </p>
 
                   <Link href="/registration">
-                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white mb-8">
+                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white mb-6 sm:mb-8">
                       Start Premium Plan
                     </Button>
                   </Link>
@@ -1224,14 +1300,16 @@ export default function RocklandLanding(): JSX.Element {
         </div>
       </section>
 
-      {/* Download Section */}
-      <section className="py-16 bg-white">
+      {/* Download Section - Made responsive */}
+      <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-12">Download Rockland and Start Exploring Now!</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-8 sm:mb-12">
+            Download Rockland and Start Exploring Now!
+          </h2>
 
           <div className="flex justify-center">
             <div className="text-center">
-              <div className="flex justify-center space-x-4">
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <AppStoreButton 
                   platform="ios" 
                   link={appLinks.ios} 
@@ -1250,16 +1328,14 @@ export default function RocklandLanding(): JSX.Element {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-16 bg-white">
+      {/* FAQ Section - Made responsive */}
+      <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12">
-            <div>
-              <h2 className="text-4xl font-bold mb-8">
-                Frequently
-                <br />
-                asked
-                <br />
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="text-center lg:text-left">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-6 lg:mb-8">
+                Frequently<br />
+                asked<br />
                 questions
               </h2>
             </div>
@@ -1285,7 +1361,7 @@ export default function RocklandLanding(): JSX.Element {
                       onClick={() => toggleFAQ(index)}
                       className="w-full flex items-center justify-between py-4 text-left hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:bg-gray-50 rounded-lg px-2"
                     >
-                      <span className="text-gray-700 font-medium pr-4">{faq.question}</span>
+                      <span className="text-gray-700 font-medium pr-4 text-sm sm:text-base">{faq.question}</span>
                       {openFAQIndex === index ? (
                         <Minus className="w-5 h-5 text-green-600 flex-shrink-0" />
                       ) : (
@@ -1295,7 +1371,7 @@ export default function RocklandLanding(): JSX.Element {
                     
                     {openFAQIndex === index && (
                       <div className="pb-4 pr-8 animate-in slide-in-from-top-2 duration-200">
-                        <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
+                        <p className="text-gray-600 leading-relaxed text-sm sm:text-base">{faq.answer}</p>
                       </div>
                     )}
                   </div>
@@ -1304,7 +1380,7 @@ export default function RocklandLanding(): JSX.Element {
               
               {/* Link to full FAQ page */}
               {faqData.length > 0 && (
-                <div className="mt-6 text-center">
+                <div className="mt-6 text-center lg:text-left">
                   <Link href="/faq" className="text-green-600 hover:text-green-700 font-medium text-sm">
                     View all FAQs →
                   </Link>
@@ -1315,11 +1391,11 @@ export default function RocklandLanding(): JSX.Element {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-green-600 text-white py-16">
+      {/* Footer - Made responsive */}
+      <footer className="bg-green-600 text-white py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="text-sm">
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+            <div className="text-sm text-center sm:text-left">
               <div className="mb-4">2025 Rockland FYP-S2-G19</div>
               <div className="mt-4">
                 <a href="/login" className="text-green-200 hover:text-white text-xs">
