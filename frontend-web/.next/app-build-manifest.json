@@ -10,7 +10,6 @@
       "static/chunks/main-app.js",
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
-<<<<<<< HEAD
     ],
     "/login/page": [
       "static/chunks/webpack.js",
@@ -22,36 +21,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/page.js"
     ],
-    "/usertype/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/usertype/page.js"
-    ],
     "/applications/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/applications/page.js"
     ],
-    "/registration/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/registration/page.js"
-    ],
     "/useraccount/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-<<<<<<< HEAD
       "static/chunks/app/useraccount/page.js"
-=======
-      "static/chunks/app/success/page.js"
     ],
-    "/login/page": [
+    "/forgot-password/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
->>>>>>> origin/features/recommendations
-=======
->>>>>>> origin/KennethJoseph1
+      "static/chunks/app/forgot-password/page.js"
     ]
   }
 }
