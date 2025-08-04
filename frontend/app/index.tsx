@@ -1,6 +1,6 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
-import { View, Text, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, Image, SafeAreaView, Linking } from 'react-native';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -10,7 +10,7 @@ export default function WelcomeScreen() {
   };
 
   const handleRegister = () => {
-    console.log('Navigate to register');
+    Linking.openURL('https://rockland-6cf4cyfj4-kenneths-projects-07a9aabf.vercel.app/');
   };
 
   return (

@@ -276,10 +276,16 @@ export default function ViewRockScreen() {
           {comments.map((comment) => (
             
             <View key={`comment-${comment.comment_rock_id}`} className="mb-6 bg-gray-50 p-4 rounded-lg">
-              <Text className="font-semibold text-gray-900">
-                {comment.username}{'   '}
-                <Text className="text-sm text-gray-400">{timeAgo(comment.created_at)}</Text>
-              </Text>
+              <View className="flex-row items-center mb-1">
+                <Image
+                  source={{ uri: comment.profile_picture }}
+                  className="w-8 h-8 rounded-full mr-2"
+                />
+                <Text className="font-semibold text-gray-900">
+                  {comment.username}{' '}
+                  <Text className="text-sm text-gray-400">{timeAgo(comment.created_at)}</Text>
+                </Text>
+              </View>
               <Text className="text-base text-gray-800 mt-1">{comment.content}</Text>
 
               <View className="flex-row items-center mt-2 space-x-4">
@@ -308,10 +314,16 @@ export default function ViewRockScreen() {
                   key={`reply-${reply.comment_rock_id}`}
                   className="mt-4 ml-4 pl-3 border-l-2 border-gray-200"
                 >
-                  <Text className="font-semibold text-gray-900">
-                    {reply.username}{' '}
-                    <Text className="text-sm text-gray-400">{timeAgo(reply.created_at)}</Text>
-                  </Text>
+                  <View className="flex-row items-center mb-1">
+                    <Image
+                      source={{ uri: reply.profile_picture }}
+                      className="w-7 h-7 rounded-full mr-2"
+                    />
+                    <Text className="font-semibold text-gray-900">
+                      {reply.username}{' '}
+                      <Text className="text-sm text-gray-400">{timeAgo(reply.created_at)}</Text>
+                    </Text>
+                  </View>
                   <Text className="text-base text-gray-800 mt-1">{reply.content}</Text>
 
                   <View className="flex-row items-center mt-2 space-x-4">

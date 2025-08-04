@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   SafeAreaView,
+  Linking,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import VisibilityOn from "../assets/images/visibility.svg";
@@ -89,7 +90,11 @@ export default function LoginScreen() {
     }
   };
 
-  const handleRegister = () => console.log("Navigate to register");
+  const handleRegister = () => {
+    Linking.openURL(
+      "https://rockland-6cf4cyfj4-kenneths-projects-07a9aabf.vercel.app/"
+    );
+  };
   const handleForgotPassword = () => console.log("Navigate to forgot password");
 
   return (

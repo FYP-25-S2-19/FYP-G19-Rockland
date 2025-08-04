@@ -14,17 +14,17 @@ def get_rock_detail_with_comments(rock_id, **kwargs):
     if not rock:
         return jsonify({"success": False, "message": "Rock not found"}), 404
 
-    comments = CommentRock.get_parent_comments_by_rock(rock_id)
+    # ✅ Use sorted + like-status method
+    success, status, msg, comments_data = CommentRock.get_comments_with_like_status(
+        rock_id, current_user.user_id
+    )
 
     return jsonify({
-        "success": True,
+        "success": success,
         "rock": rock.to_dict(),
-        "comments": [
-            c.to_dict(include_replies=True, user_id=current_user.user_id)
-            for c in comments
-        ],
-        "total_comments": sum(1 + len(c.replies) for c in comments)
-    }), 200
+        "comments": comments_data,
+        "total_comments": sum(1 + len(c["replies"]) for c in comments_data)
+    }), status
 @staticmethod
 @view_rock_blueprint.route('/api/rocks/admin/all', methods=['GET'])
 @permission_required('has_admin_permission')
