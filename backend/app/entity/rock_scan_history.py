@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from typing import Optional, Tuple, List
 from app.models import db
+from app.entity.zone_profile import ZoneProfile
 
 class RockScanHistory(db.Model):
     __tablename__ = "rock_scan_history"
@@ -42,6 +43,22 @@ class RockScanHistory(db.Model):
             db.func.date(cls.scan_datetime) == today
         ).count()
 
+    @staticmethod
+    def get_zone_name_by_coordinates(lat: float, lng: float) -> Optional[str]:
+        """
+        Match the coordinates to a zone based on ZoneProfile bounds.
+        """
+        zone = ZoneProfile.query.filter(
+            ZoneProfile.lat_min <= lat,
+            ZoneProfile.lat_max >= lat,
+            ZoneProfile.lng_min <= lng,
+            ZoneProfile.lng_max >= lng
+        ).first()
+
+        # Choose which field to return: geological_name OR zone_name
+        return zone.geological_name if zone else None
+        # return zone.zone_name if zone else None  # Alternative if you prefer zone_name
+
     @classmethod
     def create_scan_record(cls, user_id: int, rock_name: str, rock_type: str,
                            rock_id: Optional[int] = None,
@@ -63,6 +80,14 @@ class RockScanHistory(db.Model):
                 if scan_count >= 5:
                     return False, 403, "Daily scan limit reached for Free users", None
 
+            # Check if coordinates match a known geological zone
+            zone_name = None
+            if latitude and longitude:
+                zone_name = cls.get_zone_name_by_coordinates(latitude, longitude)
+
+            # If no zone match, fallback to provided location_name (reverse geocode result)
+            final_location_name = zone_name or location_name
+
             scan = cls(
                 user_id=user_id,
                 rock_id=rock_id,
@@ -72,7 +97,7 @@ class RockScanHistory(db.Model):
                 image_url=image_url,
                 latitude=latitude,
                 longitude=longitude,
-                location_name=location_name
+                location_name=final_location_name
             )
             db.session.add(scan)
             db.session.commit()
