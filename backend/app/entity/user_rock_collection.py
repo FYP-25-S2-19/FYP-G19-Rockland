@@ -19,6 +19,8 @@ class UserRockCollection(db.Model):
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
     location_name = db.Column(db.String(255), nullable=True)
+    trade_id = db.Column(db.Integer, db.ForeignKey("trade_offer.trade_id"), nullable=True)
+
     photo_url = db.Column(db.Text, nullable=True)
 
     rock = db.relationship("Rock", backref="collections", lazy=True)
@@ -51,6 +53,14 @@ class UserRockCollection(db.Model):
     @classmethod
     def add_to_collection(cls, **kwargs) -> Tuple[bool, int, str, Optional["UserRockCollection"]]:
         try:
+            exists = cls.query.filter_by(
+                user_id=kwargs["user_id"],
+                rock_id=kwargs["rock_id"],
+                source=kwargs["source"]
+            ).first()
+            if exists:
+                return True, 200, "Rock already in collection", exists
+        
             new_entry = cls(**kwargs)
             db.session.add(new_entry)
             db.session.commit()

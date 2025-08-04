@@ -1,4 +1,6 @@
 from datetime import datetime
+from app.utils.gcs import generate_signed_url
+from app.entity.user_rock_collection import UserRockCollection
 from sqlalchemy.orm import joinedload
 from app.models import db
 from app.utils.gcs import generate_signed_url
@@ -19,12 +21,17 @@ class TradeOffer(db.Model):
     status = db.Column(db.String(20), nullable=False, default="Pending")  # "Pending", "Accepted", "Rejected"
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    collection_id_gained_by_offerer = db.Column(db.Integer, db.ForeignKey("user_rock_collection.collection_id"), nullable=True)
+    collection_id_gained_by_receiver = db.Column(db.Integer, db.ForeignKey("user_rock_collection.collection_id"), nullable=True)
+
     # Relationships
     offerer = db.relationship("User", foreign_keys=[user_id_offerer])
     receiver = db.relationship("User", foreign_keys=[user_id_receiver])
     offered_collection = db.relationship("UserRockCollection", foreign_keys=[collection_id_offered])
     received_collection = db.relationship("UserRockCollection", foreign_keys=[collection_id_received])
     requested_rock = db.relationship("Rock", foreign_keys=[rock_id_requested])
+    gained_by_offerer = db.relationship("UserRockCollection", foreign_keys=[collection_id_gained_by_offerer])
+    gained_by_receiver = db.relationship("UserRockCollection", foreign_keys=[collection_id_gained_by_receiver])
 
     # --------------------------
     # Serialization
@@ -41,45 +48,112 @@ class TradeOffer(db.Model):
             "status": self.status,
             "created_at": self.created_at.isoformat(),
         }
+    
+    def to_detailed_dict(self, current_user_id=None):
+        print(f"🧪 Serializing trade ID {self.trade_id}")
+        print(f"  ➤ Offerer: {self.user_id_offerer}, Receiver: {self.user_id_receiver}")
+        print(f"  ➤ Offered Collection ID: {self.collection_id_offered}")
+        print(f"  ➤ Requested Rock ID: {self.rock_id_requested}")
+        print(f"  ➤ Status: {self.status}")
+        print(f"  ➤ Offered Collection: {self.offered_collection}")
+        print(f"  ➤ Requested Rock: {self.requested_rock if hasattr(self, 'requested_rock') else 'N/A'}")
+        print(f"  ➤ Offerer Relationship: {self.offerer}")
+        print(f"  ➤ Receiver Relationship: {self.receiver}")
 
-    def to_detailed_dict(self):
-        """Detailed response with full rock details and signed URLs"""
-        return {
+        is_my_offer = current_user_id == self.user_id_offerer
+        result = {
             "trade_id": self.trade_id,
             "status": self.status,
             "created_at": self.created_at.isoformat(),
-
             "offerer": {
                 "id": self.offerer.user_id,
-                "username": self.offerer.username
+                "name": f"{self.offerer.first_name} {self.offerer.last_name}"
             } if self.offerer else None,
-
             "receiver": {
                 "id": self.receiver.user_id,
-                "username": self.receiver.username
+                "name": f"{self.receiver.first_name} {self.receiver.last_name}"
             } if self.receiver else None,
-
-            # Rock the offerer WANTS (you give this)
-            "youGive": {
-                "rockName": self.requested_rock.rock_name if self.requested_rock else None,
-                "rockImage": generate_signed_url(self.requested_rock.photo_url)
-                    if self.requested_rock and self.requested_rock.photo_url else None,
-                "type": self.requested_rock.rock_type if self.requested_rock else None,
-                "rarity": self.requested_rock.rarity if self.requested_rock else None,
-            } if self.requested_rock else None,
-
-            # Rock the offerer is OFFERING (you receive this)
-            "youReceive": {
-                "rockName": self.offered_collection.rock.rock_name
-                    if self.offered_collection and self.offered_collection.rock else None,
-                "rockImage": self.offered_collection.signed_url
-                    if self.offered_collection else None,
-                "type": self.offered_collection.rock.rock_type
-                    if self.offered_collection and self.offered_collection.rock else None,
-                "rarity": self.offered_collection.rock.rarity
-                    if self.offered_collection and self.offered_collection.rock else None,
-            } if self.offered_collection and self.offered_collection.rock else None
+            "youGive": None,
+            "youReceive": None,
+            "isMyOffer": is_my_offer
         }
+
+        # === Pending Trade ===
+        if self.status == "Pending":
+            if not self.offered_collection or not self.requested_rock or not self.offerer:
+                print(f"⚠️ Skipped null trade from to_detailed_dict (ID: {self.trade_id})")
+                return None
+
+            if is_my_offer:
+                # You Give: Offered collection's rock
+                rock = getattr(self.offered_collection, "rock", None)
+                if not rock:
+                    print(f"⚠️ offered_collection.rock is None for trade ID {self.trade_id}")
+                    return None
+                result["youGive"] = {
+                    "rock_id": rock.rock_id,
+                    "rockName": rock.rock_name,
+                    "rockImage": generate_signed_url(rock.photo_url) if rock.photo_url else None
+                }
+
+                # You Receive: Requested rock
+                result["youReceive"] = {
+                    "rock_id": self.requested_rock.rock_id,
+                    "rockName": self.requested_rock.rock_name,
+                    "rockImage": generate_signed_url(self.requested_rock.photo_url) if self.requested_rock.photo_url else None
+                }
+
+            else:
+                # Receiver's view before accepting
+                result["youGive"] = {
+                    "rock_id": self.requested_rock.rock_id,
+                    "rockName": self.requested_rock.rock_name,
+                    "rockImage": generate_signed_url(self.requested_rock.photo_url) if self.requested_rock.photo_url else None
+                }
+
+                rock = getattr(self.offered_collection, "rock", None)
+                if not rock:
+                    print(f"⚠️ offered_collection.rock is None for trade ID {self.trade_id}")
+                    return None
+                result["youReceive"] = {
+                    "rock_id": rock.rock_id,
+                    "rockName": rock.rock_name,
+                    "rockImage": generate_signed_url(rock.photo_url) if rock.photo_url else None
+                }
+
+        # === Accepted Trade ===
+        elif self.status == "Accepted":
+            offerer_gain = self.gained_by_offerer
+            receiver_gain = self.gained_by_receiver
+            if is_my_offer:
+                if offerer_gain and offerer_gain.rock:
+                    result["youReceive"] = {
+                        "rock_id": offerer_gain.rock.rock_id,
+                        "rockName": offerer_gain.rock.rock_name,
+                        "rockImage": generate_signed_url(offerer_gain.rock.photo_url) if offerer_gain.rock.photo_url else None
+                    }
+                if receiver_gain and receiver_gain.rock:
+                    result["youGive"] = {
+                        "rock_id": receiver_gain.rock.rock_id,
+                        "rockName": receiver_gain.rock.rock_name,
+                        "rockImage": generate_signed_url(receiver_gain.rock.photo_url) if receiver_gain.rock.photo_url else None
+                    }
+            else:
+                if receiver_gain and receiver_gain.rock:
+                    result["youReceive"] = {
+                        "rock_id": receiver_gain.rock.rock_id,
+                        "rockName": receiver_gain.rock.rock_name,
+                        "rockImage": generate_signed_url(receiver_gain.rock.photo_url) if receiver_gain.rock.photo_url else None
+                    }
+                if offerer_gain and offerer_gain.rock:
+                    result["youGive"] = {
+                        "rock_id": offerer_gain.rock.rock_id,
+                        "rockName": offerer_gain.rock.rock_name,
+                        "rockImage": generate_signed_url(offerer_gain.rock.photo_url) if offerer_gain.rock.photo_url else None
+                    }
+
+        return result
+
 
     # --------------------------
     # CRUD Methods
