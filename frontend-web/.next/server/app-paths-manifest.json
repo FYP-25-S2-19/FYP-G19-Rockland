@@ -1,9 +1,8 @@
 {
-  "/page": "app/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/login/page": "app/login/page.js",
-  "/registration/page": "app/registration/page.js",
   "/usertype/page": "app/usertype/page.js",
-  "/applications/page": "app/applications/page.js",
-  "/useraccount/page": "app/useraccount/page.js"
+  "/rockmanagement/page": "app/rockmanagement/page.js",
+  "/forummanagement/page": "app/forummanagement/page.js",
+  "/userprofiling/page": "app/userprofiling/page.js",
+  "/landingpagemanagement/page": "app/landingpagemanagement/page.js",
+  "/zoneprofile/page": "app/zoneprofile/page.js"
 }
