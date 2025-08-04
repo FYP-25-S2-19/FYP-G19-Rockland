@@ -9,26 +9,27 @@ import {
   Modal,
   StyleSheet,
   Pressable,
-  ScrollView
+  ScrollView,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BackIcon from "../assets/images/back.svg";
 import { Picker } from "@react-native-picker/picker";
-
-
+import { Image } from "react-native";
+import { BackHandler } from "react-native";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 type Rock = {
   id?: number;
   rock_id?: number;
-  name: string;       
+  name: string;
   type: string;
   rarity?: string;
   category?: string;
   location?: string;
+  photo_url?: string;
 };
 
 export default function TradeCreate() {
@@ -37,6 +38,7 @@ export default function TradeCreate() {
   const [step, setStep] = useState<"give" | "receive">("give");
   const [userRocks, setUserRocks] = useState<Rock[]>([]);
   const [allRocks, setAllRocks] = useState<Rock[]>([]);
+  const [filteredRocks, setFilteredRocks] = useState<Rock[]>([]);
   const [selectedGive, setSelectedGive] = useState<Rock | null>(null);
   const [selectedReceive, setSelectedReceive] = useState<Rock | null>(null);
   const [search, setSearch] = useState("");
@@ -47,43 +49,75 @@ export default function TradeCreate() {
   const [filterVisible, setFilterVisible] = useState(false);
 
   useEffect(() => {
-  const fetchUserRocks = async () => {
-    const token = await AsyncStorage.getItem("accessToken");
-    const res = await axios.get(`${API_URL}/api/collection/my`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const fetchUserRocks = async () => {
+      const token = await AsyncStorage.getItem("accessToken");
+      const res = await axios.get(`${API_URL}/api/collection/my`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    // Normalize to Rock[]
-    const normalized = res.data.collection.map((rock: any) => ({
-      id: rock.collection_id,
-      rock_id: rock.rock_id,
-      name: rock.rock_name,
-      type: rock.rock_type,
-      rarity: rock.rock_rarity,
-      category: rock.rock_category,
-      location: rock.location_name,
-    }));
+      const normalized = res.data.collection.map((rock: any) => ({
+        id: rock.collection_id,
+        rock_id: rock.rock_id,
+        name: rock.rock_name,
+        type: rock.rock_type,
+        rarity: rock.rock_rarity,
+        category: rock.rock_category,
+        location: rock.location_name,
+        photo_url: rock.signed_url,
+      }));
 
-    setUserRocks(normalized);
+      setUserRocks(normalized);
+      setFilteredRocks(normalized);
+    };
+
+    const fetchAllRocks = async () => {
+      const res = await axios.get(`${API_URL}/api/rocks`);
+      const normalized = res.data.data.map((rock: any) => ({
+        rock_id: rock.rock_id,
+        name: rock.rock_name,
+        type: rock.rock_type,
+        rarity: rock.rarity,
+        category: rock.category,
+        location: rock.location_name,
+        photo_url: rock.signed_url,
+      }));
+
+      setAllRocks(normalized);
+    };
+
+    fetchUserRocks();
+    fetchAllRocks();
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [userRocks, allRocks, search, rarity, sortBy, categories, locations, step]);
+
+  const applyFilters = () => {
+    let list = step === "give" ? [...userRocks] : [...allRocks];
+
+    list = list.filter((rock) =>
+      (rock.name || "").toLowerCase().includes(search.toLowerCase())
+    );
+
+    if (rarity) {
+      list = list.filter((rock) => (rock.rarity || "").toLowerCase() === rarity.toLowerCase());
+    }
+
+    if (categories.length > 0) {
+      list = list.filter((rock) => categories.includes(rock.category || ""));
+    }
+
+    if (locations.length > 0) {
+      list = list.filter((rock) => locations.includes(rock.location || ""));
+    }
+
+    if (sortBy === "alphabet") {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    setFilteredRocks(list);
   };
-
-  const fetchAllRocks = async () => {
-    const res = await axios.get(`${API_URL}/api/rocks`);
-    const normalized = res.data.data.map((rock: any) => ({
-      rock_id: rock.rock_id,
-      name: rock.rock_name,
-      type: rock.rock_type,
-      rarity: rock.rarity,
-      category: rock.category,
-      location: rock.location_name,
-    }));
-
-    setAllRocks(normalized);
-  };
-
-  fetchUserRocks();
-  fetchAllRocks();
-}, []);
 
   const handleSubmitTrade = async () => {
     const token = await AsyncStorage.getItem("accessToken");
@@ -111,7 +145,7 @@ export default function TradeCreate() {
         },
       ]);
     } catch (err: any) {
-      console.error("❌ Error response:", err.response?.data || err.message);
+      console.error("\u274C Error response:", err.response?.data || err.message);
       Alert.alert("Error", err.response?.data?.message || "Failed to create trade offer.");
     }
   };
@@ -124,84 +158,61 @@ export default function TradeCreate() {
     }
   };
 
-  const filteredList = (step === "give" ? userRocks : allRocks || [])
-  .filter((rock) =>
-    (rock.name || "").toLowerCase().includes(search.toLowerCase())
-  )
-  .filter((rock) => !rarity || rock.rarity === rarity)
-  .filter(
-    (rock) =>
-      categories.length === 0 ||
-      categories.includes(rock.category || "")
-  )
-  .filter(
-    (rock) =>
-      locations.length === 0 ||
-      locations.includes(rock.location || "")
-  )
-  .sort((a, b) => {
-    if (sortBy === "alphabet") {
-      return a.name.localeCompare(b.name);
-    }
-    return 0;
-  });
-
   return (
-  <View style={styles.container}> 
-
-    <View style={styles.header}>
-      <TouchableOpacity onPress={() => {
-        if (step === "give") {
-          router.back();
-        } else {
-          setStep("give");
-        }
-      }} style={styles.backButton}>
-        <BackIcon width={30} height={24} />
-      </TouchableOpacity>
-
-      <Text style={styles.title}>
-        {step === "give" ? "Select A Rock to Give" : "Select A Rock to Receive"}
-      </Text>
-    </View>
-
-    <TextInput
-      style={styles.searchBox}
-      placeholder="Search..."
-      value={search}
-      onChangeText={setSearch}
-    />
-
-    <TouchableOpacity
-      onPress={() => setFilterVisible(true)}
-      style={styles.filterButton}
-    >
-      <Text style={styles.filterText}>Filter</Text>
-    </TouchableOpacity>
-
-    <FlatList
-      data={filteredList}
-      keyExtractor={(item) => (item.id ?? item.rock_id ?? "").toString()}
-      renderItem={({ item }) => (
+    <View style={styles.container}>
+      <View style={styles.header}>
         <TouchableOpacity
-          style={styles.rockItem}
           onPress={() => {
             if (step === "give") {
-              setSelectedGive(item);
+              router.replace("/tradelist?tab=myoffers&from=create");
             } else {
-              setSelectedReceive(item);
+              setStep("give");
             }
           }}
+          style={styles.backButton}
         >
-          <Text>{item.name}</Text>
-          <Text>Category: {item.type}</Text>
-          <Text>Rarity: {item.rarity}</Text>
+          <BackIcon width={30} height={24} />
         </TouchableOpacity>
-      )}
-    />
 
+        <Text style={styles.title}>
+          {step === "give" ? "Select A Rock to Give" : "Select A Rock to Receive"}
+        </Text>
+      </View>
 
+      <TextInput
+        style={styles.searchBox}
+        placeholder="Search..."
+        value={search}
+        onChangeText={setSearch}
+      />
 
+      <TouchableOpacity onPress={() => setFilterVisible(true)} style={styles.filterButton}>
+        <Text style={styles.filterText}>Filter</Text>
+      </TouchableOpacity>
+
+      <FlatList
+        data={filteredRocks}
+        keyExtractor={(item) => (item.id ?? item.rock_id ?? "").toString()}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.rockItem}
+            onPress={() => {
+              if (step === "give") {
+                setSelectedGive(item);
+              } else {
+                setSelectedReceive(item);
+              }
+            }}
+          >
+            <Image source={{ uri: item.photo_url }} style={styles.rockImage} />
+            <View style={styles.rockInfo}>
+              <Text style={styles.rockName}>{item.name}</Text>
+              <Text style={styles.rockDetails}>Category: {item.type}</Text>
+              <Text style={styles.rockDetails}>Rarity: {item.rarity}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
 
       {step === "give" && selectedGive && (
         <TouchableOpacity onPress={() => setStep("receive")} style={styles.submitButton}>
@@ -215,7 +226,6 @@ export default function TradeCreate() {
         </TouchableOpacity>
       )}
 
-      {/* Filter Modal */}
       <Modal visible={filterVisible} animationType="slide">
         <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
           <View style={styles.filterHeader}>
@@ -246,7 +256,7 @@ export default function TradeCreate() {
           </View>
 
           <Text style={styles.sectionLabel}>Sort By</Text>
-          <View style={styles.pickerContainer}>
+          <View style={styles.pickerWrapper}>
             <Picker
               selectedValue={sortBy}
               onValueChange={(itemValue) => setSortBy(itemValue)}
@@ -255,10 +265,13 @@ export default function TradeCreate() {
               <Picker.Item label="Sort by Most Recent" value="recent" />
               <Picker.Item label="Sort by Alphabet (A-Z)" value="alphabet" />
             </Picker>
-          </View>
+        </View>
 
           <TouchableOpacity
-            onPress={() => setFilterVisible(false)}
+            onPress={() => {
+              applyFilters();
+              setFilterVisible(false);
+            }}
             style={styles.applyButton}
           >
             <Text style={styles.applyButtonText}>Apply Filter</Text>
@@ -291,12 +304,6 @@ const styles = StyleSheet.create({
   },
   filterText: {
     color: "blue",
-  },
-  rockItem: {
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    marginBottom: 8,
   },
   submitButton: {
     backgroundColor: "#459B6C",
@@ -393,10 +400,12 @@ const styles = StyleSheet.create({
   height: 50, // ensure Picker has space
   },
   picker: {
+  flex: 1,           // let it fill the parent container
   height: 50,
   width: "100%",
-  color: "black", // ensures text is visible
-  },
+  color: "black",    // ensures text is visible
+  backgroundColor: "white", // for visibility on white modal
+},
   applyButton: {
     backgroundColor: "#459B6C",
     padding: 12,
@@ -407,4 +416,46 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
+  rockItem: {
+  flexDirection: "row",
+  alignItems: "center",
+  padding: 10,
+  borderBottomWidth: 1,
+  borderBottomColor: "#ccc",
+  gap: 12,
+},
+
+rockImage: {
+  width: 60,
+  height: 60,
+  borderRadius: 8,
+  backgroundColor: "#eee",
+},
+
+rockInfo: {
+  flex: 1,
+  flexDirection: "column",
+  justifyContent: "center",
+},
+
+rockName: {
+  fontSize: 16,
+  fontWeight: "bold",
+  marginBottom: 4,
+},
+
+rockDetails: {
+  fontSize: 14,
+  color: "#555",
+},
+pickerWrapper: {
+  height: 50,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: "#ccc",
+  backgroundColor: "white",
+  overflow: "hidden",
+  marginBottom: 16,
+},
 });
+
