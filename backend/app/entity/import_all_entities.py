@@ -2,7 +2,7 @@
 
 def import_entities():
 # Import all models to ensure they're registered
-    from app.entity.achievement import Achievement
+    from app.entity.achievement import AchievementsList, AchievementsRecord
     from app.entity.application_answer import ApplicationAnswer
     from app.entity.application_file import ApplicationFile
     from app.entity.application import Application
@@ -20,7 +20,7 @@ def import_entities():
     from app.entity.like_comment_rock import LikeCommentRock
     from app.entity.password_reset import PasswordReset
     from app.entity.payment import Payment
-    from app.entity.quiz import Quiz
+    from app.entity.quiz import Quiz, QuizQuestion, QuizOption, QuizResult
     from app.entity.rock_scan_history import RockScanHistory
     from app.entity.rock_spawn import RockSpawn
     from app.entity.rock import Rock
