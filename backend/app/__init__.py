@@ -65,6 +65,10 @@ def create_app():
     from .controller.user.upload_profile_picture import upload_profile_picture_blueprint
     app.register_blueprint(upload_profile_picture_blueprint)
 
+    from .controller.user.change_password_controller import change_password_bp
+    app.register_blueprint(change_password_bp)
+
+
     # USERTYPE CONTROLLERS
     from .controller.usertype.create_usertype_controller import create_usertype_blueprint
     app.register_blueprint(create_usertype_blueprint)

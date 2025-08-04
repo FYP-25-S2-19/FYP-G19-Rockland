@@ -92,6 +92,15 @@ export default function SettingsScreen() {
             </Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            className="bg-gray-700 py-4 rounded-xl items-center mb-2"
+            onPress={() => router.push("/change-password")}
+          >
+            <Text className="text-white text-base font-semibold">
+              Change Password
+            </Text>
+          </TouchableOpacity>
+
           {/* Show Upgrade if role is not premium or expert */}
           {userRole !== "premium" && userRole !== "expert" && (
             <TouchableOpacity
