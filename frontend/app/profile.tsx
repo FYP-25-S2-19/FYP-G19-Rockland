@@ -37,7 +37,6 @@ export default function ProfileScreen() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [selectedGender, setSelectedGender] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
@@ -52,7 +51,6 @@ export default function ProfileScreen() {
   const [isImageRemoved, setIsImageRemoved] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [showInterestDropdown, setShowInterestDropdown] = useState(false);
@@ -95,7 +93,6 @@ export default function ProfileScreen() {
       setFirstName(user.first_name || "");
       setLastName(user.last_name || "");
       setEmail(user.email || "");
-      setPassword("");
       setDateOfBirth(user.date_of_birth || "");
       setSelectedGender(user.gender || "");
       setRegion(user.region || "");
@@ -166,7 +163,6 @@ const handleBack = () => {
     setFirstName(initialData.first_name);
     setLastName(initialData.last_name);
     setEmail(initialData.email);
-    setPassword("");
     setDateOfBirth(initialData.date_of_birth);
     setSelectedGender(initialData.gender);
     setRegion(initialData.region);
@@ -208,7 +204,6 @@ const handleBack = () => {
         region === initialData.region &&
         selectedGender === initialData.gender &&
         (countryCode + phoneNumber) === initialData.contact_number &&
-        password === "" &&
         JSON.stringify(interests) === JSON.stringify(initialData.interests)
       ) {
         Toast.show({ type: "info", text1: "No changes to save." });
@@ -250,7 +245,6 @@ const handleBack = () => {
       // Construct payload conditionally
       const updatePayload: any = {
         email,
-        password,
         first_name: firstName,
         last_name: lastName,
         date_of_birth: dateOfBirth,
@@ -499,25 +493,6 @@ const handleBack = () => {
                 keyboardType="phone-pad"
                 editable={isEditing}
               />
-            </View>
-          </View>
-
-          <View className="mb-1">
-            <Text className="text-base font-medium text-gray-700 mb-2">Password</Text>
-            <View className={`flex-row items-center rounded-lg ${isEditing ? "bg-white border border-gray-400" : "bg-gray-100 border border-gray-200"}`}>
-              <TextInput
-                className="flex-1 px-4 text-base text-gray-800"
-                value={password}
-                placeholder="Enter password"
-                placeholderTextColor="#9ca3af"
-                secureTextEntry={!showPassword}
-                onChangeText={setPassword}
-                editable={isEditing}
-                style={{ height: 48, textAlignVertical: 'center', paddingVertical: Platform.OS === 'ios' ? 12 : 0, lineHeight: 18 }}
-              />
-              <TouchableOpacity className="px-4 py-3" onPress={() => setShowPassword(!showPassword)}>
-                {showPassword ? <VisibilityIcon width={20} height={20} /> : <VisibilityOffIcon width={20} height={20} />}
-              </TouchableOpacity>
             </View>
           </View>
         </View>
