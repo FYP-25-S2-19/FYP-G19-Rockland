@@ -146,3 +146,57 @@ class EmailService:
         """Send welcome email after successful registration"""
         # Simplified for now - just return success
         return True, "Welcome email functionality temporarily disabled for debugging"
+    
+    @staticmethod
+    def send_password_reset_email(to_email: str, verification_code: str, user_name: str = None) -> Tuple[bool, str]:
+        """Send password reset verification code"""
+        try:
+            config = EmailService.get_email_config()
+            
+            if not config['email_user'] or not config['email_password']:
+                error_msg = "Email configuration is incomplete"
+                print(f"❌ {error_msg}")
+                return False, error_msg
+            
+            print(f"📧 Sending password reset email to {to_email}")
+            
+            # Create message
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = 'Password Reset Code - Rockland'
+            msg['From'] = f"{config['from_name']} <{config['email_user']}>"
+            msg['To'] = to_email
+            
+            # Email content
+            text_content = f"""
+            ROCKLAND - Password Reset Code
+            
+            Hello{' ' + user_name if user_name else ''}!
+            
+            You requested to reset your password. Your verification code is:
+            
+            {verification_code}
+            
+            This code will expire in 15 minutes.
+            
+            If you didn't request this password reset, please ignore this email.
+            
+            © 2025 Rockland. All rights reserved.
+            """
+            
+            text_part = MIMEText(text_content, 'plain')
+            msg.attach(text_part)
+            
+            # Send email
+            server = smtplib.SMTP(config['smtp_server'], config['smtp_port'])
+            server.starttls()
+            server.login(config['email_user'], config['email_password'])
+            server.sendmail(config['email_user'], to_email, msg.as_string())
+            server.quit()
+            
+            print(f"✅ Password reset email sent to {to_email}")
+            return True, "Password reset email sent successfully"
+            
+        except Exception as e:
+            error_msg = f"Error sending password reset email: {str(e)}"
+            print(f"❌ {error_msg}")
+            return False, error_msg

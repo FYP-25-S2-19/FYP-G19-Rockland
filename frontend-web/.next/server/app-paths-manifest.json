@@ -1,19 +1,7 @@
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
+  "/login/page": "app/login/page.js",
+  "/forgot-password/page": "app/forgot-password/page.js",
   "/page": "app/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/login/page": "app/login/page.js",
-  "/registration/page": "app/registration/page.js",
-  "/usertype/page": "app/usertype/page.js",
-  "/applications/page": "app/applications/page.js",
-  "/useraccount/page": "app/useraccount/page.js"
-=======
-  "/registration/page": "app/registration/page.js",
-  "/login/page": "app/login/page.js",
-  "/page": "app/page.js"
->>>>>>> origin/features/recommendations
-=======
-  "/page": "app/page.js"
->>>>>>> origin/KennethJoseph1
+  "/useraccount/page": "app/useraccount/page.js",
+  "/dashboard/page": "app/dashboard/page.js"
 }
