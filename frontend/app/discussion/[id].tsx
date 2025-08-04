@@ -1,3 +1,5 @@
+// app/discussion/[id].tsx
+
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   View,
@@ -38,6 +40,7 @@ export default function DiscussionDetail() {
   const [discussion, setDiscussion] = useState<DiscussionType | null>(null);
   const [comments, setComments] = useState<CommentType[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [replyTo, setReplyTo] = useState<number | null>(null); // 🔧 NEW
 
   const fetchDiscussionDetail = async () => {
     try {
@@ -60,7 +63,6 @@ export default function DiscussionDetail() {
 
     try {
       const token = await AsyncStorage.getItem("accessToken");
-      console.log("🧪 Token used for posting comment:", token);
 
       const res = await fetch(`${API_URL}/api/discussions/${id}/comment`, {
         method: "POST",
@@ -70,7 +72,7 @@ export default function DiscussionDetail() {
         },
         body: JSON.stringify({
           text: newComment,
-          reply_to: null,
+          reply_to: replyTo, // 🔧 support replies
         }),
       });
 
@@ -78,6 +80,7 @@ export default function DiscussionDetail() {
       if (json.success) {
         setComments((prev) => [...prev, json.comment]);
         setNewComment("");
+        setReplyTo(null); // 🔧 reset reply
       } else {
         alert("❌ Failed to post comment");
       }
@@ -146,7 +149,10 @@ export default function DiscussionDetail() {
               <Text className="text-sm text-gray-700 mb-1">{comment.text}</Text>
               <View className="flex-row items-center mb-2">
                 <Text className="text-xs text-gray-500 mr-2">👍 0</Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                  setReplyTo(comment.id);
+                  setNewComment(`@${comment.user} `);
+                }}>
                   <Text className="text-xs text-green-700">Reply</Text>
                 </TouchableOpacity>
               </View>
@@ -184,7 +190,7 @@ export default function DiscussionDetail() {
       <View className="flex-row items-center border border-gray-300 rounded-full px-4 py-2 mt-4">
         <TextInput
           className="flex-1 text-sm text-gray-800"
-          placeholder="Add a comment..."
+          placeholder={replyTo ? "Write a reply..." : "Add a comment..."}
           placeholderTextColor="#9ca3af"
           value={newComment}
           onChangeText={setNewComment}
