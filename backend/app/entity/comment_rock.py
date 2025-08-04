@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional, Tuple, List
 from app.models import db
+from app.utils.gcs import generate_signed_url
+from app.utils.placeholder import get_placeholder_profile_picture
 
 class CommentRock(db.Model):
     __tablename__ = "comment_rock"
@@ -25,25 +27,33 @@ class CommentRock(db.Model):
         from app.entity.like_comment_rock import LikeCommentRock
 
         username = "Unknown"
+        profile_picture = None
+
         if self.user:
             first = self.user.first_name or ""
             last = self.user.last_name or ""
             username = f"{first.strip()} {last.strip()}".strip()
+
+            # Signed URL for profile picture (fallback to placeholder)
+            profile_picture = generate_signed_url(
+                self.user.profile_picture if self.user.profile_picture else get_placeholder_profile_picture(self.user.gender)
+            )
 
         data = {
             "comment_rock_id": self.comment_rock_id,
             "user_id": self.user_id,
             "username": username,
             "rock_id": self.rock_id,
+            "profile_picture": profile_picture,
             "content": self.content,
             "like_count": self.like_count,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
+        # Add like status
         if user_id is not None:
             try:
                 is_liked = LikeCommentRock.has_liked(self.comment_rock_id, user_id)
-                print(f"✅ is_liked check → comment_id={self.comment_rock_id}, user_id={user_id} → {is_liked}")
                 data["is_liked"] = is_liked
             except Exception as e:
                 print(f"❌ Error checking like status for comment {self.comment_rock_id}: {e}")
@@ -51,10 +61,12 @@ class CommentRock(db.Model):
         else:
             data["is_liked"] = False
 
+        # Sort replies oldest-first
         if include_replies:
+            sorted_replies = sorted(self.replies, key=lambda r: r.created_at)
             data["replies"] = [
                 reply.to_dict(include_replies=False, user_id=user_id)
-                for reply in self.replies
+                for reply in sorted_replies
             ]
 
         return data
@@ -77,7 +89,7 @@ class CommentRock(db.Model):
             parent_comments = (
                 cls.query
                 .filter_by(rock_id=rock_id, parent_comment_rock_id=None)
-                .order_by(cls.created_at.desc())
+                .order_by(cls.created_at.asc())  # oldest → newest
                 .all()
             )
 
