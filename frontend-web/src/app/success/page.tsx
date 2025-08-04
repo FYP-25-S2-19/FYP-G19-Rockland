@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Loader2, CheckCircle } from "lucide-react"
 
-export default function SuccessPage() {
+// Component that uses useSearchParams - must be wrapped in Suspense
+function SuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const sessionId = searchParams.get("session_id")
@@ -30,7 +31,7 @@ export default function SuccessPage() {
         </div>
 
         <h2 className="text-4xl font-bold">PAYMENT SUCCESSFUL</h2>
-        <p className="mt-2 text-lg text-white/90">You’ve been upgraded to Premium!</p>
+        <p className="mt-2 text-lg text-white/90">You've been upgraded to Premium!</p>
       </div>
 
       {/* Right Side - Actions */}
@@ -52,5 +53,26 @@ export default function SuccessPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
+      <div className="text-white text-center">
+        <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" />
+        <p className="text-lg">Loading...</p>
+      </div>
+    </div>
+  )
+}
+
+// Main page component with Suspense boundary
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <SuccessContent />
+    </Suspense>
   )
 }
