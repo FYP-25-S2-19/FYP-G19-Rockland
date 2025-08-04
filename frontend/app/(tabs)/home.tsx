@@ -151,48 +151,8 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Top Rocks */}
-          <View className="px-5 mb-6">
-            <Text className="text-xl font-bold text-gray-900 mb-4">Popular on Rockland</Text>
-
-            {loadingRocks ? (
-              <Text className="text-base text-gray-500">Loading...</Text>
-            ) : topRocks.length === 0 ? (
-              <Text className="text-base text-gray-500">No rocks found.</Text>
-            ) : (
-              [0, 1].map((rowIndex) => (
-                <View className="flex-row mt-2" key={`row-${rowIndex}`}>
-                  {topRocks
-                    .slice(rowIndex * 2, rowIndex * 2 + 2)
-                    .map((rock, index) => (
-                      <TouchableOpacity
-                        key={rock.rock_id}
-                        className={`flex-1 bg-white rounded-2xl ${index === 0 ? "mr-2" : "ml-2"}`}
-                        activeOpacity={0.85}
-                        onPress={() => router.push(`/viewrock/${rock.rock_id}`)}
-                        style={shadowStyle}
-                      >
-                        <Image
-                          source={{ uri: rock.signed_url }}
-                          className="w-full h-32 rounded-t-2xl"
-                          resizeMode="cover"
-                        />
-                        <View className="p-3">
-                          <Text className="text-lg font-semibold text-gray-900">{rock.rock_name}</Text>
-                          <Text className="text-sm text-gray-500">{rock.rock_type}</Text>
-                          <Text className="text-sm text-gray-600">
-                            💬 {rock.comment_count ?? 0} Comments
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                </View>
-              ))
-            )}
-          </View>
-
           {/* Recommended Articles */}
-          <View className="px-5 mb-20">
+          <View className="px-5 mb-4">
             <Text className="text-xl font-bold text-gray-900 mb-4">Recommended for You</Text>
             {loadingArticles ? (
               <Text className="text-base text-gray-500">Loading...</Text>
@@ -244,6 +204,48 @@ export default function HomeScreen() {
               ))
             )}
           </View>
+
+          {/* Top Rocks */}
+          <View className="px-5 mt-6 mb-20">
+            <Text className="text-xl font-bold text-gray-900 mb-4">Popular on Rockland</Text>
+
+            {loadingRocks ? (
+              <Text className="text-base text-gray-500">Loading...</Text>
+            ) : topRocks.length === 0 ? (
+              <Text className="text-base text-gray-500">No rocks found.</Text>
+            ) : (
+              [0, 1].map((rowIndex) => (
+                <View className="flex-row mt-2" key={`row-${rowIndex}`}>
+                  {topRocks
+                    .slice(rowIndex * 2, rowIndex * 2 + 2)
+                    .map((rock, index) => (
+                      <TouchableOpacity
+                        key={rock.rock_id}
+                        className={`flex-1 bg-white rounded-2xl ${index === 0 ? "mr-2" : "ml-2"}`}
+                        activeOpacity={0.85}
+                        onPress={() => router.push(`/viewrock/${rock.rock_id}`)}
+                        style={shadowStyle}
+                      >
+                        <Image
+                          source={{ uri: rock.signed_url }}
+                          className="w-full h-32 rounded-t-2xl"
+                          resizeMode="cover"
+                        />
+                        <View className="p-3">
+                          <Text className="text-lg font-semibold text-gray-900">{rock.rock_name}</Text>
+                          <Text className="text-sm text-gray-500">{rock.rock_type}</Text>
+                          <Text className="text-sm text-gray-600">
+                            💬 {rock.comment_count ?? 0} Comments
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              ))
+            )}
+          </View>
+
+          
 
           {/* Upgrade Modal */}
           <Modal
