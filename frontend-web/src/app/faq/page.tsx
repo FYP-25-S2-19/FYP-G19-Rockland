@@ -258,77 +258,17 @@ export default function FAQPage() {
           </div>
         </div>
       </section>
-
-      {/* Contact Section - New addition for better UX */}
-      <section className="py-12 sm:py-16 bg-white border-t border-gray-100">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Still have questions?</h3>
-          <p className="text-gray-600 mb-6 text-sm sm:text-base">
-            Can't find the answer you're looking for? We're here to help.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center max-w-sm sm:max-w-none mx-auto">
-            <Button 
-              variant="outline" 
-              className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50 px-4 sm:px-6 py-2 text-sm sm:text-base"
-            >
-              Contact Support
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50 px-4 sm:px-6 py-2 text-sm sm:text-base"
-            >
-              Community Forum
-            </Button>
-          </div>
-        </div>
-      </section>
-
+      
       {/* Footer - Made responsive */}
       <footer className="bg-green-600 text-white py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             <div className="text-sm text-center sm:text-left">
               <div className="mb-4 font-medium">2025 Rockland FYP-S2-G19</div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs sm:text-sm">
-                <a href="#" className="text-emerald-200 hover:text-white transition-colors">
-                  Privacy & Policy
-                </a>
-                <a href="#" className="text-emerald-200 hover:text-white transition-colors">
-                  Terms & Conditions
-                </a>
-              </div>
               <div className="mt-4">
                 <a href="/login" className="text-emerald-200 hover:text-white text-xs transition-colors">
                   Admin Login
                 </a>
-              </div>
-            </div>
-            
-            {/* Additional footer sections for better structure */}
-            <div className="text-sm text-center sm:text-left">
-              <div className="font-medium mb-4">Product</div>
-              <div className="space-y-2 text-xs sm:text-sm">
-                <div><Link href="/features" className="text-emerald-200 hover:text-white transition-colors">Features</Link></div>
-                <div><Link href="/pricing" className="text-emerald-200 hover:text-white transition-colors">Pricing</Link></div>
-                <div><Link href="/faq" className="text-emerald-200 hover:text-white transition-colors">FAQ</Link></div>
-              </div>
-            </div>
-            
-            <div className="text-sm text-center sm:text-left">
-              <div className="font-medium mb-4">Support</div>
-              <div className="space-y-2 text-xs sm:text-sm">
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Help Center</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Contact Us</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Community</a></div>
-              </div>
-            </div>
-            
-            <div className="text-sm text-center sm:text-left">
-              <div className="font-medium mb-4">Connect</div>
-              <div className="space-y-2 text-xs sm:text-sm">
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Newsletter</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Social Media</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Blog</a></div>
               </div>
             </div>
           </div>

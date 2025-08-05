@@ -572,12 +572,6 @@ export default function PricingPage() {
                 View FAQ
               </Button>
             </Link>
-            <Button 
-              variant="outline" 
-              className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50 px-4 sm:px-6 py-2 text-sm sm:text-base"
-            >
-              Contact Support
-            </Button>
           </div>
         </div>
       </section>
@@ -588,46 +582,10 @@ export default function PricingPage() {
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             <div className="text-sm text-center sm:text-left">
               <div className="mb-4 font-medium">2025 Rockland FYP-S2-G19</div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs sm:text-sm">
-                <a href="#" className="text-emerald-200 hover:text-white transition-colors">
-                  Privacy & Policy
-                </a>
-                <a href="#" className="text-emerald-200 hover:text-white transition-colors">
-                  Terms & Conditions
-                </a>
-              </div>
               <div className="mt-4">
                 <a href="/login" className="text-emerald-200 hover:text-white text-xs transition-colors">
                   Admin Login
                 </a>
-              </div>
-            </div>
-            
-            {/* Additional footer sections */}
-            <div className="text-sm text-center sm:text-left">
-              <div className="font-medium mb-4">Product</div>
-              <div className="space-y-2 text-xs sm:text-sm">
-                <div><Link href="/features" className="text-emerald-200 hover:text-white transition-colors">Features</Link></div>
-                <div><Link href="/pricing" className="text-emerald-200 hover:text-white transition-colors">Pricing</Link></div>
-                <div><Link href="/faq" className="text-emerald-200 hover:text-white transition-colors">FAQ</Link></div>
-              </div>
-            </div>
-            
-            <div className="text-sm text-center sm:text-left">
-              <div className="font-medium mb-4">Support</div>
-              <div className="space-y-2 text-xs sm:text-sm">
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Help Center</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Contact Us</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Community</a></div>
-              </div>
-            </div>
-            
-            <div className="text-sm text-center sm:text-left">
-              <div className="font-medium mb-4">Connect</div>
-              <div className="space-y-2 text-xs sm:text-sm">
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Newsletter</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Social Media</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Blog</a></div>
               </div>
             </div>
           </div>
