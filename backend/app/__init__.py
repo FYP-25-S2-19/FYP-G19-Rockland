@@ -352,8 +352,6 @@ def create_app():
     from app.routes.password.forgot_password_routes import forgot_password_bp
     app.register_blueprint(forgot_password_bp)
 
-    from app.controller.refresh_spawn_controller import refresh_spawn_bp
-    app.register_blueprint(refresh_spawn_bp)
     
     from flask import send_from_directory
 
