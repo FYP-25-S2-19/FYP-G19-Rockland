@@ -165,45 +165,62 @@ export default function RockMapScreen() {
 
   // Save to collection
   const handleSaveToCollection = async (spawn: RockSpawn) => {
-    try {
-      const token = await AsyncStorage.getItem("accessToken");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
-      const payload = {
-        latitude: location?.coords.latitude,
-        longitude: location?.coords.longitude,
-      };
-
-      const res = await fetch(`${API_URL}/api/spawns/collect/${spawn.rock_spawn_id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Toast.show({ type: "success", text1: data.message });
-        setSelectedRock(null);
-        fetchMarkers(location!.coords.latitude, location!.coords.longitude);
-      } else {
-        Toast.show({
-          type: "error",
-          text1: "Collect failed",
-          text2: data.message || "Unable to collect rock",
-        });
-      }
-    } catch (err) {
-      Toast.show({ type: "error", text1: "Network Error", text2: "Please try again later" });
-      console.error("Error collecting rock:", err);
+  try {
+    const token = await AsyncStorage.getItem("accessToken");
+    if (!token) {
+      router.push("/login");
+      return;
     }
-  };
+
+    const payload = {
+      latitude: location?.coords.latitude,
+      longitude: location?.coords.longitude,
+    };
+
+    const res = await fetch(`${API_URL}/api/spawns/collect/${spawn.rock_spawn_id}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    // --- Success case ---
+    if (res.ok && data.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Toast.show({ type: "success", text1: data.message });
+      setSelectedRock(null);
+      fetchMarkers(location!.coords.latitude, location!.coords.longitude);
+      return;
+    }
+
+    // --- Duplicate case (409 Already collected or 400 Already discovered) ---
+    if (res.status === 409 || data.message?.toLowerCase().includes("already")) {
+      Toast.show({
+        type: "info",
+        text1: "Duplicate rock detected",
+        text2: "This rock is already in your collection.",
+      });
+      setSelectedRock(null); // close modal
+      fetchMarkers(location!.coords.latitude, location!.coords.longitude); // remove marker
+      return;
+    }
+
+    // --- Other error case ---
+    Toast.show({
+      type: "error",
+      text1: "Collect failed",
+      text2: data.message || "Unable to collect rock",
+    });
+
+  } catch (err) {
+    Toast.show({ type: "error", text1: "Network Error", text2: "Please try again later" });
+    console.error("Error collecting rock:", err);
+  }
+};
 
   // Location watch + initial fetch
   useEffect(() => {
@@ -351,9 +368,6 @@ export default function RockMapScreen() {
         >
           <Text style={{ fontSize: 16, fontWeight: "bold", color: "#1f2937" }}>
             {currentZone}
-          </Text>
-          <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-            API Rocks: {apiCount} | Rendered: {rockMarkers.length}
           </Text>
           {noNearbyMessage && (
             <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>

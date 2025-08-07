@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Load environment variables at the module level (before create_app)
 load_dotenv()
 
-from flask import Flask
+from flask import Flask, app
 from flask_cors import CORS
 from .models import db
 
@@ -146,6 +146,9 @@ def create_app():
     app.register_blueprint(view_discussion_blueprint)
     app.register_blueprint(comment_discussion_blueprint)
     app.register_blueprint(delete_discussion_blueprint)
+    
+    from .controller.discussion.comment_like_controller import comment_like_blueprint
+    app.register_blueprint(comment_like_blueprint)
 
     # QUIZ
     from app.controller.quiz.create_quizattempt_controller import create_quizattempt_blueprint
@@ -274,6 +277,7 @@ def create_app():
 
     # ARTICLES
     from .controller.articles.delete_article_controller import delete_article_blueprint
+    from .controller.articles.update_article_controller import update_article_blueprint
     from .controller.articles.like_article_controller import like_article_blueprint
     from .controller.articles.unlike_article_controller import unlike_article_blueprint
     from .controller.articles.post_article_controller import post_article_blueprint
@@ -286,6 +290,7 @@ def create_app():
     from .controller.articles.get_articles_by_user_interest_controller import get_articles_by_user_interest_blueprint
     from app.controller.articles.get_articles_hybrid_controller import get_articles_hybrid_blueprint
 
+    app.register_blueprint(update_article_blueprint)
     app.register_blueprint(delete_article_blueprint)
     app.register_blueprint(like_article_blueprint)
     app.register_blueprint(unlike_article_blueprint)
@@ -346,6 +351,9 @@ def create_app():
     ##Forgot Password
     from app.routes.password.forgot_password_routes import forgot_password_bp
     app.register_blueprint(forgot_password_bp)
+
+    from app.controller.refresh_spawn_controller import refresh_spawn_bp
+    app.register_blueprint(refresh_spawn_bp)
     
     from flask import send_from_directory
 
