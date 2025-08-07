@@ -15,6 +15,7 @@ import ArticleCard from "./ArticleCard";
 import DiscussionCard from "./DiscussionCard";
 import FilterModal from "./FilterModalFeed";
 import FilterModalRock from "./FilterModalRock";
+import FilterModalDiscussion from "./FilterModalDiscussion"; // ✅ NEW
 
 import FilterIcon from "../assets/images/filter.svg";
 import SearchIcon from "../assets/images/search.svg";
@@ -31,7 +32,11 @@ type BaseFeedProps = {
   tabs: { key: TabKey; label: string }[];
   onLikeToggle: (articleId: number) => void;
   onUpgradeRequest: (message: string) => void;
-  updateArticleLike: (articleId: number, liked: boolean, likeCount: number) => void;
+  updateArticleLike: (
+    articleId: number,
+    liked: boolean,
+    likeCount: number
+  ) => void;
   searchQuery: string;
   setSearchQuery: (text: string) => void;
   discussionSort: "asc" | "desc";
@@ -70,14 +75,21 @@ export default function BaseFeed({
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [discussionModalVisible, setDiscussionModalVisible] = useState(false); // ✅ NEW
   const [articles, setArticles] = useState(incomingArticles);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Sort by Most Liked");
   const [forceRefresh, setForceRefresh] = useState(false);
 
-  const handleUpdateLike = (articleId: number, liked: boolean, likeCount: number) => {
+  const handleUpdateLike = (
+    articleId: number,
+    liked: boolean,
+    likeCount: number
+  ) => {
     setArticles((prev) =>
-      prev.map((a) => (a.id === articleId ? { ...a, liked, likes: likeCount } : a))
+      prev.map((a) =>
+        a.id === articleId ? { ...a, liked, likes: likeCount } : a
+      )
     );
     updateArticleLike(articleId, liked, likeCount);
   };
@@ -98,7 +110,9 @@ export default function BaseFeed({
       );
       if (response.data.success) {
         const fetched = response.data.articles.map((article: any) => {
-          const prev = incomingArticles.find((a) => a.id === article.article_id);
+          const prev = incomingArticles.find(
+            (a) => a.id === article.article_id
+          );
           return {
             id: article.article_id,
             title: article.title,
@@ -113,9 +127,12 @@ export default function BaseFeed({
             likes: article.total_likes,
             liked: !!article.liked_by_user,
             timeAgo: article.date_created
-              ? require("../utils/timeAgo").timeAgo(new Date(article.date_created))
+              ? require("../utils/timeAgo").timeAgo(
+                  new Date(article.date_created)
+                )
               : "",
-            isRecommended: article.is_recommended ?? prev?.isRecommended ?? false,
+            isRecommended:
+              article.is_recommended ?? prev?.isRecommended ?? false,
           };
         });
         setArticles(fetched);
@@ -129,7 +146,7 @@ export default function BaseFeed({
     if (activeTab === "articles") {
       fetchArticles();
     }
-  }, [searchQuery]);
+  }, [searchQuery, selectedCategories, sortBy, forceRefresh]);
 
   const filteredDiscussions = useMemo(() => {
     const kw = searchQuery.toLowerCase();
@@ -147,17 +164,24 @@ export default function BaseFeed({
     if (!rockSearchOptions) return rocks;
     const kw = rockSearchOptions.searchText.toLowerCase();
     return rocks.filter((r) =>
-      `${r.rock_name ?? r.name ?? ""} ${r.rock_type ?? r.type ?? ""}`.toLowerCase().includes(kw)
+      `${r.rock_name ?? r.name ?? ""} ${r.rock_type ?? r.type ?? ""}`
+        .toLowerCase()
+        .includes(kw)
     );
   }, [rocks, rockSearchOptions?.searchText]);
 
   const handleTabPress = (tabKey: TabKey) => {
     if (userRole.trim().toLowerCase() === "free" && tabKey !== "articles") {
-      setUpgradeMessage("Premium Features Only\nUpgrade to unlock all features.");
+      setUpgradeMessage(
+        "Premium Features Only\nUpgrade to unlock all features."
+      );
       setShowUpgradeModal(true);
       return;
     }
     setActiveTab(tabKey);
+    if (tabKey === "discussions") {
+      setForceRefresh((prev) => !prev);
+    }
   };
 
   const openRock = (rock: any) => {
@@ -178,7 +202,7 @@ export default function BaseFeed({
             placeholderTextColor="#9ca3af"
             value={
               activeTab === "rocks"
-                ? rockSearchOptions?.searchText ?? ""
+                ? (rockSearchOptions?.searchText ?? "")
                 : searchQuery
             }
             onChangeText={(text) =>
@@ -192,9 +216,7 @@ export default function BaseFeed({
         <TouchableOpacity
           onPress={() => {
             if (activeTab === "discussions") {
-              const newSort = discussionSort === "asc" ? "desc" : "asc";
-              setDiscussionSort(newSort);
-              setForceRefresh((prev) => !prev);
+              setDiscussionModalVisible(true); // ✅ open modal instead of toggling
             } else {
               setFilterModalVisible(true);
             }
@@ -207,36 +229,60 @@ export default function BaseFeed({
 
       <View className="flex-row justify-around border-b border-gray-200 px-4 mb-4">
         {tabs.map((tab) => (
-          <TouchableOpacity key={tab.key} onPress={() => handleTabPress(tab.key)} className="flex-1">
-            <View className="items-center pb-2 border-b-2" style={{ borderBottomColor: activeTab === tab.key ? "#459B6C" : "transparent" }}>
-              <Text className={`text-base font-bold ${activeTab === tab.key ? "text-black" : "text-gray-400"}`}>{tab.label}</Text>
+          <TouchableOpacity
+            key={tab.key}
+            onPress={() => handleTabPress(tab.key)}
+            className="flex-1"
+          >
+            <View
+              className="items-center pb-2 border-b-2"
+              style={{
+                borderBottomColor:
+                  activeTab === tab.key ? "#459B6C" : "transparent",
+              }}
+            >
+              <Text
+                className={`text-base font-bold ${activeTab === tab.key ? "text-black" : "text-gray-400"}`}
+              >
+                {tab.label}
+              </Text>
             </View>
           </TouchableOpacity>
         ))}
       </View>
 
-      {activeTab === "articles" && (
-        <FlatList
-          data={articles}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <ArticleCard
-              article={item}
-              onLikeToggle={() => onLikeToggle(item.id)}
-              isPremiumUser={userRole === "premium"}
-              onUpgrade={() => {
-                setUpgradeMessage("Upgrade to Premium to open this article.");
-                setShowUpgradeModal(true);
-              }}
-              updateLikeState={(liked, likeCount) =>
-                handleUpdateLike(item.id, liked, likeCount)
-              }
-            />
-          )}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      {activeTab === "articles" &&
+        (articles.length === 0 ? (
+          <View className="flex-1 items-center justify-center px-6 mt-20">
+            <Text className="text-gray-400 text-center text-base">
+              No articles found for your search or filters.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={articles}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <ArticleCard
+                article={item}
+                onLikeToggle={() => onLikeToggle(item.id)}
+                isPremiumUser={userRole === "premium"}
+                onUpgrade={() => {
+                  setUpgradeMessage("Upgrade to Premium to open this article.");
+                  setShowUpgradeModal(true);
+                }}
+                updateLikeState={(liked, likeCount) =>
+                  handleUpdateLike(item.id, liked, likeCount)
+                }
+              />
+            )}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingBottom: 100,
+            }}
+            showsVerticalScrollIndicator={false}
+          />
+        ))}
 
       {activeTab === "discussions" && (
         <>
@@ -244,7 +290,10 @@ export default function BaseFeed({
             data={filteredDiscussions}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => <DiscussionCard discussion={item} />}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingBottom: 100,
+            }}
             showsVerticalScrollIndicator={false}
           />
           <View className="px-4 pb-5">
@@ -252,13 +301,15 @@ export default function BaseFeed({
               className="bg-green-600 rounded-full px-4 py-3"
               onPress={() => router.push("/creatediscussion")}
             >
-              <Text className="text-white text-center font-semibold">Start a New Discussion</Text>
+              <Text className="text-white text-center font-semibold">
+                Start a New Discussion
+              </Text>
             </TouchableOpacity>
           </View>
         </>
       )}
 
- {activeTab === "rocks" && (
+      {activeTab === "rocks" && (
         <FlatList
           data={filteredRocks}
           keyExtractor={(item) => (item.rock_id ?? item.id).toString()}
@@ -283,7 +334,8 @@ export default function BaseFeed({
                     source={
                       item.signed_url
                         ? { uri: item.signed_url }
-                        : item.image ?? require("../assets/images/picture.png")
+                        : (item.image ??
+                          require("../assets/images/picture.png"))
                     }
                     className="w-14 h-14 mr-4 rounded-md"
                   />
@@ -292,7 +344,7 @@ export default function BaseFeed({
                       {item.rock_name ?? item.name}
                     </Text>
                     <Text className="text-sm text-gray-500">
-                      {(item.rock_type ?? item.type)}
+                      {item.rock_type ?? item.type}
                     </Text>
                   </View>
                 </View>
@@ -304,8 +356,8 @@ export default function BaseFeed({
                       item.rarity?.toLowerCase() === "common"
                         ? "#6D6D6D"
                         : item.rarity?.toLowerCase() === "rare"
-                        ? "#459B6C"
-                        : "#EF9E1C",
+                          ? "#459B6C"
+                          : "#EF9E1C",
                   }}
                 >
                   <Text className="text-xs font-medium text-white">
@@ -321,7 +373,6 @@ export default function BaseFeed({
         />
       )}
 
-
       <Modal
         visible={showUpgradeModal}
         transparent
@@ -332,7 +383,10 @@ export default function BaseFeed({
           <View className="bg-white p-6 rounded-xl w-80">
             <Text className="text-lg font-bold mb-4">Premium Feature</Text>
             <Text className="text-sm mb-6 text-center">{upgradeMessage}</Text>
-            <Pressable className="bg-black py-3 rounded-xl" onPress={() => setShowUpgradeModal(false)}>
+            <Pressable
+              className="bg-black py-3 rounded-xl"
+              onPress={() => setShowUpgradeModal(false)}
+            >
               <Text className="text-white text-center font-semibold">OK</Text>
             </Pressable>
           </View>
@@ -348,7 +402,19 @@ export default function BaseFeed({
             setSelectedCategories(selectedCategories);
             setSortBy(sortBy);
             setFilterModalVisible(false);
-            fetchArticles();
+            setForceRefresh((prev) => !prev);
+          }}
+        />
+      )}
+
+      {activeTab === "discussions" && (
+        <FilterModalDiscussion
+          visible={discussionModalVisible}
+          onClose={() => setDiscussionModalVisible(false)}
+          currentSort={discussionSort}
+          onApply={(sort) => {
+            setDiscussionSort(sort);
+            setForceRefresh((prev) => !prev);
           }}
         />
       )}
