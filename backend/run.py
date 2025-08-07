@@ -28,7 +28,6 @@ from app.entity.discussion_comment import DiscussionComment
 from app.entity.discussion import Discussion
 from app.entity.email_verification import EmailVerification
 from app.entity.faq import Faq
-from app.entity.import_all_entities import ImportAllEntities
 from app.entity.interest import Interest
 from app.entity.like_comment_rock import LikeCommentRock
 from app.entity.password_reset import PasswordReset
