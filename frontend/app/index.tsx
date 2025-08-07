@@ -10,7 +10,7 @@ export default function WelcomeScreen() {
   };
 
   const handleRegister = () => {
-    Linking.openURL('https://rockland-6cf4cyfj4-kenneths-projects-07a9aabf.vercel.app/');
+    Linking.openURL('https://rockland-pi.vercel.app/');
   };
 
   return (
