@@ -297,3 +297,48 @@ class QuizResult(db.Model):
         )
         db.session.add(result)
         return result, total_score
+    
+    # In app/entity/quiz.py, inside class QuizResult
+    @staticmethod
+    def submit_quiz_attempt(user_id, quiz_id, selected_answers, user_type):
+        """
+        selected_answers: either a list of ints OR a list of dicts with 'selected_answer_id'
+        """
+        # normalize
+        selected_option_ids = []
+        for item in selected_answers or []:
+            if isinstance(item, int):
+                selected_option_ids.append(item)
+            elif isinstance(item, dict) and item.get('selected_answer_id') is not None:
+                selected_option_ids.append(int(item['selected_answer_id']))
+
+        if not selected_option_ids:
+            return {"eligible": False, "message": "No answers submitted.", "status": 400}
+
+        eligibility = QuizResult.check_quiz_eligibility(user_id, quiz_id, user_type)
+        if not eligibility.get("eligible", False):
+            return eligibility
+
+        result, total_score = QuizResult.submit_result(user_id, quiz_id, selected_option_ids)
+
+        from app.models import db
+        db.session.commit()
+
+        try:
+            update_user_quiz_count(user_id)
+        except Exception:
+            pass
+        try:
+            check_and_award_thresholds(user_id)
+        except Exception:
+            pass
+
+        return {
+            "success": True,
+            "message": "Quiz submitted successfully.",
+            "quiz_result_id": result.quiz_result_id,
+            "score": total_score,
+            "points_earned": total_score,
+            "status": 200
+        }
+
