@@ -1,52 +1,137 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  Image,
   ScrollView,
+  Image,
   TouchableOpacity,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
+  ActivityIndicator,
   Modal,
   TouchableWithoutFeedback,
   Alert,
-  ActivityIndicator,
+  Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { rockData, Rock } from "../../../data/rocks";
 import BackIcon from "../../../assets/images/back.svg";
 import ThumbUpIcon from "../../../assets/images/thumbup.svg";
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+type CommentType = {
+  id: number;
+  user: string;
+  text: string;
+  time: string;
+  likes: number;
+  is_liked: boolean;
+  replies?: CommentType[];
+};
+
+type RockType = {
+  rock_id: number;
+  rock_name: string;
+  rock_type: string;
+  description: string | null;
+  fun_fact: string | null;
+  rarity: string | null;
+  hardness: string | null;
+  color: string | null;
+  composition: string | null;
+  density: string | null;
+  common_location: string | null;
+  photo_url: string | null;
+  signed_url: string | null;
+};
 
 export default function ExpertViewRockScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const rockId = Array.isArray(id) ? id[0] : id;
 
-  const [rock, setRock] = useState<Rock | undefined>(undefined);
+  const [rock, setRock] = useState<RockType | null>(null);
+  const [comments, setComments] = useState<CommentType[]>([]);
+  const [commentCount, setCommentCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
-
   const [likedComments, setLikedComments] = useState<Record<string, boolean>>({});
   const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    const foundRock = rockData.find((r) => r.id === id);
-    if (foundRock) {
-      setRock(foundRock);
-
-      const initialCounts: Record<string, number> = {};
-      foundRock.comments.forEach((comment) => {
-        initialCounts[comment.id.toString()] = comment.likes;
-        comment.replies?.forEach((reply) => {
-          initialCounts[reply.id.toString()] = reply.likes;
+    const fetchRock = async () => {
+      try {
+        if (!rockId) return;
+        const token = await AsyncStorage.getItem("accessToken");
+        const response = await fetch(${API_URL}/api/viewrock/${rockId}, {
+          headers: { Authorization: Bearer ${token} },
         });
+        const data = await response.json();
+
+        if (!response.ok || !data.success || !data.rock) {
+          Alert.alert("Error", data.message || "Rock not found.");
+          setLoading(false);
+          return;
+        }
+
+        setRock(data.rock);
+        setComments(data.comments || []);
+        setCommentCount(data.total_comments || 0);
+
+        const counts: Record<string, number> = {};
+        const liked: Record<string, boolean> = {};
+        (data.comments || []).forEach((c: CommentType) => {
+          counts[c.id] = c.likes;
+          liked[c.id] = c.is_liked;
+          c.replies?.forEach((r: CommentType) => {
+            counts[r.id] = r.likes;
+            liked[r.id] = r.is_liked;
+          });
+        });
+        setLikeCounts(counts);
+        setLikedComments(liked);
+      } catch {
+        Alert.alert("Error", "Failed to fetch rock.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRock();
+  }, [rockId]);
+
+  const toggleLike = (commentId: string) => {
+    setLikedComments((prev) => {
+      const newLiked = !prev[commentId];
+      setLikeCounts((counts) => ({
+        ...counts,
+        [commentId]: (counts[commentId] ?? 0) + (newLiked ? 1 : -1),
+      }));
+      return { ...prev, [commentId]: newLiked };
+    });
+  };
+
+  const handleDelete = async () => {
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      const response = await fetch(${API_URL}/api/rocks/delete/${rock?.rock_id}, {
+        method: "DELETE",
+        headers: { Authorization: Bearer ${token} },
       });
-      setLikeCounts(initialCounts);
+      const data = await response.json();
+      if (data.success) {
+        Alert.alert("Deleted", "Rock has been deleted.");
+        router.back();
+      } else {
+        Alert.alert("Error", data.message || "Delete failed.");
+      }
+    } catch {
+      Alert.alert("Error", "Failed to delete rock.");
+    } finally {
+      setConfirmVisible(false);
     }
-    setLoading(false);
-  }, [id]);
+  };
 
   if (loading) {
     return (
@@ -59,45 +144,18 @@ export default function ExpertViewRockScreen() {
 
   if (!rock) {
     return (
-      <View className="flex-1 justify-center items-center bg-white p-4">
+      <View className="flex-1 justify-center items-center bg-white">
         <Text className="text-lg text-gray-600">Rock not found.</Text>
       </View>
     );
   }
 
-  const toggleLike = (commentId: string) => {
-    setLikedComments((prev) => {
-      const newLiked = !prev[commentId];
-      setLikeCounts((counts) => ({
-        ...counts,
-        [commentId]: counts[commentId] + (newLiked ? 1 : -1),
-      }));
-      return { ...prev, [commentId]: newLiked };
-    });
-  };
-
-  const handleEdit = () => {
-    setMenuVisible(false);
-    router.push({
-        pathname: "/expert/viewrock/edit/[id]",
-        params: { id: rock.id.toString() },
-      });
-  };
-
-  const handleDeletePress = () => {
-    setMenuVisible(false);
-    setConfirmVisible(true);
-  };
-
-  const handleConfirmDelete = () => {
-    setConfirmVisible(false);
-    Alert.alert("Deleted", "The rock has been deleted.");
-    router.back();
-  };
-
-  const handleCancelDelete = () => {
-    setConfirmVisible(false);
-  };
+  const propsToShow = [
+    { k: "Hardness", v: rock.hardness },
+    { k: "Color", v: rock.color },
+    { k: "Composition", v: rock.composition },
+    { k: "Density", v: rock.density },
+  ].filter((p) => !!p.v);
 
   return (
     <KeyboardAvoidingView
@@ -105,11 +163,7 @@ export default function ExpertViewRockScreen() {
       className="flex-1"
       keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
     >
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 120 }}
-        keyboardShouldPersistTaps="handled"
-        className="flex-1 bg-white p-4"
-      >
+      <ScrollView className="flex-1 bg-white p-4" contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Top Bar */}
         <View className="flex-row justify-between mb-4">
           <TouchableOpacity
@@ -123,226 +177,159 @@ export default function ExpertViewRockScreen() {
             className="w-10 h-10 bg-white border border-gray-400 rounded-xl items-center justify-center"
           >
             <Image
-                source={require('../../../assets/images/more.png')}
-                style={{
-                    width: 24,
-                    height: 24,
-                    tintColor: '#000',
-                    resizeMode: 'contain',
-                }}
-                />
+              source={require("../../../assets/images/more.png")}
+              className="w-6 h-6"
+              resizeMode="contain"
+            />
           </TouchableOpacity>
         </View>
 
         {/* Rock Image */}
-        <View className="w-full aspect-square rounded-xl overflow-hidden mb-2">
+        <View className="w-full aspect-square rounded-xl overflow-hidden mb-4">
           <Image
-            source={rock.image}
+            source={{ uri: rock.signed_url || rock.photo_url || "" }}
             className="w-full h-full"
             resizeMode="cover"
           />
         </View>
 
-        {/* Title & Rarity */}
-        <View className="flex-row justify-between items-center mb-1">
-          <Text className="text-3xl font-bold text-gray-900">{rock.name}</Text>
-          <Text
-            className={`text-sm font-semibold text-white px-3 py-1 rounded-full ${
-              rock.rarity === "Common"
-                ? "bg-gray-600"
-                : rock.rarity === "Rare"
-                ? "bg-green-700"
-                : "bg-yellow-500"
-            }`}
-          >
+        <Text className="text-3xl font-bold text-black mb-2">{rock.rock_name}</Text>
+        <Text className="text-lg text-gray-600 mb-1">Type: {rock.rock_type}</Text>
+        {!!rock.rarity && (
+          <Text className="text-sm font-semibold text-white px-3 py-1 rounded-full mb-4 bg-green-600 w-fit">
             Rarity: {rock.rarity}
           </Text>
-        </View>
+        )}
 
-        {/* Type */}
-        <Text className="text-xl text-gray-600 mb-6">Type: {rock.type} Rock</Text>
+        <Text className="text-xl font-bold mb-2">Description</Text>
+        <Text className="text-base text-gray-800 mb-6">{rock.description || "-"}</Text>
 
-        {/* Description */}
-        <Text className="text-2xl font-bold mb-2 text-gray-900">Description</Text>
-        <Text className="text-base text-gray-800 mb-6">{rock.description}</Text>
+        <Text className="text-xl font-bold mb-2">Properties</Text>
+        {propsToShow.length === 0 ? (
+          <Text className="text-gray-600 mb-4">No properties provided.</Text>
+        ) : (
+          propsToShow.map(({ k, v }) => (
+            <View key={k} className="flex-row justify-between mb-2 px-3 py-2 bg-gray-100 rounded-lg">
+              <Text className="font-semibold">{k}</Text>
+              <Text>{v}</Text>
+            </View>
+          ))
+        )}
 
-        {/* Properties */}
-        <Text className="text-2xl font-bold mb-2 text-gray-900">Properties</Text>
-        {Object.entries(rock.properties).map(([key, value]) => (
-          <View
-            key={key}
-            className={`flex-row justify-between rounded-lg px-4 py-3 mb-2 ${
-              key === "Color" || key === "Composition" ? "bg-green-100" : ""
-            }`}
-          >
-            <Text className="font-semibold text-gray-800">{key}</Text>
-            <Text className="text-gray-700">{value}</Text>
-          </View>
-        ))}
-
-        {/* Common Locations */}
-        <Text className="text-2xl font-bold mb-2 text-gray-900">Common Location</Text>
-        <View className="pl-2 mb-6">
-          {rock.commonLocations.map((loc, i) => (
-            <Text key={i} className="text-base text-gray-700">
+        <Text className="text-xl font-bold mt-4 mb-2">Common Locations</Text>
+        {(rock.common_location || "")
+          .split(",")
+          .map((loc) => loc.trim())
+          .filter(Boolean)
+          .map((loc, i) => (
+            <Text key={${loc}-${i}} className="text-base text-gray-700 mb-1">
               • {loc}
             </Text>
           ))}
-        </View>
 
-        {/* Fun Fact */}
-        <Text className="text-2xl font-bold mb-2 text-gray-900">Fun Fact</Text>
-        <Text className="text-base text-gray-800 mb-6">{rock.funFact}</Text>
+        <Text className="text-xl font-bold mt-4 mb-2">Fun Fact</Text>
+        <Text className="text-base text-gray-800 mb-6">{rock.fun_fact || "-"}</Text>
 
-        {/* Comments Section */}
-        <View className="mt-8 border-t border-gray-300 pt-4">
-          <Text className="text-2xl font-bold mb-4">{rock.comments.length} Comments</Text>
+        <Text className="text-2xl font-bold mb-4">{commentCount} Comments</Text>
+        {comments.map((comment) => (
+          <View key={comment.id} className="bg-gray-50 rounded-lg p-4 mb-4">
+            <Text className="font-semibold text-black">{comment.user}</Text>
+            <Text className="text-sm text-gray-500 mb-1">{comment.time}</Text>
+            <Text className="text-base text-gray-800">{comment.text}</Text>
 
-          {rock.comments.map((comment) => (
-            <View
-              key={comment.id}
-              className="bg-gray-50 rounded-lg p-4 mb-6"
+            <TouchableOpacity
+              onPress={() => toggleLike(comment.id.toString())}
+              className="flex-row items-center mt-2"
             >
-              <Text className="font-semibold text-gray-900">
-                {comment.user}{" "}
-                <Text className="text-xs text-gray-400">{comment.time}</Text>
-              </Text>
-              <Text className="text-base text-gray-800 mt-1">{comment.text}</Text>
+              <ThumbUpIcon
+                width={16}
+                height={16}
+                fill={likedComments[comment.id] ? "#459B6C" : "#9CA3AF"}
+              />
+              <Text className="ml-1 text-sm text-gray-700">{likeCounts[comment.id] ?? 0}</Text>
+            </TouchableOpacity>
 
-              <View className="flex-row items-center mt-2 space-x-4">
+            {comment.replies?.map((reply) => (
+              <View key={reply.id} className="ml-4 mt-3 pl-3 border-l border-gray-300">
+                <Text className="font-semibold text-black">{reply.user}</Text>
+                <Text className="text-sm text-gray-500">{reply.time}</Text>
+                <Text className="text-base text-gray-800">{reply.text}</Text>
                 <TouchableOpacity
-                  onPress={() => toggleLike(comment.id.toString())}
-                  className="flex-row items-center space-x-1"
+                  onPress={() => toggleLike(reply.id.toString())}
+                  className="flex-row items-center mt-1"
                 >
                   <ThumbUpIcon
                     width={16}
                     height={16}
-                    fill={likedComments[comment.id] ? "#459B6C" : "#9CA3AF"}
+                    fill={likedComments[reply.id] ? "#459B6C" : "#9CA3AF"}
                   />
-                  <Text className="ml-1 text-sm text-gray-700">{likeCounts[comment.id]}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity>
-                  <Text className="ml-6 text-sm text-green-700 font-medium">Reply</Text>
+                  <Text className="ml-1 text-sm text-gray-700">{likeCounts[reply.id] ?? 0}</Text>
                 </TouchableOpacity>
               </View>
-
-              {/* Replies */}
-              {comment.replies?.map((reply) => (
-                <View
-                  key={reply.id}
-                  className="ml-4 mt-4 pl-3 border-l-2 border-gray-200"
-                >
-                  <Text className="font-semibold text-gray-900">
-                    {reply.user}{" "}
-                    <Text className="text-xs text-gray-400">{reply.time}</Text>
-                  </Text>
-                  <Text className="text-base text-gray-800 mt-1">{reply.text}</Text>
-
-                  <View className="flex-row items-center mt-2 space-x-4">
-                    <TouchableOpacity
-                      onPress={() => toggleLike(reply.id.toString())}
-                      className="flex-row items-center space-x-1"
-                    >
-                      <ThumbUpIcon
-                        width={16}
-                        height={16}
-                        fill={likedComments[reply.id] ? "#459B6C" : "#9CA3AF"}
-                      />
-                      <Text className="ml-1 text-sm text-gray-700">{likeCounts[reply.id]}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity>
-                      <Text className="ml-6 text-sm text-green-700 font-medium">Reply</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ))}
-        </View>
-
-        {/* Comment Input */}
-        <View className="flex-row items-center border-t border-gray-300 pt-4 mt-2 bg-white">
-          <TextInput
-            placeholder="Add a comment..."
-            className="flex-1 border border-gray-300 px-4 py-2 rounded-lg"
-          />
-          <TouchableOpacity className="ml-2 bg-black px-4 py-2 rounded-lg">
-            <Text className="text-white">Post</Text>
-          </TouchableOpacity>
-        </View>
+            ))}
+          </View>
+        ))}
       </ScrollView>
 
       {/* Menu Modal */}
-      <Modal
-        transparent
-        visible={menuVisible}
-        animationType="slide"
-        onRequestClose={() => setMenuVisible(false)}
-      >
+      <Modal transparent visible={menuVisible} animationType="slide">
         <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
           <View className="flex-1 bg-black bg-opacity-50" />
         </TouchableWithoutFeedback>
 
         <View className="absolute bottom-0 left-0 right-0 items-center">
-          <View className="bg-purple-100 p-6 rounded-2xl mb-5 w-11/12 shadow-lg">
+          <View className="bg-white p-6 rounded-2xl mb-5 w-11/12 shadow-lg">
             <TouchableOpacity
-              onPress={handleEdit}
+              onPress={() => {
+                setMenuVisible(false);
+                router.push({
+                  pathname: "/expert/viewrock/edit/[id]",
+                  params: { id: String(rock.rock_id) },
+                });
+              }}
               className="py-3"
-              activeOpacity={0.7}
             >
-              <Text className="text-purple-800 font-bold text-lg text-left">
-                Edit
-              </Text>
+              <Text className="text-black font-bold text-lg text-left">Edit</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={handleDeletePress}
+              onPress={() => {
+                setMenuVisible(false);
+                setConfirmVisible(true);
+              }}
               className="py-3"
-              activeOpacity={0.7}
             >
-              <Text className="text-purple-800 font-bold text-lg text-left">
-                Delete
-              </Text>
+              <Text className="text-red-600 font-bold text-lg text-left">Delete</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
       {/* Confirm Delete Modal */}
-      <Modal
-        transparent
-        visible={confirmVisible}
-        animationType="fade"
-        onRequestClose={handleCancelDelete}
-        >
-        <TouchableWithoutFeedback onPress={handleCancelDelete}>
-            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} />
+      <Modal transparent visible={confirmVisible} animationType="fade">
+        <TouchableWithoutFeedback onPress={() => setConfirmVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} />
         </TouchableWithoutFeedback>
-        <View className="flex-1 justify-center items-center bg-transparent px-8 absolute inset-0">
-            <View className="bg-white rounded-2xl p-6 w-full max-w-md items-center shadow-lg">
+        <View className="absolute inset-0 justify-center items-center px-8">
+          <View className="bg-white rounded-2xl p-6 w-full max-w-md items-center shadow-lg">
             <Text className="text-2xl font-bold mb-3 text-black">Confirm Delete</Text>
             <Text className="text-base text-gray-600 mb-6 text-center">
-                Are you sure you want to remove this rock?
+              Are you sure you want to delete this rock?
             </Text>
-            <View className="flex-col w-full space-y-3">
-                <TouchableOpacity
-                onPress={handleConfirmDelete}
-                activeOpacity={0.8}
-                className="bg-red-600 rounded-xl py-3 items-center shadow-md"
-                >
-                <Text className="text-white font-bold text-lg">Delete</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                onPress={handleCancelDelete}
-                activeOpacity={0.8}
-                className="bg-gray-200 rounded-xl py-3 items-center"
-                >
-                <Text className="text-gray-800 font-bold text-lg">Cancel</Text>
-                </TouchableOpacity>
-            </View>
-            </View>
+            <TouchableOpacity
+              onPress={handleDelete}
+              className="bg-red-600 w-full py-3 rounded-xl items-center mb-3"
+            >
+              <Text className="text-white font-bold text-lg">Delete</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setConfirmVisible(false)}
+              className="bg-gray-200 w-full py-3 rounded-xl items-center"
+            >
+              <Text className="text-gray-800 font-bold text-lg">Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        </Modal>
-
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
