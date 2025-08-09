@@ -250,7 +250,7 @@ class Rock(db.Model):
                 blob_path = upload_file_to_gcs(
                     photo_file,
                     filename=filename,
-                    folder="rocks",
+                    folder="rock-image-display", 
                     custom_filename=f"{new_cleaned_name}_{timestamp}",
                     overwrite=True
                 )
