@@ -4,7 +4,7 @@
     "slug": "Rockland",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/rockland_logo.png",
     "scheme": "rockland",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,11 +16,20 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/rockland_adaptive_logo.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBfYOI8RE7RbJ-63czEd7dI2kM92dflIa8"
+        }
+      },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.Rockland"
+      "package": "com.rockland.app"
     },
     "web": {
       "bundler": "metro",
@@ -32,7 +41,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/rockland_adaptive_logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -43,6 +52,18 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ea8228ee-a6c9-4334-b6ae-f0dcae977778"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ea8228ee-a6c9-4334-b6ae-f0dcae977778",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": "1.0.0"
   }
 }
