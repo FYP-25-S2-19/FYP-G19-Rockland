@@ -78,8 +78,8 @@ export default function EditRockScreen() {
           return;
         }
         const token = await AsyncStorage.getItem("accessToken");
-        const res = await fetch(${API_URL}/api/viewrock/${rockId}, {
-          headers: { Authorization: Bearer ${token} },
+        const res = await fetch(`${API_URL}/api/viewrock/${rockId}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
 
@@ -194,7 +194,7 @@ export default function EditRockScreen() {
         const fileBase64 = await FileSystem.readAsStringAsync(fileUri, {
           encoding: FileSystem.EncodingType.Base64,
         });
-        photoBase64 = data:image/jpeg;base64,${fileBase64};
+        photoBase64 = `data:image/jpeg;base64,${fileBase64}`;
       }
 
       const payload: any = {
@@ -211,10 +211,10 @@ export default function EditRockScreen() {
       };
       if (photoBase64) payload.photo = photoBase64;
 
-      const res = await fetch(${API_URL}/api/rocks/update/${rockId}, {
+      const res = await fetch(`${API_URL}/api/rocks/update/${rockId}`, {
         method: "PUT",
         headers: {
-          Authorization: Bearer ${token},
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
@@ -241,7 +241,7 @@ export default function EditRockScreen() {
           "You need expert permission to update rocks. Please log in with an expert account."
         );
       } else {
-        Alert.alert("❌ Error", result?.message || Failed to update (status ${res.status}).);
+        Alert.alert("❌ Error", result?.message || `Failed to update (status ${res.status}).`);
       }
     } catch (err: any) {
       Alert.alert("❌ Error", err?.message || "Something went wrong while updating.");
@@ -351,7 +351,7 @@ export default function EditRockScreen() {
           <View className="border border-black rounded-lg bg-white shadow mb-2">
             {rockTypes.map((type) => (
               <TouchableOpacity key={type} onPress={() => selectRockType(type)} className="px-4 py-3">
-                <Text className={text-base text-black ${type === rockType ? "font-bold" : ""}}>{type}</Text>
+                <Text className={`text-base text-black ${type === rockType ? "font-bold" : ""}`}>{type}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -369,7 +369,7 @@ export default function EditRockScreen() {
               >
                 {rarity === key && <Text className="text-white text-[14px] font-bold">✓</Text>}
               </View>
-              <Text className={text-base text-[#76472D] ${rarity === key ? "font-bold" : ""}}>
+              <Text className={`text-base text-[#76472D] ${rarity === key ? "font-bold" : ""}`}>
                 {key.charAt(0).toUpperCase() + key.slice(1)}
               </Text>
             </TouchableOpacity>

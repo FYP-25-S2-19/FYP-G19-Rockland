@@ -28,8 +28,8 @@ export default function HomeScreen() {
   const fetchRecentArticles = async () => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
-      const headers = { Authorization: Bearer ${token} };
-      const res = await axios.get(${process.env.EXPO_PUBLIC_API_URL}/api/articles/my_recent, { headers });
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/articles/my_recent`, { headers });
 
       if (res.data.success) {
         const formattedArticles = res.data.articles.map((article: any) => ({
@@ -50,8 +50,8 @@ export default function HomeScreen() {
   const fetchRecentRocks = async () => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
-      const headers = { Authorization: Bearer ${token} };
-      const res = await axios.get(${process.env.EXPO_PUBLIC_API_URL}/api/rocks/user/me, { headers });
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/rocks/user/me`, { headers });
 
       if (res.data.success) {
         const formattedRocks = res.data.rocks.map((rock: any) => ({
