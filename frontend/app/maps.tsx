@@ -155,7 +155,6 @@ export default function RockMapScreen() {
       setRockMarkers((prev) =>
         prev.filter((marker) => {
           const expireMs = new Date(marker.expires_at).getTime() - Date.now();
-          console.log(`Marker ${marker.rock_spawn_id} expires in ${expireMs} ms`);
           return expireMs > -1000; // 1-second grace
         })
       );
