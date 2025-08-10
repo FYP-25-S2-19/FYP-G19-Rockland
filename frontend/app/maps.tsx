@@ -8,7 +8,7 @@ import {
   Alert,
   Animated,
 } from "react-native";
-import MapView, { Camera, Marker, Region, Circle } from "react-native-maps";
+import MapView, { Camera, Marker, Region, Circle, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -378,6 +378,7 @@ export default function RockMapScreen() {
       )}
 
       <MapView
+        provider={PROVIDER_GOOGLE}
         ref={mapRef}
         style={{ width: Dimensions.get("window").width, height: Dimensions.get("window").height }}
         initialCamera={initialCamera}

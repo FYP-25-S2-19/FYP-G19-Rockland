@@ -64,8 +64,8 @@ export default function ExpertViewRockScreen() {
       try {
         if (!rockId) return;
         const token = await AsyncStorage.getItem("accessToken");
-        const response = await fetch(${API_URL}/api/viewrock/${rockId}, {
-          headers: { Authorization: Bearer ${token} },
+        const response = await fetch(`${API_URL}/api/viewrock/${rockId}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
 
@@ -115,9 +115,9 @@ export default function ExpertViewRockScreen() {
   const handleDelete = async () => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
-      const response = await fetch(${API_URL}/api/rocks/delete/${rock?.rock_id}, {
+      const response = await fetch(`${API_URL}/api/rocks/delete/${rock?.rock_id}`, {
         method: "DELETE",
-        headers: { Authorization: Bearer ${token} },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
       if (data.success) {
@@ -222,7 +222,7 @@ export default function ExpertViewRockScreen() {
           .map((loc) => loc.trim())
           .filter(Boolean)
           .map((loc, i) => (
-            <Text key={${loc}-${i}} className="text-base text-gray-700 mb-1">
+            <Text key={`${loc}-${i}`} className="text-base text-gray-700 mb-1">
               • {loc}
             </Text>
           ))}

@@ -1,6 +1,8 @@
 # 📄 zone_profile.py (entity)
 
 from app.models import db
+from sqlalchemy import and_, func
+
 
 class ZoneProfile(db.Model):
     __tablename__ = "zone_profile"
@@ -40,14 +42,30 @@ class ZoneProfile(db.Model):
         return self.lat_min <= lat <= self.lat_max and self.lng_min <= lng <= self.lng_max
 
     @classmethod
-    def get_zone_by_coordinates(cls, lat, lng):
-        return cls.query.filter(
-            cls.lat_min <= lat,
-            cls.lat_max >= lat,
-            cls.lng_min <= lng,
-            cls.lng_max >= lng
-        ).first()
+    def get_zone_by_coordinates(cls, lat: float, lng: float, pad: float = 0.0012):
+        """
+        Return a zone only if (lat,lng) is inside its bbox (with small pad).
+        If multiple match, pick the smallest area (most specific).
+        If none match, return None (no fallback).
+        """
+        lat = float(lat); lng = float(lng)
 
+        area = (cls.lat_max - cls.lat_min) * (cls.lng_max - cls.lng_min)
+
+        return (
+            cls.query
+            .filter(
+                and_(
+                    cls.lat_min - pad <= lat,
+                    cls.lat_max + pad >= lat,
+                    cls.lng_min - pad <= lng,
+                    cls.lng_max + pad >= lng,
+                )
+            )
+            .order_by(area.asc())  # prefer the most specific zone if overlaps exist
+            .first()
+        )
+    
     # CRUD Methods
     @classmethod
     def create(cls, data):
