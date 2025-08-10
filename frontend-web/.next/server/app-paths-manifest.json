@@ -1,7 +1,4 @@
 {
-  "/useraccount/page": "app/useraccount/page.js",
-  "/forgot-password/page": "app/forgot-password/page.js",
-  "/rockmanagement/page": "app/rockmanagement/page.js",
-  "/forummanagement/page": "app/forummanagement/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/registration/page": "app/registration/page.js"
 }
