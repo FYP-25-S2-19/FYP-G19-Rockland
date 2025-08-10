@@ -39,7 +39,7 @@ export default function AllRockScreen() {
 
   const getHeaders = async () => {
     const token = await AsyncStorage.getItem("accessToken");
-    return { Authorization: Bearer ${token} };
+    return { Authorization: `Bearer ${token}` };
   };
 
   const fetchRocks = async () => {
@@ -50,23 +50,23 @@ export default function AllRockScreen() {
       const userId = await AsyncStorage.getItem("userId");
 
       if (!token) {
-        console.warn("⚠ No accessToken found");
+        console.warn("⚠️ No accessToken found");
         setRocks([]);
         setLoading(false);
         // Optional: router.replace("/auth/login");
         return;
       }
 
-      const headers = { Authorization: Bearer ${token} };
+      const headers = { Authorization: `Bearer ${token}` };
 
       // Try /me first
-      let url = ${API}/api/rocks/user/me;
+      let url = `${API}/api/rocks/user/me`;
       console.log("📡 GET", url);
       let res = await axios.get(url, { headers });
 
       // If backend returns not-success, or you want to be extra safe, fallback to /user/:id
       if (!res.data?.success && userId) {
-        url = ${API}/api/rocks/user/${userId};
+        url = `${API}/api/rocks/user/${userId}`;
         console.log("📡 Fallback GET", url);
         res = await axios.get(url, { headers });
       }
@@ -80,7 +80,7 @@ export default function AllRockScreen() {
 
       if (res.data?.rocks) {
         setRocks(res.data.rocks);
-        console.log(✅ Loaded ${res.data.rocks.length} rocks);
+        console.log(`✅ Loaded ${res.data.rocks.length} rocks`);
       } else {
         setRocks([]);
       }
@@ -159,10 +159,10 @@ export default function AllRockScreen() {
           {item.rock_name || "Untitled"}
         </Text>
         <Text className="text-sm text-gray-600" numberOfLines={1}>
-          {item.rock_type ? ${item.rock_type} : "—"}
+          {item.rock_type ? `${item.rock_type}` : "—"}
         </Text>
       </View>
-      <View className={px-3 py-1 rounded-full shadow ${getRarityBadge(item.rarity)}}>
+      <View className={`px-3 py-1 rounded-full shadow ${getRarityBadge(item.rarity)}`}>
         <Text className="text-white font-semibold text-xs">{item.rarity || "Common"}</Text>
       </View>
     </TouchableOpacity>
