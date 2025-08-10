@@ -56,7 +56,10 @@ export default function HomeScreen() {
       if (res.data.success) {
         const formattedRocks = res.data.rocks.map((rock: any) => ({
           id: rock.rock_id,
-          image: rock.signed_photo_url,
+          image:
+            rock.signed_photo_url || rock.signed_url
+              ? { uri: rock.signed_photo_url || rock.signed_url }
+              : require("../../assets/images/article1.png"),
           title: rock.rock_name,
           type: rock.rock_type,
         }));
