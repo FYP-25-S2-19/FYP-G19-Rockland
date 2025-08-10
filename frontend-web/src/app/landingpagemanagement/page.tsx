@@ -60,6 +60,7 @@ interface SubscriptionPlan {
 interface Testimonial {
   testimonials_id: number
   name: string
+  rating: number
   testimony: string
   date_created: string
   user_id: number
@@ -90,10 +91,6 @@ interface SubscriptionPlanFormData {
   feature_d: string
 }
 
-interface TestimonialFormData {
-  name: string
-  testimony: string
-}
 
 // API configuration - get from your existing auth utils
 const getAuthInfo = () => {
@@ -161,10 +158,7 @@ export default function LandingPageManagement() {
 
   // Testimonials-specific state
   const [testimonials, setTestimonials] = useState<Testimonial[]>([])
-  const [testimonialFormData, setTestimonialFormData] = useState<TestimonialFormData>({
-    name: '',
-    testimony: ''
-  })
+
 
   // Fetch videos from API
   const fetchVideos = async () => {
@@ -413,73 +407,6 @@ export default function LandingPageManagement() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while creating subscription plan')
       console.error('Error creating subscription plan:', err)
-    } finally {
-      setIsLoading(false)
-      setShowAddDialog(false)
-    }
-  }
-
-  // Create testimonial
-  const createTestimonial = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      // Validation
-      if (!testimonialFormData.name.trim()) {
-        setError('Name is required')
-        return
-      }
-
-      if (!testimonialFormData.testimony.trim()) {
-        setError('Testimony is required')
-        return
-      }
-
-      const authInfo = getAuthInfo()
-      
-      if (!authInfo.isAuthenticated) {
-        setError(authInfo.error || 'Authentication failed. Please log in again.')
-        router.push('/login')
-        return
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/testimonials/create`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authInfo.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: testimonialFormData.name.trim(),
-          testimony: testimonialFormData.testimony.trim()
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      
-      if (data.success) {
-        setSuccessMessage(data.message || 'Testimonial created successfully')
-        setShowSuccessDialog(true)
-        
-        // Reset form
-        setTestimonialFormData({
-          name: '',
-          testimony: ''
-        })
-        
-        // Refresh testimonials list
-        await fetchTestimonials()
-      } else {
-        setError(data.message || 'Failed to create testimonial')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while creating testimonial')
-      console.error('Error creating testimonial:', err)
     } finally {
       setIsLoading(false)
       setShowAddDialog(false)
@@ -900,9 +827,7 @@ export default function LandingPageManagement() {
       await createAppLink()
     } else if (contentType === "Subscription Plan") {
       await createSubscriptionPlan()
-    } else if (contentType === "Testimonials") {
-      await createTestimonial()
-    }
+    } 
   }
 
   const getCurrentData = () => {
@@ -928,8 +853,6 @@ export default function LandingPageManagement() {
         return "Add New App Link"
       case "Subscription Plan":
         return "Add Subscription Plan"
-      case "Testimonials":
-        return "Add Testimonials"
       default:
         return "Add New"
     }
@@ -1346,46 +1269,6 @@ export default function LandingPageManagement() {
             </div>
           </div>
         )
-
-      case "Testimonials":
-        return (
-          <div className="space-y-6 py-4">
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Add New Testimonial</h3>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Name:</label>
-                  <Input 
-                    placeholder="John Doe" 
-                    value={testimonialFormData.name}
-                    onChange={(e) => setTestimonialFormData(prev => ({ ...prev, name: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Date:</label>
-                  <Input 
-                    value={new Date().toLocaleDateString('en-GB')} 
-                    readOnly 
-                    className="bg-gray-50"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Testimony:</label>
-                <Textarea 
-                  placeholder="This app has helped me tremendously..." 
-                  rows={4}
-                  value={testimonialFormData.testimony}
-                  onChange={(e) => setTestimonialFormData(prev => ({ ...prev, testimony: e.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
-        )
     }
   }
 
@@ -1450,10 +1333,12 @@ export default function LandingPageManagement() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Landing Page Management</h2>
               </div>
-              <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowAddDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                {getAddButtonText()}
-              </Button>
+              {contentType !== "Testimonials" && (
+                <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowAddDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {getAddButtonText()}
+                </Button>
+              )}
             </div>
 
             {/* Content Type Selector */}
@@ -1516,7 +1401,6 @@ export default function LandingPageManagement() {
               {contentType === "Video" && "Landing Page Management > Post New Video"}
               {contentType === "App Links" && "Landing Page Management > Add New App Link"}
               {contentType === "Subscription Plan" && "Landing Page Management > New Subscription Plan"}
-              {contentType === "Testimonials" && "Landing Page Management > Add New Testimonial"}
             </DialogTitle>
           </DialogHeader>
 
@@ -1532,7 +1416,6 @@ export default function LandingPageManagement() {
               {contentType === "Video" && "Post New Video"}
               {contentType === "App Links" && "Create App Link"}
               {contentType === "Subscription Plan" && "Create Subscription Plan"}
-              {contentType === "Testimonials" && "Create Testimonial"}
             </Button>
             <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={isLoading} className="w-full">
               Cancel

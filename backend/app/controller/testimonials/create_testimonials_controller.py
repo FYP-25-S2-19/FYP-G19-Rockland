@@ -9,9 +9,9 @@ class CreateTestimonialsController:
     
     @staticmethod
     @create_testimonials_blueprint.route('/api/testimonials/create', methods=['POST'])
-    @permission_required('has_admin_permission')  
+    @permission_required()  # Allow all authenticated users
     def create_testimonial(**kwargs):
-        """Create a new Testimonial"""
+        """Create a new Testimonial - Available to all authenticated users"""
         try:
             # Access current user
             current_user = kwargs.get('current_user')
@@ -30,25 +30,14 @@ class CreateTestimonialsController:
                 }), 400
             
             # Extract fields from request data
-            name = data.get('name', '').strip()
-            testimony = data.get('testimony', '').strip()
-            
-            # Basic validation
-            if not name:
-                return jsonify({
-                    'success': False,
-                    'message': 'Name is required'
-                }), 400
-            
-            if not testimony:
-                return jsonify({
-                    'success': False,
-                    'message': 'Testimony is required'
-                }), 400
+            name = data.get('name')
+            rating = data.get('rating')
+            testimony = data.get('testimony')
             
             # Use entity method to handle creation
             success, status_code, message, new_testimonial = Testimonials.createTestimonial(
                 name=name,
+                rating=rating,
                 testimony=testimony,
                 user_id=user_id
             )
