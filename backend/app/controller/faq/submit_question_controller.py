@@ -4,6 +4,7 @@ from datetime import datetime
 # Update imports to match your project structure
 from app.models import db
 from app.entity.faq import Faq
+from app.controller.authentication.permission_required import permission_required
 
 
 submit_question_blueprint = Blueprint('submit_question', __name__)
@@ -11,6 +12,7 @@ submit_question_blueprint = Blueprint('submit_question', __name__)
 class SubmitQuestionController:
     @staticmethod
     @submit_question_blueprint.route('/api/faqs/submit-question', methods=['POST'])
+    @permission_required([])
     def submit_question(**kwargs):
         """Allow any authenticated user to submit a question"""
         try:

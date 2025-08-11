@@ -35,6 +35,7 @@ interface Testimonial {
   testimony: string
   date_created: string
   user_id: number
+  user_name: string;
 }
 
 interface Article {
@@ -980,7 +981,7 @@ export default function RocklandLanding(): JSX.Element {
             ) : testimonialsData.length > 0 ? (
               testimonialsData.map((testimonial: Testimonial, index: number) => {
                 // Generate initials from name
-                const initials = testimonial.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
+                const initials = testimonial.user_name.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
                 
                 // Generate consistent color based on index
                 const colors = [
