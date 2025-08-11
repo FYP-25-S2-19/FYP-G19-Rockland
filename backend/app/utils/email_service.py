@@ -1,6 +1,3 @@
-# Step 1: Add debug output to your email service
-# Update your app/utils/email_service.py
-
 import smtplib
 import os
 from email.mime.text import MIMEText
@@ -24,12 +21,14 @@ class EmailService:
         email_user = os.getenv('EMAIL_USER')
         email_password = os.getenv('EMAIL_PASSWORD')
         from_name = os.getenv('FROM_NAME')
+        from_email = os.getenv('FROM_EMAIL', 'fyprockland@gmail.com')  # Default to verified sender
         
         print(f"  SMTP_SERVER: '{smtp_server}'")
         print(f"  SMTP_PORT: '{smtp_port}'")
         print(f"  EMAIL_USER: '{email_user}'")
         print(f"  EMAIL_PASSWORD: {'✓ Set (' + str(len(email_password)) + ' chars)' if email_password else '✗ None/Empty'}")
         print(f"  FROM_NAME: '{from_name}'")
+        print(f"  FROM_EMAIL: '{from_email}'")
         
         # Check if .env file exists
         env_path = os.path.join(os.getcwd(), '.env')
@@ -47,11 +46,12 @@ class EmailService:
                         print(f"    {i}: {line.strip()}")
         
         return {
-            'smtp_server': smtp_server or 'smtp.gmail.com',
+            'smtp_server': smtp_server or 'smtp.sendgrid.net',
             'smtp_port': int(smtp_port) if smtp_port else 587,
             'email_user': email_user,
             'email_password': email_password,
-            'from_name': from_name or 'Rockland'
+            'from_name': from_name or 'Rockland',
+            'from_email': from_email
         }
     
     @staticmethod
@@ -72,27 +72,28 @@ class EmailService:
                 return False, error_msg
             
             print(f"📧 Attempting to send email...")
-            print(f"   From: {config['email_user']}")
+            print(f"   SMTP User: {config['email_user']}")
+            print(f"   From Email: {config['from_email']}")
             print(f"   To: {to_email}")
             print(f"   SMTP: {config['smtp_server']}:{config['smtp_port']}")
             
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = 'Email Verification Code - Rockland'
-            msg['From'] = f"{config['from_name']} <{config['email_user']}>"
+            msg['From'] = f"{config['from_name']} <{config['from_email']}>"  # Use verified sender email
             msg['To'] = to_email
             
             # Simple text content for testing
             text_content = f"""
-            ROCKLAND - Email Verification Code
-            
-            Hello!
-            
-            Your verification code is: {verification_code}
-            
-            This code will expire in 15 minutes.
-            
-            © 2025 Rockland. All rights reserved.
+ROCKLAND - Email Verification Code
+
+Hello!
+
+Your verification code is: {verification_code}
+
+This code will expire in 15 minutes.
+
+© 2025 Rockland. All rights reserved.
             """
             
             text_part = MIMEText(text_content, 'plain')
@@ -113,7 +114,7 @@ class EmailService:
             
             print("🔄 Sending email...")
             text = msg.as_string()
-            server.sendmail(config['email_user'], to_email, text)
+            server.sendmail(config['from_email'], to_email, text)  # Use verified sender email
             print("✅ Email sent successfully")
             
             server.quit()
@@ -144,8 +145,54 @@ class EmailService:
     @staticmethod
     def send_welcome_email(to_email: str, user_name: str) -> Tuple[bool, str]:
         """Send welcome email after successful registration"""
-        # Simplified for now - just return success
-        return True, "Welcome email functionality temporarily disabled for debugging"
+        try:
+            config = EmailService.get_email_config()
+            
+            if not config['email_user'] or not config['email_password']:
+                error_msg = "Email configuration is incomplete"
+                print(f"❌ {error_msg}")
+                return False, error_msg
+            
+            print(f"📧 Sending welcome email to {to_email}")
+            
+            # Create message
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = 'Welcome to Rockland!'
+            msg['From'] = f"{config['from_name']} <{config['from_email']}>"
+            msg['To'] = to_email
+            
+            # Email content
+            text_content = f"""
+ROCKLAND - Welcome!
+
+Hello {user_name}!
+
+Welcome to Rockland! Your account has been successfully created.
+
+Get started by exploring our features and discovering amazing rocks!
+
+Thank you for joining our community.
+
+© 2025 Rockland. All rights reserved.
+            """
+            
+            text_part = MIMEText(text_content, 'plain')
+            msg.attach(text_part)
+            
+            # Send email
+            server = smtplib.SMTP(config['smtp_server'], config['smtp_port'])
+            server.starttls()
+            server.login(config['email_user'], config['email_password'])
+            server.sendmail(config['from_email'], to_email, msg.as_string())
+            server.quit()
+            
+            print(f"✅ Welcome email sent to {to_email}")
+            return True, "Welcome email sent successfully"
+            
+        except Exception as e:
+            error_msg = f"Error sending welcome email: {str(e)}"
+            print(f"❌ {error_msg}")
+            return False, error_msg
     
     @staticmethod
     def send_password_reset_email(to_email: str, verification_code: str, user_name: str = None) -> Tuple[bool, str]:
@@ -163,24 +210,24 @@ class EmailService:
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = 'Password Reset Code - Rockland'
-            msg['From'] = f"{config['from_name']} <{config['email_user']}>"
+            msg['From'] = f"{config['from_name']} <{config['from_email']}>"
             msg['To'] = to_email
             
             # Email content
             text_content = f"""
-            ROCKLAND - Password Reset Code
-            
-            Hello{' ' + user_name if user_name else ''}!
-            
-            You requested to reset your password. Your verification code is:
-            
-            {verification_code}
-            
-            This code will expire in 15 minutes.
-            
-            If you didn't request this password reset, please ignore this email.
-            
-            © 2025 Rockland. All rights reserved.
+ROCKLAND - Password Reset Code
+
+Hello{' ' + user_name if user_name else ''}!
+
+You requested to reset your password. Your verification code is:
+
+{verification_code}
+
+This code will expire in 15 minutes.
+
+If you didn't request this password reset, please ignore this email.
+
+© 2025 Rockland. All rights reserved.
             """
             
             text_part = MIMEText(text_content, 'plain')
@@ -190,7 +237,7 @@ class EmailService:
             server = smtplib.SMTP(config['smtp_server'], config['smtp_port'])
             server.starttls()
             server.login(config['email_user'], config['email_password'])
-            server.sendmail(config['email_user'], to_email, msg.as_string())
+            server.sendmail(config['from_email'], to_email, msg.as_string())
             server.quit()
             
             print(f"✅ Password reset email sent to {to_email}")
