@@ -354,7 +354,7 @@ export default function ZoneProfileManagement() {
         router.push('/forummanagement')
         break
       case "landing-page":
-        router.push('/landingpage')
+        router.push('/landingpagemanagement')
         break
       case "rock-management":
         router.push('/rockmanagement')

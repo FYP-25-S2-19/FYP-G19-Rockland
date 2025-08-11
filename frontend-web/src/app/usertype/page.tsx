@@ -18,7 +18,6 @@ import {
   Eye,
   Edit,
   Trash2,
-  Plus,
   Check,
   X,
   RefreshCw,
@@ -66,11 +65,10 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 export default function UserTypeManagement() {
   const router = useRouter()
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const [showAddDialog, setShowAddDialog] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
   const [confirmAction, setConfirmAction] = useState<{
-    type: "suspend" | "delete" | "activate"
+    type: "suspend" | "delete"
     userTypeId: string
     userTypeName: string
   } | null>(null)
@@ -80,16 +78,6 @@ export default function UserTypeManagement() {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editFormData, setEditFormData] = useState({
     id: "",
-    name: "",
-    description: "",
-    has_admin_permission: false,
-    has_freeuser_permission: false,
-    has_premium_permission: false,
-    has_expert_permission: false,
-  })
-
-  // Add form data state for create dialog
-  const [createFormData, setCreateFormData] = useState({
     name: "",
     description: "",
     has_admin_permission: false,
@@ -156,65 +144,6 @@ export default function UserTypeManagement() {
       console.error('Error fetching user types:', err)
     } finally {
       setIsLoadingData(false)
-    }
-  }
-
-  // Updated handleCreateUserType function with auth headers
-  const handleCreateUserType = async () => {
-    setIsLoading(true)
-    
-    try {
-      // Get authentication info from token
-      const authInfo = getAuthInfo()
-      
-      if (!authInfo.isAuthenticated) {
-        setError(authInfo.error || 'Authentication failed. Please log in again.')
-        router.push('/login')
-        return
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/usertypes/create_usertype`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authInfo.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(createFormData),
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (data.success) {
-        // Success - close dialog and reset form
-        setShowAddDialog(false)
-        setCreateFormData({
-          name: "",
-          description: "",
-          has_admin_permission: false,
-          has_freeuser_permission: false,
-          has_premium_permission: false,
-          has_expert_permission: false,
-        })
-        
-        // Show success message
-        setSuccessMessage(data.message || 'User type created successfully!')
-        setShowSuccessDialog(true)
-        
-        // Refresh the data
-        await fetchUserTypes()
-        
-      } else {
-        setError(data.error || data.message || 'Failed to create user type')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while creating user type')
-      console.error('Error creating user type:', err)
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -362,19 +291,6 @@ export default function UserTypeManagement() {
     }
   }, [error])
 
-  // Reset form when dialog is opened
-  const handleOpenAddDialog = () => {
-    setCreateFormData({
-      name: "",
-      description: "",
-      has_admin_permission: false,
-      has_freeuser_permission: false,
-      has_premium_permission: false,
-      has_expert_permission: false,
-    })
-    setShowAddDialog(true)
-  }
-
   const handleNavigation = (item: string) => {
     switch (item) {
       case "home":
@@ -423,11 +339,11 @@ export default function UserTypeManagement() {
 
   const filteredUserTypes = userTypes
 
-  const handleAction = async (action: "suspend" | "delete" | "activate", userTypeId: string) => {
+  const handleAction = async (action: "suspend" | "delete", userTypeId: string) => {
     if (action === "suspend") {
       await handleSuspendUserType()
     } else {
-      // TODO: Implement activate/delete functionality
+      // TODO: Implement delete functionality if needed
       setIsLoading(true)
       await new Promise((resolve) => setTimeout(resolve, 1500))
       setIsLoading(false)
@@ -692,10 +608,6 @@ export default function UserTypeManagement() {
                   <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingData ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
-                <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={handleOpenAddDialog}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add New User Type
-                </Button>
               </div>
             </div>
           </div>
@@ -772,17 +684,15 @@ export default function UserTypeManagement() {
                             size="sm"
                             variant="outline"
                             className={`h-8 px-3 ${
-                              !canSuspendUserType(userType)
+                              !canSuspendUserType(userType) || !userType.isActive
                                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : userType.isActive
-                                  ? "text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
-                                  : "text-green-600 hover:bg-green-50 hover:text-green-700 border-green-200"
+                                : "text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
                             }`}
-                            disabled={!canSuspendUserType(userType)}
+                            disabled={!canSuspendUserType(userType) || !userType.isActive}
                             onClick={() => {
-                              if (canSuspendUserType(userType)) {
+                              if (canSuspendUserType(userType) && userType.isActive) {
                                 setConfirmAction({
-                                  type: userType.isActive ? "suspend" : "activate",
+                                  type: "suspend",
                                   userTypeId: userType.id,
                                   userTypeName: userType.name,
                                 })
@@ -795,15 +705,15 @@ export default function UserTypeManagement() {
                                 <X className="w-3 h-3 mr-1" />
                                 Protected
                               </>
-                            ) : userType.isActive ? (
+                            ) : !userType.isActive ? (
                               <>
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Suspend
+                                <X className="w-3 h-3 mr-1" />
+                                Suspended
                               </>
                             ) : (
                               <>
-                                <Check className="w-3 h-3 mr-1" />
-                                Activate
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Suspend
                               </>
                             )}
                           </Button>
@@ -827,9 +737,7 @@ export default function UserTypeManagement() {
               <span>
                 {confirmAction?.type === "suspend"
                   ? "Suspend User Type"
-                  : confirmAction?.type === "activate"
-                    ? "Activate User Type"
-                    : "Delete User Type"}
+                  : "Delete User Type"}
               </span>
             </DialogTitle>
             <DialogDescription>
@@ -837,11 +745,7 @@ export default function UserTypeManagement() {
                 <>
                   Are you sure you want to suspend the <strong>{confirmAction.userTypeName}</strong> user type?
                   <br />
-                  <span className="text-orange-600 font-medium">All users with this type will be moved to Free user type.</span>
-                </>
-              ) : confirmAction?.type === "activate" ? (
-                <>
-                  Are you sure you want to activate the <strong>{confirmAction.userTypeName}</strong> user type?
+                  <span className="text-orange-600 font-medium">All users with this type will be moved to Free user type. This action cannot be undone.</span>
                 </>
               ) : (
                 <>
@@ -871,9 +775,7 @@ export default function UserTypeManagement() {
               {isLoading && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
               {confirmAction?.type === "suspend"
                 ? "Suspend"
-                : confirmAction?.type === "activate"
-                  ? "Activate"
-                  : "Delete"}
+                : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -894,112 +796,6 @@ export default function UserTypeManagement() {
           <DialogFooter>
             <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowSuccessDialog(false)}>
               OK
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add New User Type Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Add New User Type</DialogTitle>
-            <DialogDescription>Create a new user type with specific permissions and access levels.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">User Type Name</label>
-              <Input 
-                placeholder="Enter user type name" 
-                value={createFormData.name}
-                onChange={(e) => setCreateFormData({ ...createFormData, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Input 
-                placeholder="Enter description" 
-                value={createFormData.description}
-                onChange={(e) => setCreateFormData({ ...createFormData, description: e.target.value })}
-              />
-            </div>
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Permissions</label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="admin" 
-                    checked={createFormData.has_admin_permission}
-                    onCheckedChange={(checked) => 
-                      setCreateFormData({ ...createFormData, has_admin_permission: checked as boolean })
-                    }
-                  />
-                  <label
-                    htmlFor="admin"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Admin Permission
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="free" 
-                    checked={createFormData.has_freeuser_permission}
-                    onCheckedChange={(checked) => 
-                      setCreateFormData({ ...createFormData, has_freeuser_permission: checked as boolean })
-                    }
-                  />
-                  <label
-                    htmlFor="free"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Free User Permission
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="premium" 
-                    checked={createFormData.has_premium_permission}
-                    onCheckedChange={(checked) => 
-                      setCreateFormData({ ...createFormData, has_premium_permission: checked as boolean })
-                    }
-                  />
-                  <label
-                    htmlFor="premium"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Premium User Permission
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="expert" 
-                    checked={createFormData.has_expert_permission}
-                    onCheckedChange={(checked) => 
-                      setCreateFormData({ ...createFormData, has_expert_permission: checked as boolean })
-                    }
-                  />
-                  <label
-                    htmlFor="expert"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Expert User Permission
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={isLoading}>
-              Cancel
-            </Button>
-            <Button 
-              className="bg-green-600 hover:bg-green-700" 
-              onClick={handleCreateUserType}
-              disabled={isLoading || !createFormData.name.trim()}
-            >
-              {isLoading && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
-              Create User Type
             </Button>
           </DialogFooter>
         </DialogContent>
