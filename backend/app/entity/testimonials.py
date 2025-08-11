@@ -1,11 +1,11 @@
 from app.models import db
 from datetime import datetime
+from sqlalchemy.orm import joinedload
 
 class Testimonials(db.Model):
     __tablename__ = 'testimonials'
     
     testimonials_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    # Removed name field - will get name from user relationship
     rating = db.Column(db.Integer, nullable=False)  # Rating out of 5 stars (1-5)
     testimony = db.Column(db.Text, nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -20,49 +20,75 @@ class Testimonials(db.Model):
     def get_user_display_name(self):
         """Helper method to get user display name from user relationship"""
         if not self.user:
+            print(f"⚠️ No user relationship found for testimonial {self.testimonials_id}, user_id: {self.user_id}")
             return f"User {self.user_id}"
         
         try:
-            # Try different possible field combinations in your User model
-            if hasattr(self.user, 'username') and self.user.username:
-                return self.user.username
-            elif hasattr(self.user, 'first_name') and hasattr(self.user, 'last_name'):
-                full_name = f"{self.user.first_name or ''} {self.user.last_name or ''}".strip()
-                return full_name if full_name else f"User {self.user_id}"
+            # Debug: Print user object details
+            print(f"🔍 User object for testimonial {self.testimonials_id}: {self.user}")
+            print(f"🔍 User attributes: {dir(self.user)}")
+            
+            # Check for first_name and last_name (based on your User model)
+            if hasattr(self.user, 'first_name') and self.user.first_name:
+                if hasattr(self.user, 'last_name') and self.user.last_name:
+                    full_name = f"{self.user.first_name} {self.user.last_name}".strip()
+                    print(f"✅ Found full name: {full_name}")
+                    return full_name
+                else:
+                    print(f"✅ Found first name only: {self.user.first_name}")
+                    return self.user.first_name
             elif hasattr(self.user, 'email') and self.user.email:
-                return self.user.email.split('@')[0]  # Use part before @ as display name
-            elif hasattr(self.user, 'name') and self.user.name:
-                return self.user.name
+                email_name = self.user.email.split('@')[0]
+                print(f"✅ Using email name: {email_name}")
+                return email_name
             else:
+                print(f"⚠️ No suitable name field found for user {self.user_id}")
                 return f"User {self.user_id}"
         except Exception as e:
-            print(f"Error getting user display name: {str(e)}")
+            print(f"❌ Error getting user display name: {str(e)}")
             return f"User {self.user_id}"
     
     def to_dict(self):
+        user_name = self.get_user_display_name()
+        print(f"📋 Testimonial {self.testimonials_id} to_dict - user_name: {user_name}")
+        
         return {
             'testimonials_id': self.testimonials_id,
+            'name': user_name,  # Add both for compatibility
+            'user_name': user_name,  # Keep this too
             'rating': self.rating,
             'testimony': self.testimony,
             'date_created': self.date_created.isoformat() if self.date_created else None,
             'user_id': self.user_id,
-            # Get name from user relationship instead of separate field
-            'user_name': self.get_user_display_name()
         }
     
     @classmethod
     def getAllTestimonials(cls):
+        """Get all testimonials with user relationship loaded"""
         try:
-            testimonials = cls.query.order_by(cls.date_created.desc()).all()
+            # ✅ This is the key fix: use joinedload to eagerly load the user relationship
+            testimonials = cls.query.options(joinedload(cls.user)).order_by(cls.date_created.desc()).all()
+            
+            print(f"📊 Found {len(testimonials)} testimonials")
+            
+            # Debug: Check if user relationships are loaded
+            for testimonial in testimonials:
+                print(f"🔍 Testimonial {testimonial.testimonials_id}: user={testimonial.user}, user_id={testimonial.user_id}")
+                if testimonial.user:
+                    print(f"   👤 User details: first_name={getattr(testimonial.user, 'first_name', 'N/A')}, "
+                          f"last_name={getattr(testimonial.user, 'last_name', 'N/A')}, "
+                          f"email={getattr(testimonial.user, 'email', 'N/A')}")
+            
             return testimonials
         except Exception as e:
-            print(f"Error fetching all testimonials: {str(e)}")
+            print(f"❌ Error fetching all testimonials: {str(e)}")
             return None
     
     @classmethod
     def getTestimonialById(cls, testimonial_id):
+        """Get testimonial by ID with user relationship loaded"""
         try:
-            testimonial = cls.query.get(testimonial_id)
+            testimonial = cls.query.options(joinedload(cls.user)).get(testimonial_id)
             return testimonial
         except Exception as e:
             print(f"Error fetching testimonial by ID: {str(e)}")
@@ -71,7 +97,7 @@ class Testimonials(db.Model):
     @classmethod
     def viewTestimonial(cls, testimonial_id):
         try:
-            testimonial = cls.query.get(testimonial_id)
+            testimonial = cls.query.options(joinedload(cls.user)).get(testimonial_id)
             
             if testimonial:
                 return testimonial.to_dict(), 200
@@ -175,7 +201,7 @@ class Testimonials(db.Model):
             if not (1 <= rating <= 5):
                 return None
             
-            testimonials = cls.query.filter_by(rating=rating).order_by(cls.date_created.desc()).all()
+            testimonials = cls.query.options(joinedload(cls.user)).filter_by(rating=rating).order_by(cls.date_created.desc()).all()
             return testimonials
         except Exception as e:
             print(f"Error fetching testimonials by rating: {str(e)}")
@@ -185,7 +211,7 @@ class Testimonials(db.Model):
     def getTestimonialsByUser(cls, user_id):
         """Get all testimonials by a specific user"""
         try:
-            testimonials = cls.query.filter_by(user_id=user_id).order_by(cls.date_created.desc()).all()
+            testimonials = cls.query.options(joinedload(cls.user)).filter_by(user_id=user_id).order_by(cls.date_created.desc()).all()
             return testimonials
         except Exception as e:
             print(f"Error fetching testimonials by user: {str(e)}")

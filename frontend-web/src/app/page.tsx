@@ -31,11 +31,13 @@ interface Video {
 
 interface Testimonial {
   testimonials_id: number
-  name: string
+  name: string  // This comes from the model's get_user_display_name method
+  rating: number
   testimony: string
   date_created: string
   user_id: number
-  user_name: string;
+  is_displayed: boolean
+  display_order: number | null
 }
 
 interface Article {
