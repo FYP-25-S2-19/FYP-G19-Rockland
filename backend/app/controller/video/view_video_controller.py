@@ -6,40 +6,61 @@ view_video_blueprint = Blueprint('view_video', __name__)
 
 class ViewVideoController:
     
-    # PUBLIC ENDPOINT - Get most recent video for landing page
+    # PUBLIC ENDPOINT - Get all SELECTED videos only
     @staticmethod
-    @view_video_blueprint.route('/api/videos', methods=['GET'])
-    def get_latest_video():
-        """Get the most recent video for landing page"""
+    @view_video_blueprint.route('/api/videos/all', methods=['GET'])
+    def get_all_selected_videos():
+        """Get all SELECTED videos for landing page"""
         try:
-            print("🔍 /api/videos endpoint called")
+            selected_videos = Video.getSelectedVideos()
             
-            # Get the most recent video
-            latest_video = Video.getLatestVideo()
+            return jsonify({
+                'success': True,
+                'videos': [video.to_dict() for video in selected_videos],
+                'count': len(selected_videos)
+            }), 200
             
-            if latest_video:
-                print(f"✅ Latest video found: {latest_video.name} (ID: {latest_video.video_id})")
-                video_dict = latest_video.to_dict()
-                print(f"📊 Video URL: {video_dict.get('signed_video_url', 'No URL')}")
-                return jsonify(video_dict), 200
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': f"Server error: {str(e)}"
+            }), 500
+
+    # ADMIN ENDPOINT - Toggle video selection
+    @staticmethod
+    @view_video_blueprint.route('/api/videos/toggle-selection/<int:video_id>', methods=['POST'])
+    @permission_required('has_admin_permission')
+    def toggle_video_selection(video_id, **kwargs):
+        """Toggle video selection for landing page display"""
+        try:
+            success, status_code, message = Video.toggleVideoSelection(video_id)
+            
+            if success:
+                video = Video.getVideoById(video_id)
+                return jsonify({
+                    'success': True,
+                    'message': message,
+                    'video': video.to_dict() if video else None
+                }), status_code
             else:
-                print("❌ No videos found in database")
-                return jsonify({"error": "No videos available"}), 404
+                return jsonify({
+                    'success': False,
+                    'message': message
+                }), status_code
                 
         except Exception as e:
-            print(f"❌ Error fetching latest video: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({"error": f"Server error: {str(e)}"}), 500
+            return jsonify({
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }), 500
 
-    # ADMIN ENDPOINT - Get all videos for admin management (following Article pattern)
+    # Keep your existing admin endpoints unchanged...
     @staticmethod
     @view_video_blueprint.route('/api/videos/admin/all', methods=['GET'])
     @permission_required('has_admin_permission')
     def get_all_videos_admin(**kwargs):
-        """Fetch all videos for admin view (following Article pattern)"""
+        """Fetch all videos for admin view"""
         try:
-            # Access current admin user from permission decorator
             current_user = kwargs.get('current_user')
             if not current_user:
                 return jsonify({
@@ -47,9 +68,6 @@ class ViewVideoController:
                     'message': 'Admin authentication required'
                 }), 401
             
-            print(f"📋 Admin {current_user.email} is viewing all videos")
-            
-            # Get all videos
             videos = Video.getAllVideos()
             
             if videos is not None:
@@ -67,20 +85,17 @@ class ViewVideoController:
                 }), 500
                 
         except Exception as e:
-            print(f"Error in get_all_videos_admin controller: {e}")
             return jsonify({
                 'success': False,
                 'message': f'Error fetching videos: {str(e)}'
             }), 500
-    
-    # ADMIN ENDPOINT - Get video detail (following Article pattern)
+
     @staticmethod
     @view_video_blueprint.route('/api/videos/view/<int:video_id>', methods=['GET'])
     @permission_required('has_admin_permission')
     def get_video_detail_admin(video_id, **kwargs):
         """When admin clicks view, shows the detail of the video"""
         try:
-            # Access current admin user from permission decorator
             current_user = kwargs.get('current_user')
             if not current_user:
                 return jsonify({
@@ -88,9 +103,6 @@ class ViewVideoController:
                     'message': 'Admin authentication required'
                 }), 401
             
-            print(f"👁️ Admin {current_user.email} is viewing video details {video_id}")
-            
-            # Get video by ID
             video = Video.getVideoById(video_id)
             
             if video:
@@ -106,7 +118,6 @@ class ViewVideoController:
                 }), 404
                 
         except Exception as e:
-            print(f"Error in get_video_detail_admin controller: {e}")
             return jsonify({
                 'success': False,
                 'message': f'Error fetching video: {str(e)}'

@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Play, Plus, Minus, Loader2, Menu, X } from "lucide-react"
+import { Check, Play, Plus, Minus, Loader2, Menu, X, Star } from "lucide-react"
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -23,21 +23,23 @@ interface Video {
   name: string
   description: string
   file_url: string
+  signed_video_url: string
   file_name: string
   file_size: number
   file_type: string
   date_created: string
+  is_selected: boolean
 }
 
 interface Testimonial {
   testimonials_id: number
   name: string  // This comes from the model's get_user_display_name method
+  user_name?: string  // Alternative field name for compatibility
   rating: number
   testimony: string
   date_created: string
   user_id: number
-  is_displayed: boolean
-  display_order: number | null
+  is_selected: boolean  // Updated field name to match backend
 }
 
 interface Article {
@@ -255,7 +257,7 @@ export default function RocklandLanding(): JSX.Element {
     fetchFaqs()
   }, [])
 
-  // Fetch testimonials from database
+  // Fetch SELECTED testimonials from database
   useEffect(() => {
     const fetchTestimonials = async () => {
       try {
@@ -269,13 +271,14 @@ export default function RocklandLanding(): JSX.Element {
         }
         
         const data = await response.json()
-        console.log('🎤 Received testimonials data:', data)
+        console.log('🎤 Received selected testimonials data:', data)
         
         if (data.success && data.testimonials) {
-          // Take only the first 3 testimonials for landing page
+          // The backend should now return only selected testimonials
+          // Take only the first 3 for landing page display
           const limitedTestimonials = data.testimonials.slice(0, 3)
           setTestimonialsData(limitedTestimonials)
-          console.log(`✅ Loaded ${limitedTestimonials.length} testimonials for landing page`)
+          console.log(`✅ Loaded ${limitedTestimonials.length} selected testimonials for landing page`)
         } else {
           setTestimonialsError("No testimonials available")
         }
@@ -325,15 +328,15 @@ export default function RocklandLanding(): JSX.Element {
     fetchArticles()
   }, [])
 
-  // Fetch the most recent video for landing page
+  // Fetch the most recent SELECTED video for landing page
   useEffect(() => {
     const fetchLatestVideo = async () => {
       try {
         setVideoLoading(true)
         setVideoError(null)
         
-        // Use the correct backend port (5000)
-        const response = await fetch(`${API_BASE_URL}/api/videos`)
+        // Fetch only selected videos
+        const response = await fetch(`${API_BASE_URL}/api/videos/all`)
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -345,27 +348,28 @@ export default function RocklandLanding(): JSX.Element {
         }
         
         const videoData = await response.json()
-        console.log('📹 Received video data:', videoData)
+        console.log('📹 Received selected videos data:', videoData)
         
         // Check if we got video data
-        if (videoData && videoData.video_id) {
-          // Use signed_video_url (the working GCS URL with authentication)
-          const videoUrl = videoData.signed_video_url || videoData.file_url
+        if (videoData.success && videoData.videos && videoData.videos.length > 0) {
+          // Get the first selected video
+          const firstVideo = videoData.videos[0]
+          const videoUrl = firstVideo.signed_video_url || firstVideo.file_url
           
           if (videoUrl) {
             // Create video object with the working URL
             const workingVideo = {
-              ...videoData,
+              ...firstVideo,
               file_url: videoUrl  // Use the signed URL
             }
             setDemoVideo(workingVideo)
-            console.log('✅ Video loaded successfully:', workingVideo.name)
+            console.log('✅ Selected video loaded successfully:', workingVideo.name)
             console.log('🔗 Video URL:', videoUrl)
           } else {
             setVideoError("Video file not accessible")
           }
         } else {
-          setVideoError("No videos available")
+          setVideoError("No selected videos available")
         }
       } catch (error) {
         console.error('❌ Error fetching latest video:', error)
@@ -399,6 +403,19 @@ export default function RocklandLanding(): JSX.Element {
   const getAuthorInitials = (authorName: string): string => {
     if (!authorName) return 'UN'
     return authorName.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
+  }
+
+  // Helper function to get display name for testimonial
+  const getTestimonialDisplayName = (testimonial: Testimonial): string => {
+    if (testimonial.name) {
+      return testimonial.name
+    }
+    
+    if (testimonial.user_name) {
+      return testimonial.user_name
+    }
+    
+    return `User ${testimonial.user_id}`
   }
 
   // Helper function to parse features from subscription plan
@@ -958,7 +975,7 @@ export default function RocklandLanding(): JSX.Element {
         </div>
       </section>
 
-      {/* Testimonials Section - Made responsive */}
+      {/* Testimonials Section - Made responsive with updated selected testimonials */}
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8 sm:mb-12">
@@ -983,7 +1000,8 @@ export default function RocklandLanding(): JSX.Element {
             ) : testimonialsData.length > 0 ? (
               testimonialsData.map((testimonial: Testimonial, index: number) => {
                 // Generate initials from name
-                const initials = testimonial.user_name.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
+                const displayName = getTestimonialDisplayName(testimonial)
+                const initials = displayName.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
                 
                 // Generate consistent color based on index
                 const colors = [
@@ -1000,7 +1018,7 @@ export default function RocklandLanding(): JSX.Element {
                         <span className="text-white font-bold text-sm sm:text-base">{initials}</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{testimonial.name}</h4>
+                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{displayName}</h4>
                         <p className="text-xs text-gray-500">
                           {new Date(testimonial.date_created).toLocaleDateString()}
                         </p>
@@ -1008,10 +1026,12 @@ export default function RocklandLanding(): JSX.Element {
                     </div>
                     <div className="flex mb-3">
                       {[...Array(5)].map((_, i) => (
-                        <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
+                        <Star 
+                          key={i} 
+                          className={`w-4 h-4 ${i < testimonial.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                        />
                       ))}
+                      <span className="text-sm text-gray-500 ml-2">({testimonial.rating}/5)</span>
                     </div>
                     <p className="text-gray-600 italic text-sm sm:text-base">"{testimonial.testimony}"</p>
                   </Card>
@@ -1021,28 +1041,9 @@ export default function RocklandLanding(): JSX.Element {
               // Fallback content when no testimonials are available
               <div className="col-span-full text-center py-8">
                 <p className="text-gray-600">No testimonials available at the moment.</p>
+                <p className="text-sm text-gray-400 mt-2">Check back soon for user reviews!</p>
               </div>
             )}
-          </div>
-
-          {/* Stats Section - Made responsive */}
-          <div className="mt-12 sm:mt-16 grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 text-center">
-            <div className="p-4 sm:p-6">
-              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">25K+</div>
-              <p className="text-gray-600 text-sm sm:text-base">Active Users</p>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">500K+</div>
-              <p className="text-gray-600 text-sm sm:text-base">Rocks Identified</p>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">4.8</div>
-              <p className="text-gray-600 text-sm sm:text-base">App Store Rating</p>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">150+</div>
-              <p className="text-gray-600 text-sm sm:text-base">Countries</p>
-            </div>
           </div>
         </div>
       </section>
@@ -1119,7 +1120,6 @@ export default function RocklandLanding(): JSX.Element {
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
-                      Most Popular
                     </div>
                   </div>
                   
@@ -1181,6 +1181,7 @@ export default function RocklandLanding(): JSX.Element {
                   </div>
                   <div className="text-4xl sm:text-5xl font-bold mb-1 text-black">
                     {subscriptionPlans.free?.currency || '$'
+                
                 }{subscriptionPlans.free?.price || 0}
                     <span className="text-base font-normal text-gray-500">/month</span>
                   </div>
@@ -1249,6 +1250,7 @@ export default function RocklandLanding(): JSX.Element {
                   </div>
                   <div className="text-4xl sm:text-5xl font-bold mb-1">
                     {subscriptionPlans.premium?.currency || '$'
+                
                 }{subscriptionPlans.premium?.price || 5}
                     <span className="text-base font-normal text-gray-500">/month</span>
                   </div>

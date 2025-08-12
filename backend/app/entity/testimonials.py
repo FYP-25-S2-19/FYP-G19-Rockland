@@ -11,6 +11,9 @@ class Testimonials(db.Model):
     date_created = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)  # User ID who posted it
     
+    # NEW FIELD: Whether testimonial is displayed on landing page
+    is_selected = db.Column(db.Boolean, default=False, nullable=False)
+    
     # Relationship to User model
     user = db.relationship('User', backref='testimonials')
     
@@ -60,7 +63,38 @@ class Testimonials(db.Model):
             'testimony': self.testimony,
             'date_created': self.date_created.isoformat() if self.date_created else None,
             'user_id': self.user_id,
+            'is_selected': self.is_selected,  # NEW FIELD
         }
+    
+    # NEW METHOD: Toggle selection status
+    def toggleSelection(self):
+        """Toggle the selection status of this testimonial"""
+        try:
+            self.is_selected = not self.is_selected
+            db.session.commit()
+            
+            status_text = "selected for display" if self.is_selected else "hidden from display"
+            return True, 200, f"Testimonial {status_text} on landing page"
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error toggling testimonial selection: {str(e)}")
+            return False, 500, f"Error: {str(e)}"
+    
+    # NEW METHOD: Set selection status
+    def setSelection(self, is_selected):
+        """Set the selection status of this testimonial"""
+        try:
+            self.is_selected = bool(is_selected)
+            db.session.commit()
+            
+            status_text = "selected for display" if self.is_selected else "hidden from display"
+            return True, 200, f"Testimonial {status_text} on landing page"
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error setting testimonial selection: {str(e)}")
+            return False, 500, f"Error: {str(e)}"
     
     @classmethod
     def getAllTestimonials(cls):
@@ -83,6 +117,34 @@ class Testimonials(db.Model):
         except Exception as e:
             print(f"❌ Error fetching all testimonials: {str(e)}")
             return None
+    
+    # NEW CLASS METHOD: Get selected testimonials
+    @classmethod
+    def getSelectedTestimonials(cls):
+        """Get all testimonials that are selected for display on landing page"""
+        try:
+            testimonials = cls.query.options(joinedload(cls.user)).filter_by(is_selected=True).order_by(cls.date_created.desc()).all()
+            print(f"📊 Found {len(testimonials)} selected testimonials")
+            return testimonials
+        except Exception as e:
+            print(f"❌ Error fetching selected testimonials: {str(e)}")
+            return []
+    
+    # NEW CLASS METHOD: Toggle testimonial selection by ID
+    @classmethod
+    def toggleTestimonialSelection(cls, testimonial_id):
+        """Class method to toggle testimonial selection by ID"""
+        try:
+            testimonial = cls.getTestimonialById(testimonial_id)
+            
+            if not testimonial:
+                return False, 404, "Testimonial not found"
+            
+            return testimonial.toggleSelection()
+            
+        except Exception as e:
+            print(f"Error toggling testimonial selection: {str(e)}")
+            return False, 500, f"Error: {str(e)}"
     
     @classmethod
     def getTestimonialById(cls, testimonial_id):
@@ -136,7 +198,8 @@ class Testimonials(db.Model):
             new_testimonial = cls(
                 rating=rating,
                 testimony=str(testimony).strip(),
-                user_id=user_id
+                user_id=user_id,
+                is_selected=False  # Default to not selected
             )
             
             db.session.add(new_testimonial)
@@ -232,6 +295,7 @@ class Testimonials(db.Model):
         """Get testimonial statistics"""
         try:
             total_count = cls.query.count()
+            selected_count = cls.query.filter_by(is_selected=True).count()
             average_rating = cls.getAverageRating()
             
             # Count by rating
@@ -242,6 +306,7 @@ class Testimonials(db.Model):
             
             return {
                 'total_count': total_count,
+                'selected_count': selected_count,
                 'average_rating': average_rating,
                 'rating_distribution': rating_counts
             }
