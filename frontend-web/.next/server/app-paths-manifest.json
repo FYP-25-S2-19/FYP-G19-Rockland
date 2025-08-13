@@ -1,7 +1,10 @@
 {
+  "/page": "app/page.js",
   "/login/page": "app/login/page.js",
   "/dashboard/page": "app/dashboard/page.js",
+  "/landingpagemanagement/page": "app/landingpagemanagement/page.js",
   "/zoneprofile/page": "app/zoneprofile/page.js",
-  "/page": "app/page.js",
-  "/zoneprofile/preview_zone/page": "app/zoneprofile/preview_zone/page.js"
+  "/zoneprofile/preview_zone/page": "app/zoneprofile/preview_zone/page.js",
+  "/rockmanagement/page": "app/rockmanagement/page.js",
+  "/zoneprofile/[id]/edit/page": "app/zoneprofile/[id]/edit/page.js"
 }
