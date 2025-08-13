@@ -23,7 +23,6 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL; // set via .env / eas
 export default function TestimonialsScreen() {
   const router = useRouter();
 
-  const [name, setName] = useState("");
   const [rating, setRating] = useState<number>(0);
   const [testimony, setTestimony] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -31,10 +30,8 @@ export default function TestimonialsScreen() {
   const MAX_LEN = 800;
 
   const onSubmit = async () => {
-    const n = name.trim();
     const t = testimony.trim();
 
-    if (!n) return Alert.alert("Name required", "Please enter your name.");
     if (!rating) return Alert.alert("Rating required", "Please select a star rating (1–5).");
     if (!t) return Alert.alert("Feedback required", "Please write your feedback.");
     if (t.length > MAX_LEN) return Alert.alert("Too long", `Please keep feedback under ${MAX_LEN} characters.`);
@@ -50,7 +47,7 @@ export default function TestimonialsScreen() {
 
       const res = await axios.post(
         `${API_URL}/api/testimonials/create`,
-        { name: n, rating, testimony: t },
+        { rating, testimony: t },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -58,7 +55,7 @@ export default function TestimonialsScreen() {
         Alert.alert("Thank you!", "Your testimonial has been submitted.", [
           { text: "OK", onPress: () => router.back() },
         ]);
-        setName("");
+
         setRating(0);
         setTestimony("");
       } else {
@@ -108,18 +105,8 @@ export default function TestimonialsScreen() {
           contentContainerStyle={{ paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text className="text-gray-900 text-base font-semibold mt-5">Name *</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Your name"
-            placeholderTextColor="#9CA3AF"
-            className="mt-2 border border-gray-200 rounded-2xl px-4 py-3 text-gray-900"
-            autoCapitalize="words"
-            maxLength={120}
-          />
 
-          <Text className="text-gray-900 text-base font-semibold mt-5">Rating *</Text>
+          <Text className="text-gray-900 text-base font-semibold mt-10">Rating *</Text>
           <View className="flex-row items-center mt-2">
             {[1, 2, 3, 4, 5].map((i) => (
               <Star key={i} index={i} />

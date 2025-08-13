@@ -21,10 +21,16 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/page.js"
     ],
-    "/rockmanagement/page": [
+    "/zoneprofile/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/rockmanagement/page.js"
+      "static/css/app/zoneprofile/page.css",
+      "static/chunks/app/zoneprofile/page.js"
+    ],
+    "/zoneprofile/preview_zone/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/zoneprofile/preview_zone/page.js"
     ]
   }
 }

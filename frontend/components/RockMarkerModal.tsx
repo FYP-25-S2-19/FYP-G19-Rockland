@@ -10,14 +10,6 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-interface RockMarkerModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onSave: (spawnData: RockSpawn) => void;
-  onExpire?: () => void; 
-  rock: RockSpawn | null;
-}
-
 interface RockSpawn {
   rock_spawn_id: number;
   latitude: number;
@@ -35,12 +27,28 @@ interface RockSpawn {
   };
 }
 
+interface RockMarkerModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSave: (spawnData: RockSpawn) => void | Promise<void>;
+  onExpire?: () => void | Promise<void>;
+  rock: RockSpawn | null;
+
+  // NEW (optional) props
+  canCollect?: boolean;            // default: true
+  distanceMeters?: number;         // e.g., 132
+  collectRadiusMeters?: number;    // default: 150
+}
+
 const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
   visible,
   onClose,
   onSave,
   onExpire,
   rock,
+  canCollect = true,
+  distanceMeters,
+  collectRadiusMeters = 150,
 }) => {
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState<string>("");
@@ -56,10 +64,8 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
       if (diff <= 0) {
         setTimeLeft("Expired");
         clearInterval(interval);
-
         // Trigger refresh + close modal
-        if (onExpire) onExpire();
-        onClose();
+        Promise.resolve(onExpire?.()).finally(onClose);
       } else {
         const mins = Math.floor(diff / 60000);
         const secs = Math.floor((diff % 60000) / 1000);
@@ -75,17 +81,16 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
 
   const safeRarity = r.rarity?.toLowerCase?.() || "unknown";
   const rarityBg =
-    safeRarity === "common"
-      ? "#6D6D6D"
-      : safeRarity === "rare"
-      ? "#459B6C"
-      : "#EF9E1C";
+    safeRarity === "common" ? "#6D6D6D"
+    : safeRarity === "rare" ? "#459B6C"
+    : "#EF9E1C";
 
   const rarityText = r.rarity
     ? r.rarity.charAt(0).toUpperCase() + r.rarity.slice(1)
     : "Unknown";
 
   const isExpired = timeLeft === "Expired";
+  const disabled = isExpired || !canCollect;
 
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -109,7 +114,7 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
             }}
             showsVerticalScrollIndicator={false}
           >
-            {/* ❌ Close Button */}
+            {/* Close */}
             <TouchableOpacity
               onPress={onClose}
               style={{ position: "absolute", top: 12, right: 12 }}
@@ -117,16 +122,17 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
               <Ionicons name="close" size={24} color="#000" />
             </TouchableOpacity>
 
-            {/* 🖼️ Image */}
-            {r.signed_url ? (
+            {/* Image */}
+            {r.signed_url || r.photo_url ? (
               <Image
-                source={{ uri: r.signed_url }}
+                source={{ uri: r.signed_url || r.photo_url! }}
                 style={{
                   width: 180,
                   height: 180,
                   borderRadius: 12,
                   marginBottom: 16,
                   borderWidth: 1,
+                  borderColor: "#e5e7eb",
                 }}
                 resizeMode="cover"
               />
@@ -147,10 +153,7 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
             </Text>
             <Text className="text-l text-gray-600 mb-2">Type: {r.rock_type}</Text>
 
-            <View
-              className="px-3 py-1 rounded-full mb-3"
-              style={{ backgroundColor: rarityBg }}
-            >
+            <View className="px-3 py-1 rounded-full mb-3" style={{ backgroundColor: rarityBg }}>
               <Text className="text-white text-sm font-semibold">
                 Rarity: {rarityText}
               </Text>
@@ -160,20 +163,32 @@ const RockMarkerModal: React.FC<RockMarkerModalProps> = ({
               {r.description}
             </Text>
 
+            {/* Distance + hint */}
+            {typeof distanceMeters === "number" && (
+              <Text
+                className="text-sm mb-2"
+                style={{ color: disabled ? "#b91c1c" : "#065f46", fontWeight: "600" }}
+              >
+                {Math.round(distanceMeters)} m away
+                {!canCollect ? ` — move within ${collectRadiusMeters} m to collect` : ""}
+              </Text>
+            )}
+
             {/* Countdown */}
             <Text className="text-sm text-red-600 font-semibold mb-2">
-              Expires in: {timeLeft}
+              Expires in: {timeLeft || "—"}
             </Text>
 
             {/* Save Button */}
             {!isExpired ? (
               <TouchableOpacity
+                disabled={disabled}
                 onPress={() => onSave(rock)}
                 className="w-full py-2 rounded-lg mb-2 items-center"
-                style={{ backgroundColor: "#459B6C" }}
+                style={{ backgroundColor: disabled ? "#9ca3af" : "#459B6C" }}
               >
                 <Text className="text-white font-bold text-base">
-                  Save to Collection
+                  {disabled ? "Move closer" : "Save to Collection"}
                 </Text>
               </TouchableOpacity>
             ) : (
