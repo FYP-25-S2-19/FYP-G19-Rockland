@@ -1,6 +1,7 @@
 {
   "/login/page": "app/login/page.js",
-  "/page": "app/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/rockmanagement/page": "app/rockmanagement/page.js"
+  "/zoneprofile/page": "app/zoneprofile/page.js",
+  "/page": "app/page.js",
+  "/zoneprofile/preview_zone/page": "app/zoneprofile/preview_zone/page.js"
 }

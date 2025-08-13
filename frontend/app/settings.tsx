@@ -55,6 +55,10 @@ export default function SettingsScreen() {
     router.push("/expertapplication");
   };
 
+  const handleZoneMapping = () => {
+    router.push("/expert/zone-map");
+  };
+
   const handleLogout = () => {
     setShowLogoutModal(true);
   };
@@ -141,6 +145,17 @@ export default function SettingsScreen() {
             >
               <Text className="text-white text-base font-semibold">
                 Apply to be Expert
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {userRole !== "premium" && userRole !== "free" && (
+            <TouchableOpacity
+              className="bg-gray-700 py-4 rounded-xl items-center mb-2"
+              onPress={handleZoneMapping}
+            >
+              <Text className="text-white text-base font-semibold">
+                Zone Mapping
               </Text>
             </TouchableOpacity>
           )}

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import './global.css'
+import "leaflet/dist/leaflet.css";
+import "leaflet-draw/dist/leaflet.draw.css";
 
 export const metadata: Metadata = {
   title: 'Rockland',

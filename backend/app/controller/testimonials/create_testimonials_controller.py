@@ -13,14 +13,12 @@ class CreateTestimonialsController:
     def create_testimonial(**kwargs):
         """Create a new Testimonial - Available to all authenticated users"""
         try:
-            # Access current user
             current_user = kwargs.get('current_user')
             user_id = current_user.user_id if current_user else None
             
             if current_user:
                 print(f"🗨️ User {current_user.email} is creating a new testimonial")
             
-            # Get JSON data from request
             data = request.get_json()
             
             if not data:
@@ -29,14 +27,12 @@ class CreateTestimonialsController:
                     'message': 'No data provided'
                 }), 400
             
-            # Extract fields from request data
-            name = data.get('name')
+            # Extract fields from request data (removed name)
             rating = data.get('rating')
             testimony = data.get('testimony')
             
-            # Use entity method to handle creation
+            # Use entity method to handle creation (removed name parameter)
             success, status_code, message, new_testimonial = Testimonials.createTestimonial(
-                name=name,
                 rating=rating,
                 testimony=testimony,
                 user_id=user_id

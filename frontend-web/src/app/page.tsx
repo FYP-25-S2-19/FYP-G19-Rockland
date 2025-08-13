@@ -31,10 +31,13 @@ interface Video {
 
 interface Testimonial {
   testimonials_id: number
-  name: string
+  name: string  // This comes from the model's get_user_display_name method
+  rating: number
   testimony: string
   date_created: string
   user_id: number
+  is_displayed: boolean
+  display_order: number | null
 }
 
 interface Article {
@@ -980,7 +983,7 @@ export default function RocklandLanding(): JSX.Element {
             ) : testimonialsData.length > 0 ? (
               testimonialsData.map((testimonial: Testimonial, index: number) => {
                 // Generate initials from name
-                const initials = testimonial.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
+                const initials = testimonial.user_name.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
                 
                 // Generate consistent color based on index
                 const colors = [

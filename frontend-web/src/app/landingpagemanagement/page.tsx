@@ -59,7 +59,9 @@ interface SubscriptionPlan {
 
 interface Testimonial {
   testimonials_id: number
-  name: string
+  name: string  // Now this will be provided by backend
+  user_name?: string  // Alternative field name
+  rating: number
   testimony: string
   date_created: string
   user_id: number
@@ -90,12 +92,7 @@ interface SubscriptionPlanFormData {
   feature_d: string
 }
 
-interface TestimonialFormData {
-  name: string
-  testimony: string
-}
-
-// API configuration - get from your existing auth utils
+// API configuration
 const getAuthInfo = () => {
   try {
     const token = localStorage.getItem('adminToken')
@@ -130,8 +127,13 @@ export default function LandingPageManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Video-specific state
+  // State for different content types
   const [videos, setVideos] = useState<VideoPost[]>([])
+  const [appLinks, setAppLinks] = useState<AppLink[]>([])
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([])
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
+
+  // Form data states
   const [videoFormData, setVideoFormData] = useState<VideoFormData>({
     name: '',
     description: '',
@@ -139,15 +141,11 @@ export default function LandingPageManagement() {
     video_file: null
   })
 
-  // AppLink-specific state
-  const [appLinks, setAppLinks] = useState<AppLink[]>([])
   const [appLinkFormData, setAppLinkFormData] = useState<AppLinkFormData>({
     name: '',
     link_attached: ''
   })
 
-  // Subscription Plan-specific state
-  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([])
   const [subscriptionPlanFormData, setSubscriptionPlanFormData] = useState<SubscriptionPlanFormData>({
     name: '',
     description: '',
@@ -159,14 +157,22 @@ export default function LandingPageManagement() {
     feature_d: ''
   })
 
-  // Testimonials-specific state
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
-  const [testimonialFormData, setTestimonialFormData] = useState<TestimonialFormData>({
-    name: '',
-    testimony: ''
-  })
+  // Helper function to get display name for testimonial
+  const getTestimonialDisplayName = (testimonial: Testimonial): string => {
+    // The backend now provides the name field directly
+    if (testimonial.name) {
+      return testimonial.name
+    }
+    
+    if (testimonial.user_name) {
+      return testimonial.user_name
+    }
+    
+    // Fallback to user ID
+    return `User ${testimonial.user_id}`
+  }
 
-  // Fetch videos from API
+  // Fetch functions
   const fetchVideos = async () => {
     try {
       setLoading(true)
@@ -207,7 +213,6 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Fetch subscription plans from API
   const fetchSubscriptionPlans = async () => {
     try {
       setLoading(true)
@@ -248,7 +253,6 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Fetch testimonials from API
   const fetchTestimonials = async () => {
     try {
       setLoading(true)
@@ -277,6 +281,15 @@ export default function LandingPageManagement() {
       const data = await response.json()
       
       if (data.success) {
+        // Debug: Log the raw data to see what we're getting
+        console.log('Raw testimonials data:', data.testimonials)
+        
+        // Log the first testimonial to see its structure
+        if (data.testimonials && data.testimonials.length > 0) {
+          console.log('First testimonial structure:', data.testimonials[0])
+          console.log('Available keys in first testimonial:', Object.keys(data.testimonials[0]))
+        }
+        
         setTestimonials(data.testimonials)
       } else {
         setError(data.error || 'Failed to fetch testimonials')
@@ -329,13 +342,12 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Create subscription plan
+  // Create functions
   const createSubscriptionPlan = async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Validation
       if (!subscriptionPlanFormData.name.trim()) {
         setError('Name is required')
         return
@@ -405,7 +417,6 @@ export default function LandingPageManagement() {
           feature_d: ''
         })
         
-        // Refresh subscription plans list
         await fetchSubscriptionPlans()
       } else {
         setError(data.message || 'Failed to create subscription plan')
@@ -419,79 +430,11 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Create testimonial
-  const createTestimonial = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      // Validation
-      if (!testimonialFormData.name.trim()) {
-        setError('Name is required')
-        return
-      }
-
-      if (!testimonialFormData.testimony.trim()) {
-        setError('Testimony is required')
-        return
-      }
-
-      const authInfo = getAuthInfo()
-      
-      if (!authInfo.isAuthenticated) {
-        setError(authInfo.error || 'Authentication failed. Please log in again.')
-        router.push('/login')
-        return
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/testimonials/create`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authInfo.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: testimonialFormData.name.trim(),
-          testimony: testimonialFormData.testimony.trim()
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      
-      if (data.success) {
-        setSuccessMessage(data.message || 'Testimonial created successfully')
-        setShowSuccessDialog(true)
-        
-        // Reset form
-        setTestimonialFormData({
-          name: '',
-          testimony: ''
-        })
-        
-        // Refresh testimonials list
-        await fetchTestimonials()
-      } else {
-        setError(data.message || 'Failed to create testimonial')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while creating testimonial')
-      console.error('Error creating testimonial:', err)
-    } finally {
-      setIsLoading(false)
-      setShowAddDialog(false)
-    }
-  }
-
   const uploadVideo = async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Validation
       if (!videoFormData.name.trim()) {
         setError('Video name is required')
         return
@@ -510,7 +453,6 @@ export default function LandingPageManagement() {
         return
       }
 
-      // Create FormData for file upload
       const formData = new FormData()
       formData.append('video_file', videoFormData.video_file)
       formData.append('name', videoFormData.name.trim())
@@ -535,7 +477,6 @@ export default function LandingPageManagement() {
         setSuccessMessage(data.message || 'Video uploaded successfully')
         setShowSuccessDialog(true)
         
-        // Reset form
         setVideoFormData({
           name: '',
           description: '',
@@ -543,7 +484,6 @@ export default function LandingPageManagement() {
           video_file: null
         })
         
-        // Refresh videos list
         await fetchVideos()
       } else {
         setError(data.message || 'Failed to upload video')
@@ -557,13 +497,11 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Create app link
   const createAppLink = async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Validation
       if (!appLinkFormData.name.trim()) {
         setError('App link name is required')
         return
@@ -599,13 +537,11 @@ export default function LandingPageManagement() {
         setSuccessMessage(data.message || 'App link created successfully')
         setShowSuccessDialog(true)
         
-        // Reset form
         setAppLinkFormData({
           name: '',
           link_attached: ''
         })
         
-        // Refresh app links list
         await fetchAppLinks()
       } else {
         setError(data.message || 'Failed to create app link')
@@ -619,7 +555,7 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Delete video
+  // Delete functions
   const deleteVideo = async (videoId: string) => {
     try {
       setIsLoading(true)
@@ -650,8 +586,6 @@ export default function LandingPageManagement() {
       if (data.success) {
         setSuccessMessage(data.message || 'Video deleted successfully')
         setShowSuccessDialog(true)
-        
-        // Refresh videos list
         await fetchVideos()
       } else {
         setError(data.message || 'Failed to delete video')
@@ -666,7 +600,6 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Delete subscription plan
   const deleteSubscriptionPlan = async (planId: string) => {
     try {
       setIsLoading(true)
@@ -697,8 +630,6 @@ export default function LandingPageManagement() {
       if (data.success) {
         setSuccessMessage(data.message || 'Subscription plan deleted successfully')
         setShowSuccessDialog(true)
-        
-        // Refresh subscription plans list
         await fetchSubscriptionPlans()
       } else {
         setError(data.message || 'Failed to delete subscription plan')
@@ -713,7 +644,6 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Delete testimonial
   const deleteTestimonial = async (testimonialId: string) => {
     try {
       setIsLoading(true)
@@ -747,8 +677,6 @@ export default function LandingPageManagement() {
       if (data.success) {
         setSuccessMessage(data.message || 'Testimonial deleted successfully')
         setShowSuccessDialog(true)
-        
-        // Refresh testimonials list
         await fetchTestimonials()
       } else {
         setError(data.message || 'Failed to delete testimonial')
@@ -796,8 +724,6 @@ export default function LandingPageManagement() {
       if (data.success) {
         setSuccessMessage(data.message || 'App link deleted successfully')
         setShowSuccessDialog(true)
-        
-        // Refresh app links list
         await fetchAppLinks()
       } else {
         setError(data.message || 'Failed to delete app link')
@@ -825,7 +751,6 @@ export default function LandingPageManagement() {
     }
   }, [contentType])
 
-  // Clear error after a few seconds
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => {
@@ -856,7 +781,6 @@ export default function LandingPageManagement() {
         router.push('/forummanagement')
         break
       case "landing-page":
-        // Already on landing page management
         break
       case "rock-management":
         router.push('/rockmanagement')
@@ -900,9 +824,7 @@ export default function LandingPageManagement() {
       await createAppLink()
     } else if (contentType === "Subscription Plan") {
       await createSubscriptionPlan()
-    } else if (contentType === "Testimonials") {
-      await createTestimonial()
-    }
+    } 
   }
 
   const getCurrentData = () => {
@@ -928,8 +850,6 @@ export default function LandingPageManagement() {
         return "Add New App Link"
       case "Subscription Plan":
         return "Add Subscription Plan"
-      case "Testimonials":
-        return "Add Testimonials"
       default:
         return "Add New"
     }
@@ -1087,7 +1007,9 @@ export default function LandingPageManagement() {
         )}
         {contentType === "Testimonials" && (
           <>
-            <TableCell className="font-medium text-gray-900">{(item as Testimonial).name}</TableCell>
+            <TableCell className="font-medium text-gray-900">
+              {getTestimonialDisplayName(item as Testimonial)}
+            </TableCell>
             <TableCell className="text-gray-600 max-w-xs truncate">{(item as Testimonial).testimony}</TableCell>
             <TableCell className="text-gray-600">{formatDate((item as Testimonial).date_created)}</TableCell>
             <TableCell className="text-gray-600">{(item as Testimonial).user_id}</TableCell>
@@ -1116,7 +1038,7 @@ export default function LandingPageManagement() {
                     : contentType === "Subscription Plan"
                       ? (item as SubscriptionPlan).name
                       : contentType === "Testimonials"
-                        ? (item as Testimonial).name
+                        ? getTestimonialDisplayName(item as Testimonial)
                         : (item as any).title,
                 contentType,
               })
@@ -1346,56 +1268,13 @@ export default function LandingPageManagement() {
             </div>
           </div>
         )
-
-      case "Testimonials":
-        return (
-          <div className="space-y-6 py-4">
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Add New Testimonial</h3>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Name:</label>
-                  <Input 
-                    placeholder="John Doe" 
-                    value={testimonialFormData.name}
-                    onChange={(e) => setTestimonialFormData(prev => ({ ...prev, name: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Date:</label>
-                  <Input 
-                    value={new Date().toLocaleDateString('en-GB')} 
-                    readOnly 
-                    className="bg-gray-50"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Testimony:</label>
-                <Textarea 
-                  placeholder="This app has helped me tremendously..." 
-                  rows={4}
-                  value={testimonialFormData.testimony}
-                  onChange={(e) => setTestimonialFormData(prev => ({ ...prev, testimony: e.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
-        )
     }
   }
 
-  // Fixed: Proper type handler for Select component
   const handleContentTypeChange = (value: string) => {
-    // Type assertion since we know the value will be one of our ContentType values
     setContentType(value as ContentType)
   }
 
-  // Show error dialog if there's an error
   if (error) {
     return (
       <AdminLayout
@@ -1450,10 +1329,12 @@ export default function LandingPageManagement() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Landing Page Management</h2>
               </div>
-              <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowAddDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                {getAddButtonText()}
-              </Button>
+              {contentType !== "Testimonials" && (
+                <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowAddDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {getAddButtonText()}
+                </Button>
+              )}
             </div>
 
             {/* Content Type Selector */}
@@ -1516,7 +1397,6 @@ export default function LandingPageManagement() {
               {contentType === "Video" && "Landing Page Management > Post New Video"}
               {contentType === "App Links" && "Landing Page Management > Add New App Link"}
               {contentType === "Subscription Plan" && "Landing Page Management > New Subscription Plan"}
-              {contentType === "Testimonials" && "Landing Page Management > Add New Testimonial"}
             </DialogTitle>
           </DialogHeader>
 
@@ -1532,7 +1412,6 @@ export default function LandingPageManagement() {
               {contentType === "Video" && "Post New Video"}
               {contentType === "App Links" && "Create App Link"}
               {contentType === "Subscription Plan" && "Create Subscription Plan"}
-              {contentType === "Testimonials" && "Create Testimonial"}
             </Button>
             <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={isLoading} className="w-full">
               Cancel
