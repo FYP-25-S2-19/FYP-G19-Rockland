@@ -9,6 +9,9 @@ comment_like_blueprint = Blueprint('comment_like', __name__)
 @comment_like_blueprint.route('/api/discussions/comments/<int:comment_id>/like', methods=['POST'])
 @permission_required('has_premium_permission', 'has_expert_permission')
 def like_comment(comment_id, current_user):
+    """
+    Toggle like for a comment (idempotent).
+    """
     success, status_code, message, data = DiscussionComment.toggle_like(comment_id, current_user)
     return jsonify({
         "success": success,
@@ -16,9 +19,13 @@ def like_comment(comment_id, current_user):
         **({"data": data} if data else {})
     }), status_code
 
+
 @comment_like_blueprint.route('/api/discussions/comments/<int:comment_id>/unlike', methods=['DELETE'])
 @permission_required('has_premium_permission', 'has_expert_permission')
 def unlike_comment(comment_id, current_user):
+    """
+    Toggle like for a comment (same as like endpoint; provided for REST symmetry).
+    """
     success, status_code, message, data = DiscussionComment.toggle_like(comment_id, current_user)
     return jsonify({
         "success": success,
