@@ -17,47 +17,47 @@ class CreateDiscussionController:
             current_user = kwargs.get('current_user')
             if not current_user:
                 return jsonify({
-                    'success': False,
-                    'message': 'Premium authentication required'
+                    "success": False,
+                    "message": "Premium authentication required"
                 }), 401
-            
-            # Get request data
+
             data = request.get_json()
             if not data:
                 return jsonify({
-                    'success': False,
-                    'message': 'No data provided'
+                    "success": False,
+                    "message": "No data provided"
                 }), 400
-            
-            text = data.get('text', '').strip()
-            
-            # Validation
+
+            # Required
+            text = (data.get('text') or '').strip()
             if not text:
                 return jsonify({
-                    "success": False, 
+                    "success": False,
                     "message": "Discussion text is required"
                 }), 400
-            
-            if len(text) < 10:
-                return jsonify({
-                    "success": False, 
-                    "message": "Discussion text must be at least 10 characters long"
-                }), 400
-            
-            if len(text) > 2000:  # Set reasonable limit
-                return jsonify({
-                    "success": False, 
-                    "message": "Discussion text cannot exceed 2000 characters"
-                }), 400
-            
-            print(f"📝 User {current_user.email} is creating a discussion")
-            
-            # Use the entity method to create discussion
+
+            # ✅ NEW: Optional category + interest tags
+            categories_id = data.get('categories_id', None)
+            interest_ids = data.get('interest_ids', None)
+
+            if categories_id is not None and str(categories_id).isdigit():
+                categories_id = int(categories_id)
+            else:
+                categories_id = None
+
+            if isinstance(interest_ids, list):
+                interest_ids = [int(x) for x in interest_ids if str(x).isdigit()]
+            else:
+                interest_ids = None  # None = ignore at create
+
+            # Call entity method (entity handles validation & commit)
             success, status_code, message, discussion_data = Discussion.createDiscussion(
                 user_id=current_user.user_id,
-                text=text
+                text=text,
+                categories_id=categories_id,
+                interest_ids=interest_ids
             )
-            
+
             if success:
                 return jsonify({
                     "success": True,

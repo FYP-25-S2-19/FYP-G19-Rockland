@@ -214,6 +214,9 @@ class RockScanHistory(db.Model):
                 if not success_add:
                     return False, code_add, message_add, None
 
+            # ✅ Minimal but critical: return a tuple on success
+            return True, 201, "Scan saved successfully", scan
+
         except Exception as e:
             db.session.rollback()
             print(f"❌ Error in save_scan_and_add_to_collection: {e}")

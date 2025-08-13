@@ -10,68 +10,110 @@ export default function FreePremiumFeed() {
   const [userRole, setUserRole] = useState<"free" | "premium">("free");
   const [loading, setLoading] = useState(true);
   const [articles, setArticles] = useState<any[]>([]);
-  const [discussions, setDiscussions] = useState([]);
+  const [discussions, setDiscussions] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [discussionSort, setDiscussionSort] = useState<"asc" | "desc">("desc");
+  // desc=newest, asc=oldest, rec=recommended
+  const [discussionSort, setDiscussionSort] = useState<"desc" | "asc" | "rec">("desc");
+  const [discussionCategoryId, setDiscussionCategoryId] = useState<number | null>(null);
 
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-  useEffect(() => {
-    const initialize = async () => {
-      setLoading(true);
-      try {
-        const role = await AsyncStorage.getItem("userRole");
-        setUserRole(role === "premium" ? "premium" : "free");
+  const fetchDiscussions = async ({
+    headers,
+    sortBy,
+    q,
+    categoryId,
+  }: {
+    headers: Record<string, string>;
+    sortBy: "newest" | "oldest" | "recommended";
+    q?: string;
+    categoryId?: number | null;
+  }) => {
+    const params = new URLSearchParams();
+    params.set("sort_by", sortBy);
+    if (q && q.trim()) params.set("q", q.trim());
+    if (categoryId) params.set("category_ids", String(categoryId));
 
+    const res = await fetch(`${API_URL}/api/discussions/search?${params.toString()}`, { headers });
+    const json = await res.json();
+    if (json.success) {
+      setDiscussions(json.results || []);
+    } else {
+      console.warn("⚠️ Failed to load discussions:", json.message);
+      setDiscussions([]);
+    }
+  };
+
+  const initialize = async () => {
+    setLoading(true);
+    try {
+      const role = await AsyncStorage.getItem("userRole");
+      setUserRole(role === "premium" ? "premium" : "free");
+
+      const token = await AsyncStorage.getItem("accessToken");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // Articles (unchanged)
+      const articleRes = await axios.get(`${API_URL}/api/articles/feed-hybrid`, { headers });
+      if (articleRes.data.success) {
+        const fetchedArticles = articleRes.data.articles.map((article: any) => ({
+          id: article.article_id,
+          title: article.title,
+          preview: article.content?.slice(0, 100),
+          category: article.category_title,
+          authorName: article.author_name,
+          authorImage: article.author_profile_picture
+            ? { uri: article.author_profile_picture }
+            : require("../../assets/images/profilepicture.png"),
+          isPremium: !article.is_free,
+          thumbnail: { uri: article.signed_photo_url || article.photo_url },
+          likes: article.total_likes,
+          liked: !!article.liked_by_user,
+          timeAgo: timeAgo(new Date(article.date_created)),
+          isRecommended: article.is_recommended ?? false,
+        }));
+        setArticles(fetchedArticles);
+      } else {
+        Alert.alert("Error", articleRes.data.message || "Failed to load articles");
+      }
+
+      // Discussions (server-side search/sort/category/recommended)
+      await fetchDiscussions({
+        headers,
+        sortBy: discussionSort === "asc" ? "oldest" : discussionSort === "rec" ? "recommended" : "newest",
+        q: searchQuery,
+        categoryId: discussionCategoryId,
+      });
+    } catch (e) {
+      console.error("❌ Error initializing feed:", e);
+      Alert.alert("Error", "Something went wrong while loading content.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    initialize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Refetch discussions when search/sort/category changes
+  useEffect(() => {
+    (async () => {
+      try {
         const token = await AsyncStorage.getItem("accessToken");
         const headers = { Authorization: `Bearer ${token}` };
-
-        // ✅ Fetch articles (hybrid feed)
-        const articleRes = await axios.get(`${API_URL}/api/articles/feed-hybrid`, {
+        await fetchDiscussions({
           headers,
+          sortBy: discussionSort === "asc" ? "oldest" : discussionSort === "rec" ? "recommended" : "newest",
+          q: searchQuery,
+          categoryId: discussionCategoryId,
         });
-
-        if (articleRes.data.success) {
-          const fetchedArticles = articleRes.data.articles.map((article: any) => ({
-            id: article.article_id,
-            title: article.title,
-            preview: article.content?.slice(0, 100),
-            category: article.category_title,
-            authorName: article.author_name,
-            authorImage: article.author_profile_picture
-              ? { uri: article.author_profile_picture }
-              : require("../../assets/images/profilepicture.png"),
-            isPremium: !article.is_free,
-            thumbnail: { uri: article.signed_photo_url || article.photo_url },
-            likes: article.total_likes,
-            liked: !!article.liked_by_user,
-            timeAgo: timeAgo(new Date(article.date_created)),
-            isRecommended: article.is_recommended ?? false,
-          }));
-          setArticles(fetchedArticles);
-        } else {
-          Alert.alert("Error", articleRes.data.message || "Failed to load articles");
-        }
-
-        // ✅ Fetch discussions
-        const discussionRes = await fetch(`${API_URL}/api/discussions`, { headers });
-        const discussionJson = await discussionRes.json();
-
-        if (discussionJson.success) {
-          setDiscussions(discussionJson.discussions);
-        } else {
-          console.warn("⚠️ Failed to load discussions:", discussionJson.message);
-        }
       } catch (e) {
-        console.error("❌ Error initializing feed:", e);
-        Alert.alert("Error", "Something went wrong while loading content.");
-      } finally {
-        setLoading(false);
+        console.error("❌ Error updating discussions:", e);
       }
-    };
-
-    initialize();
-  }, []);
+    })();
+  }, [searchQuery, discussionSort, discussionCategoryId]);
 
   useEffect(() => {
     const handleArticleLikeUpdated = (data: {
@@ -154,6 +196,8 @@ export default function FreePremiumFeed() {
       setSearchQuery={setSearchQuery}
       discussionSort={discussionSort}
       setDiscussionSort={setDiscussionSort}
+      discussionCategoryId={discussionCategoryId}
+      setDiscussionCategoryId={setDiscussionCategoryId}
     />
   );
 }

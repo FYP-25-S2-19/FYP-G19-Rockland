@@ -15,22 +15,18 @@ class DeleteDiscussionController:
     def delete_discussion(discussion_id, **kwargs):
         """Delete a discussion - only by admin"""
         try:
-            # Access current user from permission decorator
             current_user = kwargs.get('current_user')
             if not current_user:
                 return jsonify({
-                    'success': False,
+                    'success': False, 
                     'message': 'Admin authentication required'
                 }), 401
-            
-            print(f"🔧 Admin {current_user.email} is deleting discussion {discussion_id}")
-            
-            # Use the entity method to delete discussion
+
             success, status_code, message, discussion_data = Discussion.deleteDiscussion(
-                discussion_id=discussion_id,
+                discussion_id=discussion_id, 
                 user_id=current_user.user_id
             )
-            
+
             if success:
                 return jsonify({
                     'success': True,
