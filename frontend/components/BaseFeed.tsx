@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import ArticleCard from "./ArticleCard";
 import DiscussionCard from "./DiscussionCard";
 import FilterModal from "./FilterModalFeed";
 import FilterModalRock from "./FilterModalRock";
-import FilterModalDiscussion from "./FilterModalDiscussion"; // ✅ NEW
+import FilterModalDiscussion from "./FilterModalDiscussion";
 
 import FilterIcon from "../assets/images/filter.svg";
 import SearchIcon from "../assets/images/search.svg";
@@ -32,15 +32,13 @@ type BaseFeedProps = {
   tabs: { key: TabKey; label: string }[];
   onLikeToggle: (articleId: number) => void;
   onUpgradeRequest: (message: string) => void;
-  updateArticleLike: (
-    articleId: number,
-    liked: boolean,
-    likeCount: number
-  ) => void;
+  updateArticleLike: (articleId: number, liked: boolean, likeCount: number) => void;
   searchQuery: string;
   setSearchQuery: (text: string) => void;
-  discussionSort: "asc" | "desc";
-  setDiscussionSort: (sort: "asc" | "desc") => void;
+  discussionSort: "asc" | "desc" | "rec";
+  setDiscussionSort: (sort: "asc" | "desc" | "rec") => void;
+  discussionCategoryId: number | null;
+  setDiscussionCategoryId: (id: number | null) => void;
   rockSearchOptions?: {
     searchText: string;
     selectedTypes: string[];
@@ -68,6 +66,8 @@ export default function BaseFeed({
   setSearchQuery,
   discussionSort,
   setDiscussionSort,
+  discussionCategoryId,
+  setDiscussionCategoryId,
   rockSearchOptions,
 }: BaseFeedProps) {
   const router = useRouter();
@@ -75,7 +75,7 @@ export default function BaseFeed({
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [discussionModalVisible, setDiscussionModalVisible] = useState(false); // ✅ NEW
+  const [discussionModalVisible, setDiscussionModalVisible] = useState(false);
   const [articles, setArticles] = useState(incomingArticles);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Sort by Most Liked");
@@ -87,9 +87,7 @@ export default function BaseFeed({
     likeCount: number
   ) => {
     setArticles((prev) =>
-      prev.map((a) =>
-        a.id === articleId ? { ...a, liked, likes: likeCount } : a
-      )
+      prev.map((a) => (a.id === articleId ? { ...a, liked, likes: likeCount } : a))
     );
     updateArticleLike(articleId, liked, likeCount);
   };
@@ -110,9 +108,7 @@ export default function BaseFeed({
       );
       if (response.data.success) {
         const fetched = response.data.articles.map((article: any) => {
-          const prev = incomingArticles.find(
-            (a) => a.id === article.article_id
-          );
+          const prev = incomingArticles.find((a) => a.id === article.article_id);
           return {
             id: article.article_id,
             title: article.title,
@@ -127,12 +123,9 @@ export default function BaseFeed({
             likes: article.total_likes,
             liked: !!article.liked_by_user,
             timeAgo: article.date_created
-              ? require("../utils/timeAgo").timeAgo(
-                  new Date(article.date_created)
-                )
+              ? require("../utils/timeAgo").timeAgo(new Date(article.date_created))
               : "",
-            isRecommended:
-              article.is_recommended ?? prev?.isRecommended ?? false,
+            isRecommended: article.is_recommended ?? prev?.isRecommended ?? false,
           };
         });
         setArticles(fetched);
@@ -146,23 +139,12 @@ export default function BaseFeed({
     if (activeTab === "articles") {
       fetchArticles();
     }
-  }, [searchQuery, selectedCategories, sortBy, forceRefresh]);
+  }, [searchQuery, selectedCategories, sortBy, forceRefresh, activeTab]);
 
-  const filteredDiscussions = useMemo(() => {
-    const kw = searchQuery.toLowerCase();
-    const sorted = [...discussions].sort((a, b) =>
-      discussionSort === "asc"
-        ? new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        : new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-    return sorted.filter((d) =>
-      typeof d.text === "string" ? d.text.toLowerCase().includes(kw) : false
-    );
-  }, [discussions, searchQuery, discussionSort, forceRefresh]);
-
+  // Rocks (unchanged)
   const filteredRocks = useMemo(() => {
     if (!rockSearchOptions) return rocks;
-    const kw = rockSearchOptions.searchText.toLowerCase();
+    const kw = (rockSearchOptions.searchText || "").toLowerCase();
     return rocks.filter((r) =>
       `${r.rock_name ?? r.name ?? ""} ${r.rock_type ?? r.type ?? ""}`
         .toLowerCase()
@@ -172,9 +154,7 @@ export default function BaseFeed({
 
   const handleTabPress = (tabKey: TabKey) => {
     if (userRole.trim().toLowerCase() === "free" && tabKey !== "articles") {
-      setUpgradeMessage(
-        "Premium Features Only\nUpgrade to unlock all features."
-      );
+      setUpgradeMessage("Premium Features Only\nUpgrade to unlock all features.");
       setShowUpgradeModal(true);
       return;
     }
@@ -193,6 +173,7 @@ export default function BaseFeed({
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+      {/* Search + Filter Row */}
       <View className="flex-row px-4 py-3 items-center">
         <View className="flex-1 flex-row items-center bg-white rounded-xl px-4 h-12 mr-3 border-2 border-[#459B6C]">
           <SearchIcon width={20} height={20} style={{ marginRight: 10 }} />
@@ -216,7 +197,7 @@ export default function BaseFeed({
         <TouchableOpacity
           onPress={() => {
             if (activeTab === "discussions") {
-              setDiscussionModalVisible(true); // ✅ open modal instead of toggling
+              setDiscussionModalVisible(true); // open discussions filter (sort + category, includes Recommended)
             } else {
               setFilterModalVisible(true);
             }
@@ -227,22 +208,20 @@ export default function BaseFeed({
         </TouchableOpacity>
       </View>
 
+      {/* Tabs */}
       <View className="flex-row justify-around border-b border-gray-200 px-4 mb-4">
         {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            onPress={() => handleTabPress(tab.key)}
-            className="flex-1"
-          >
+          <TouchableOpacity key={tab.key} onPress={() => handleTabPress(tab.key)} className="flex-1">
             <View
               className="items-center pb-2 border-b-2"
               style={{
-                borderBottomColor:
-                  activeTab === tab.key ? "#459B6C" : "transparent",
+                borderBottomColor: activeTab === tab.key ? "#459B6C" : "transparent",
               }}
             >
               <Text
-                className={`text-base font-bold ${activeTab === tab.key ? "text-black" : "text-gray-400"}`}
+                className={`text-base font-bold ${
+                  activeTab === tab.key ? "text-black" : "text-gray-400"
+                }`}
               >
                 {tab.label}
               </Text>
@@ -251,6 +230,7 @@ export default function BaseFeed({
         ))}
       </View>
 
+      {/* Articles */}
       {activeTab === "articles" &&
         (articles.length === 0 ? (
           <View className="flex-1 items-center justify-center px-6 mt-20">
@@ -276,26 +256,30 @@ export default function BaseFeed({
                 }
               />
             )}
-            contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingBottom: 100,
-            }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
             showsVerticalScrollIndicator={false}
           />
         ))}
 
+      {/* Discussions (server-filtered results directly) */}
       {activeTab === "discussions" && (
         <>
-          <FlatList
-            data={filteredDiscussions}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => <DiscussionCard discussion={item} />}
-            contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingBottom: 100,
-            }}
-            showsVerticalScrollIndicator={false}
-          />
+          {(!discussions || discussions.length === 0) ? (
+            <View className="flex-1 items-center justify-center px-6 mt-20">
+              <Text className="text-gray-400 text-center text-base">
+                No discussions found for your current search/sort.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={discussions}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => <DiscussionCard discussion={item} />}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+
           <View className="px-4 pb-5">
             <TouchableOpacity
               className="bg-green-600 rounded-full px-4 py-3"
@@ -309,6 +293,7 @@ export default function BaseFeed({
         </>
       )}
 
+      {/* Rocks */}
       {activeTab === "rocks" && (
         <FlatList
           data={filteredRocks}
@@ -334,8 +319,7 @@ export default function BaseFeed({
                     source={
                       item.signed_url
                         ? { uri: item.signed_url }
-                        : (item.image ??
-                          require("../assets/images/picture.png"))
+                        : item.image ?? require("../assets/images/picture.png")
                     }
                     className="w-14 h-14 mr-4 rounded-md"
                   />
@@ -356,8 +340,8 @@ export default function BaseFeed({
                       item.rarity?.toLowerCase() === "common"
                         ? "#6D6D6D"
                         : item.rarity?.toLowerCase() === "rare"
-                          ? "#459B6C"
-                          : "#EF9E1C",
+                        ? "#459B6C"
+                        : "#EF9E1C",
                   }}
                 >
                   <Text className="text-xs font-medium text-white">
@@ -373,6 +357,7 @@ export default function BaseFeed({
         />
       )}
 
+      {/* Premium upsell modal */}
       <Modal
         visible={showUpgradeModal}
         transparent
@@ -393,6 +378,7 @@ export default function BaseFeed({
         </View>
       </Modal>
 
+      {/* Articles filter modal */}
       {activeTab === "articles" && (
         <FilterModal
           visible={filterModalVisible}
@@ -407,18 +393,21 @@ export default function BaseFeed({
         />
       )}
 
+      {/* Discussions filter (sort + category + Recommended) */}
       {activeTab === "discussions" && (
         <FilterModalDiscussion
           visible={discussionModalVisible}
           onClose={() => setDiscussionModalVisible(false)}
           currentSort={discussionSort}
-          onApply={(sort) => {
+          selectedCategoryId={discussionCategoryId}
+          onApply={(sort, categoryId) => {
             setDiscussionSort(sort);
-            setForceRefresh((prev) => !prev);
+            setDiscussionCategoryId(categoryId);
           }}
         />
       )}
 
+      {/* Rocks filter modal */}
       {activeTab === "rocks" && rockSearchOptions && (
         <FilterModalRock
           visible={filterModalVisible}
