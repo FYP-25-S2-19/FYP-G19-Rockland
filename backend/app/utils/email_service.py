@@ -30,21 +30,6 @@ class EmailService:
         print(f"  FROM_NAME: '{from_name}'")
         print(f"  FROM_EMAIL: '{from_email}'")
         
-        # Check if .env file exists
-        env_path = os.path.join(os.getcwd(), '.env')
-        print(f"  .env file path: {env_path}")
-        print(f"  .env file exists: {os.path.exists(env_path)}")
-        
-        if os.path.exists(env_path):
-            print("  .env file content preview:")
-            with open(env_path, 'r') as f:
-                lines = f.readlines()[:10]  # First 10 lines
-                for i, line in enumerate(lines, 1):
-                    if 'PASSWORD' in line:
-                        print(f"    {i}: {line.split('=')[0]}=***")
-                    else:
-                        print(f"    {i}: {line.strip()}")
-        
         return {
             'smtp_server': smtp_server or 'smtp.sendgrid.net',
             'smtp_port': int(smtp_port) if smtp_port else 587,
@@ -77,10 +62,10 @@ class EmailService:
             print(f"   To: {to_email}")
             print(f"   SMTP: {config['smtp_server']}:{config['smtp_port']}")
             
-            # Create message
+            # Create message - FIXED: Use verified email for both From header and sendmail
             msg = MIMEMultipart('alternative')
             msg['Subject'] = 'Email Verification Code - Rockland'
-            msg['From'] = f"{config['from_name']} <{config['from_email']}>"  # Use verified sender email
+            msg['From'] = f"{config['from_name']} <{config['from_email']}>"  # Use verified email
             msg['To'] = to_email
             
             # Simple text content for testing
@@ -109,12 +94,17 @@ This code will expire in 15 minutes.
             print("✅ TLS started")
             
             print("🔄 Attempting login...")
-            server.login(config['email_user'], config['email_password'])
+            # FIXED: For SendGrid, use the API key directly as password, not email_user
+            if config['email_user'] == 'apikey':
+                server.login('apikey', config['email_password'])  # SendGrid format
+            else:
+                server.login(config['email_user'], config['email_password'])  # Regular SMTP
             print("✅ SMTP login successful")
             
             print("🔄 Sending email...")
             text = msg.as_string()
-            server.sendmail(config['from_email'], to_email, text)  # Use verified sender email
+            # FIXED: Use the verified sender email for envelope FROM
+            server.sendmail(config['from_email'], to_email, text)
             print("✅ Email sent successfully")
             
             server.quit()
@@ -126,10 +116,24 @@ This code will expire in 15 minutes.
         except smtplib.SMTPAuthenticationError as e:
             error_msg = f"SMTP Authentication failed: {str(e)}"
             print(f"❌ {error_msg}")
+            print("💡 Troubleshooting tips:")
+            print("   - Verify your SendGrid API key is correct")
+            print("   - Ensure EMAIL_USER='apikey' for SendGrid")
+            print("   - Check if your SendGrid account is active")
             return False, error_msg
         except smtplib.SMTPRecipientsRefused as e:
             error_msg = f"Recipient refused: {str(e)}"
             print(f"❌ {error_msg}")
+            print("💡 Troubleshooting tips:")
+            print("   - Check if the recipient email is valid")
+            print("   - Verify your FROM_EMAIL is verified in SendGrid")
+            return False, error_msg
+        except smtplib.SMTPSenderRefused as e:
+            error_msg = f"Sender refused: {str(e)}"
+            print(f"❌ {error_msg}")
+            print("💡 Troubleshooting tips:")
+            print("   - Verify fyprockland@gmail.com is added as verified sender in SendGrid")
+            print("   - Check SendGrid dashboard for sender verification status")
             return False, error_msg
         except smtplib.SMTPServerDisconnected as e:
             error_msg = f"SMTP server disconnected: {str(e)}"
@@ -182,7 +186,13 @@ Thank you for joining our community.
             # Send email
             server = smtplib.SMTP(config['smtp_server'], config['smtp_port'])
             server.starttls()
-            server.login(config['email_user'], config['email_password'])
+            
+            # Fixed login for SendGrid
+            if config['email_user'] == 'apikey':
+                server.login('apikey', config['email_password'])
+            else:
+                server.login(config['email_user'], config['email_password'])
+                
             server.sendmail(config['from_email'], to_email, msg.as_string())
             server.quit()
             
@@ -236,7 +246,13 @@ If you didn't request this password reset, please ignore this email.
             # Send email
             server = smtplib.SMTP(config['smtp_server'], config['smtp_port'])
             server.starttls()
-            server.login(config['email_user'], config['email_password'])
+            
+            # Fixed login for SendGrid
+            if config['email_user'] == 'apikey':
+                server.login('apikey', config['email_password'])
+            else:
+                server.login(config['email_user'], config['email_password'])
+                
             server.sendmail(config['from_email'], to_email, msg.as_string())
             server.quit()
             

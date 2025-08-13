@@ -33,3 +33,15 @@ def search_rocks():
             "success": False,
             "error": str(e)
         }), 500
+
+@search_rock_blueprint.route('/api/rocks/filter-options-v2', methods=['GET'])
+def get_filter_options_v2():
+    try:
+        filter_options = Rock.get_filter_options()
+        return jsonify({
+            "success": True,
+            "filter_options": filter_options
+        }), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)
+        }), 500
