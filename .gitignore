@@ -15,3 +15,5 @@ frontend-web/.next/
 
 # Google Cloud credentials
 config/*.json
+secrets.txt
+backend/secrets.txt
