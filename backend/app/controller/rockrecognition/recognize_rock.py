@@ -23,6 +23,19 @@ class RockRecognitionController:
         Handle rock image scan and return prediction with image URL + rarity from DB.
         Enforces 3 scans/day limit for Free users (checked BEFORE uploading/scanning).
         """
+        import os
+        import traceback
+        
+        print("=" * 50)
+        print("🔍 SCAN ENDPOINT STARTED")
+        print(f"🔍 Current directory: {os.getcwd()}")
+        print(f"🔍 Model file exists: {os.path.exists('app/entity/ml/rocknet.pt')}")
+        print(f"🔍 Classifier file exists: {os.path.exists('app/entity/ml/classifier.py')}")
+        
+        # List ml directory contents
+        if os.path.exists('app/entity/ml'):
+            print(f"🔍 ML directory contents: {os.listdir('app/entity/ml')}")
+        
         try:
             # ---- 0) Role gate + daily limit for Free users ----
             user_type = getattr(current_user, "user_type", None)
@@ -54,45 +67,78 @@ class RockRecognitionController:
             original_filename = image.filename or "rock.jpg"
 
             # ---- 2) Upload image to GCS ----
+            print("🔄 Uploading image to GCS...")
             blob_path = upload_file_to_gcs(
                 file_stream=image,
                 filename=original_filename,
                 folder=folder
             )
             if not blob_path:
+                print("❌ GCS upload failed")
                 return jsonify({"success": False, "error": "Upload failed"}), 500
+            print(f"✅ Image uploaded to: {blob_path}")
 
             # ---- 3) Run ML prediction ----
-            prediction = rock_classifier.predict(image)
+            print("🔄 Attempting to run ML prediction...")
+            print(f"🔍 rock_classifier object exists: {rock_classifier is not None}")
+            
+            try:
+                if rock_classifier is None:
+                    print("❌ rock_classifier is None - trying to initialize new one")
+                    from app.entity.ml.classifier import RockClassifier
+                    temp_classifier = RockClassifier()
+                    prediction = temp_classifier.predict(image)
+                else:
+                    prediction = rock_classifier.predict(image)
+                
+                print(f"✅ ML prediction completed: {prediction}")
+                
+            except Exception as pred_error:
+                print(f"❌ ML prediction failed: {str(pred_error)}")
+                traceback.print_exc()
+                prediction = "Unknown"
+            
             if not prediction or not isinstance(prediction, str):
-                raise ValueError("Prediction returned invalid result")
+                print("❌ Invalid prediction result, defaulting to Unknown")
+                prediction = "Unknown"
 
             # ---- 4) Look up Rock in DB ----
+            print(f"🔄 Looking up rock '{prediction}' in database...")
             rock = Rock.query.filter_by(rock_name=prediction).first()
 
             if rock:
                 rarity = rock.rarity or "Common"
                 rock_id = rock.rock_id
+                print(f"✅ Found rock in DB: ID={rock_id}, rarity={rarity}")
             else:
                 rarity = "Common"
                 rock_id = None
+                print(f"⚠️ Rock '{prediction}' not found in database")
 
             # ---- 5) Generate signed URL for frontend ----
             image_url = generate_signed_url(blob_path)
-            print("✅ Returning signed preview URL:", image_url)
+            print("✅ Generated signed preview URL")
 
-            return jsonify({
+            result = {
                 "success": True,
                 "rock_type": prediction,
                 "rock_id": rock_id,
                 "rarity": rarity,
                 "image_url": image_url
-            }), 200
+            }
+            
+            print(f"✅ Final result: rock_type={prediction}, rarity={rarity}")
+            return jsonify(result), 200
 
         except Exception as e:
-            print("❌ Exception during scan:", str(e))
+            print(f"❌ Exception during scan: {str(e)}")
+            traceback.print_exc()
             return jsonify({
                 "success": False,
                 "error": "Internal server error",
                 "details": str(e)
             }), 500
+        
+        finally:
+            print("🔍 SCAN ENDPOINT FINISHED")
+            print("=" * 50)

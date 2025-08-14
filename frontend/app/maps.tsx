@@ -8,6 +8,7 @@ import {
   Alert,
   Animated,
   Linking,
+  Image,
 } from "react-native";
 import MapView, { Camera, Marker, Region, Circle, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
@@ -58,11 +59,12 @@ export default function RockMapScreen() {
   const [currentMarkerIcon, setCurrentMarkerIcon] = useState(rockIcon);
   const [lastFetchLocation, setLastFetchLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [noNearbyMessage, setNoNearbyMessage] = useState<string | null>(null);
-  const [locDenied, setLocDenied] = useState<boolean>(false); // (#5)
+  const [locDenied, setLocDenied] = useState<boolean>(false); 
+  const [markerSize, setMarkerSize] = useState(32);
 
   const lastZoneRef = useRef<string | null>(null);
   const mapRef = useRef<MapView | null>(null);
-  const fetchAbort = useRef<AbortController | null>(null);     // (#4)
+  const fetchAbort = useRef<AbortController | null>(null);    
   const router = useRouter();
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -310,13 +312,10 @@ export default function RockMapScreen() {
   // Zoom-based marker scaling
   const handleRegionChange = (region: Region) => {
     const zoomLevel = Math.round(Math.log2(360 / region.longitudeDelta));
-    if (zoomLevel < 13) {
-      setCurrentMarkerIcon(require("../assets/images/marker_small.png"));
-    } else if (zoomLevel < 16) {
-      setCurrentMarkerIcon(require("../assets/images/marker_medium.png"));
-    } else {
-      setCurrentMarkerIcon(require("../assets/images/marker.png"));
-    }
+    // tweak these to taste
+    if (zoomLevel < 13) setMarkerSize(20);
+    else if (zoomLevel < 16) setMarkerSize(28);
+    else setMarkerSize(36);
   };
 
   const handleRecenter = () => {
@@ -465,14 +464,18 @@ export default function RockMapScreen() {
           zIndex={1}
         />
 
-        {rockMarkers.map((marker) => (
+       {rockMarkers.map((m) => (
           <Marker
-            key={marker.rock_spawn_id}
-            coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
-            onPress={() => setSelectedRock(marker)}
+            key={m.rock_spawn_id}
+            coordinate={{ latitude: m.latitude, longitude: m.longitude }}
             anchor={{ x: 0.5, y: 0.5 }}
-            image={currentMarkerIcon}
-          />
+            tracksViewChanges={false}   // perf
+          >
+            <Image
+              source={require("../assets/images/marker.png")} // single base asset
+              style={{ width: markerSize, height: markerSize, resizeMode: "contain" }}
+            />
+          </Marker>
         ))}
       </MapView>
 
