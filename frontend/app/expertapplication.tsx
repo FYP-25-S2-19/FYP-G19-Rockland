@@ -98,10 +98,14 @@ export default function ExpertApplication() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        className="flex-1"
+      >
         <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <View className="flex-row items-center justify-center px-4 py-4 border-b border-gray-300 mb-4">
-            <TouchableOpacity onPress={() => router.back()} className="absolute left-2">
+          {/* Title - matching FAQ/Testimonials style */}
+          <View className="flex-row items-center justify-center mb-8 relative">
+            <TouchableOpacity onPress={() => router.back()} className="absolute left-0">
               <BackIcon width={24} height={24} />
             </TouchableOpacity>
             <Text className="text-xl font-bold">Expert Application Form</Text>
@@ -131,7 +135,10 @@ export default function ExpertApplication() {
 
           <Text className="text-base font-medium mb-2 mt-4">Upload Portfolio/CV/Other files*</Text>
           {files.map((file, index) => (
-            <View key={index} className="flex-row justify-between items-center bg-red-50 p-3 rounded-lg mb-2">
+            <View
+              key={index}
+              className="flex-row justify-between items-center bg-red-50 p-3 rounded-lg mb-2"
+            >
               <Text className="flex-1">{file.name}</Text>
               <TouchableOpacity onPress={() => handleRemoveFile(index)}>
                 <Text className="text-red-600 text-lg">✕</Text>
@@ -140,14 +147,21 @@ export default function ExpertApplication() {
           ))}
           {errors.files ? <Text className="text-red-500 mb-2">{errors.files}</Text> : null}
 
-          <TouchableOpacity className="bg-[#6B3F2D] py-3 rounded-xl mb-8" onPress={handleFileUpload}>
+          <TouchableOpacity
+            className="bg-[#6B3F2D] py-3 rounded-xl mb-8"
+            onPress={handleFileUpload}
+          >
             <Text className="text-white text-center font-semibold text-base">Upload File</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity className="bg-gray-800 py-4 rounded-xl mb-6" onPress={validateAndSubmit}>
-            <Text className="text-white text-center font-semibold text-base">Submit Expert Application Form</Text>
+          <TouchableOpacity
+            className="bg-gray-800 py-4 rounded-xl mb-6"
+            onPress={validateAndSubmit}
+          >
+            <Text className="text-white text-center font-semibold text-base">
+              Submit Expert Application Form
+            </Text>
           </TouchableOpacity>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

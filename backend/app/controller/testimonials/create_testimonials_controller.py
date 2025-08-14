@@ -9,18 +9,16 @@ class CreateTestimonialsController:
     
     @staticmethod
     @create_testimonials_blueprint.route('/api/testimonials/create', methods=['POST'])
-    @permission_required('has_admin_permission')  
+    @permission_required()  # Allow all authenticated users
     def create_testimonial(**kwargs):
-        """Create a new Testimonial"""
+        """Create a new Testimonial - Available to all authenticated users"""
         try:
-            # Access current user
             current_user = kwargs.get('current_user')
             user_id = current_user.user_id if current_user else None
             
             if current_user:
                 print(f"🗨️ User {current_user.email} is creating a new testimonial")
             
-            # Get JSON data from request
             data = request.get_json()
             
             if not data:
@@ -29,26 +27,13 @@ class CreateTestimonialsController:
                     'message': 'No data provided'
                 }), 400
             
-            # Extract fields from request data
-            name = data.get('name', '').strip()
-            testimony = data.get('testimony', '').strip()
+            # Extract fields from request data (removed name)
+            rating = data.get('rating')
+            testimony = data.get('testimony')
             
-            # Basic validation
-            if not name:
-                return jsonify({
-                    'success': False,
-                    'message': 'Name is required'
-                }), 400
-            
-            if not testimony:
-                return jsonify({
-                    'success': False,
-                    'message': 'Testimony is required'
-                }), 400
-            
-            # Use entity method to handle creation
+            # Use entity method to handle creation (removed name parameter)
             success, status_code, message, new_testimonial = Testimonials.createTestimonial(
-                name=name,
+                rating=rating,
                 testimony=testimony,
                 user_id=user_id
             )

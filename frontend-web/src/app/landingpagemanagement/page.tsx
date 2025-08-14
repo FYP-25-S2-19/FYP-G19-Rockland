@@ -21,6 +21,9 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
+  Eye,
+  EyeOff,
+  Star,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/ui/AdminLayout"
@@ -35,6 +38,7 @@ interface VideoPost {
   file_size?: number
   file_type?: string
   remarks?: string
+  is_selected?: boolean // Selection status for display
 }
 
 interface AppLink {
@@ -60,9 +64,12 @@ interface SubscriptionPlan {
 interface Testimonial {
   testimonials_id: number
   name: string
+  user_name?: string
+  rating: number
   testimony: string
   date_created: string
   user_id: number
+  is_selected?: boolean // Selection status for display
 }
 
 type ContentType = "Video" | "App Links" | "Subscription Plan" | "Testimonials"
@@ -90,12 +97,7 @@ interface SubscriptionPlanFormData {
   feature_d: string
 }
 
-interface TestimonialFormData {
-  name: string
-  testimony: string
-}
-
-// API configuration - get from your existing auth utils
+// API configuration
 const getAuthInfo = () => {
   try {
     const token = localStorage.getItem('adminToken')
@@ -121,17 +123,23 @@ export default function LandingPageManagement() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [successMessage, setSuccessMessage] = useState("")
   const [confirmAction, setConfirmAction] = useState<{
-    type: "delete"
+    type: "delete" | "toggle_select"
     itemId: string
     itemTitle: string
     contentType: ContentType
+    currentStatus?: boolean
   } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Video-specific state
+  // State for different content types
   const [videos, setVideos] = useState<VideoPost[]>([])
+  const [appLinks, setAppLinks] = useState<AppLink[]>([])
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([])
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
+
+  // Form data states
   const [videoFormData, setVideoFormData] = useState<VideoFormData>({
     name: '',
     description: '',
@@ -139,15 +147,11 @@ export default function LandingPageManagement() {
     video_file: null
   })
 
-  // AppLink-specific state
-  const [appLinks, setAppLinks] = useState<AppLink[]>([])
   const [appLinkFormData, setAppLinkFormData] = useState<AppLinkFormData>({
     name: '',
     link_attached: ''
   })
 
-  // Subscription Plan-specific state
-  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([])
   const [subscriptionPlanFormData, setSubscriptionPlanFormData] = useState<SubscriptionPlanFormData>({
     name: '',
     description: '',
@@ -159,14 +163,128 @@ export default function LandingPageManagement() {
     feature_d: ''
   })
 
-  // Testimonials-specific state
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
-  const [testimonialFormData, setTestimonialFormData] = useState<TestimonialFormData>({
-    name: '',
-    testimony: ''
-  })
+  // Helper function to get display name for testimonial
+  const getTestimonialDisplayName = (testimonial: Testimonial): string => {
+    if (testimonial.name) {
+      return testimonial.name
+    }
+    
+    if (testimonial.user_name) {
+      return testimonial.user_name
+    }
+    
+    return `User ${testimonial.user_id}`
+  }
 
-  // Fetch videos from API
+  // Helper function to render stars for testimonial rating
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center space-x-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-4 w-4 ${
+              star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+            }`}
+          />
+        ))}
+        <span className="text-sm text-gray-600 ml-1">({rating}/5)</span>
+      </div>
+    )
+  }
+
+  // Toggle selection functions
+  const toggleVideoSelection = async (videoId: string, currentStatus: boolean) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/videos/toggle-selection/${videoId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setSuccessMessage(data.message || `Video ${!currentStatus ? 'selected' : 'deselected'} for display on landing page`)
+        setShowSuccessDialog(true)
+        await fetchVideos() // Refresh the video list
+      } else {
+        setError(data.message || 'Failed to update video selection')
+      }
+    } catch (err) {
+      console.error('Error toggling video selection:', err)
+      setError(err instanceof Error ? err.message : 'An error occurred while updating video selection')
+    } finally {
+      setIsLoading(false)
+      setShowConfirmDialog(false)
+      setConfirmAction(null)
+    }
+  }
+
+  const toggleTestimonialSelection = async (testimonialId: string, currentStatus: boolean) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/testimonials/toggle-selection/${testimonialId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setSuccessMessage(data.message || `Testimonial ${!currentStatus ? 'selected' : 'deselected'} for display on landing page`)
+        setShowSuccessDialog(true)
+        await fetchTestimonials() // Refresh the testimonials list
+      } else {
+        setError(data.message || 'Failed to update testimonial selection')
+      }
+    } catch (err) {
+      console.error('Error toggling testimonial selection:', err)
+      setError(err instanceof Error ? err.message : 'An error occurred while updating testimonial selection')
+    } finally {
+      setIsLoading(false)
+      setShowConfirmDialog(false)
+      setConfirmAction(null)
+    }
+  }
+
+  // Fetch functions
   const fetchVideos = async () => {
     try {
       setLoading(true)
@@ -195,7 +313,12 @@ export default function LandingPageManagement() {
       const data = await response.json()
       
       if (data.success) {
-        setVideos(data.videos)
+        // Ensure is_selected field is present (default to false)
+        const videosWithSelection = data.videos.map((video: VideoPost) => ({
+          ...video,
+          is_selected: video.is_selected ?? false
+        }))
+        setVideos(videosWithSelection)
       } else {
         setError(data.error || 'Failed to fetch videos')
       }
@@ -207,7 +330,51 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Fetch subscription plans from API
+  const fetchTestimonials = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/testimonials/all`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        // Ensure is_selected field is present (default to false)
+        const testimonialsWithSelection = data.testimonials.map((testimonial: Testimonial) => ({
+          ...testimonial,
+          is_selected: testimonial.is_selected ?? false
+        }))
+        setTestimonials(testimonialsWithSelection)
+      } else {
+        setError(data.error || 'Failed to fetch testimonials')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching testimonials')
+      console.error('Error fetching testimonials:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const fetchSubscriptionPlans = async () => {
     try {
       setLoading(true)
@@ -243,47 +410,6 @@ export default function LandingPageManagement() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while fetching subscription plans')
       console.error('Error fetching subscription plans:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Fetch testimonials from API
-  const fetchTestimonials = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const authInfo = getAuthInfo()
-      
-      if (!authInfo.isAuthenticated) {
-        setError(authInfo.error || 'Authentication failed. Please log in again.')
-        router.push('/login')
-        return
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/testimonials/all`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${authInfo.token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      
-      if (data.success) {
-        setTestimonials(data.testimonials)
-      } else {
-        setError(data.error || 'Failed to fetch testimonials')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching testimonials')
-      console.error('Error fetching testimonials:', err)
     } finally {
       setLoading(false)
     }
@@ -329,13 +455,12 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Create subscription plan
+  // Create functions
   const createSubscriptionPlan = async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Validation
       if (!subscriptionPlanFormData.name.trim()) {
         setError('Name is required')
         return
@@ -405,7 +530,6 @@ export default function LandingPageManagement() {
           feature_d: ''
         })
         
-        // Refresh subscription plans list
         await fetchSubscriptionPlans()
       } else {
         setError(data.message || 'Failed to create subscription plan')
@@ -419,79 +543,11 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Create testimonial
-  const createTestimonial = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      // Validation
-      if (!testimonialFormData.name.trim()) {
-        setError('Name is required')
-        return
-      }
-
-      if (!testimonialFormData.testimony.trim()) {
-        setError('Testimony is required')
-        return
-      }
-
-      const authInfo = getAuthInfo()
-      
-      if (!authInfo.isAuthenticated) {
-        setError(authInfo.error || 'Authentication failed. Please log in again.')
-        router.push('/login')
-        return
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/testimonials/create`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authInfo.token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: testimonialFormData.name.trim(),
-          testimony: testimonialFormData.testimony.trim()
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      
-      if (data.success) {
-        setSuccessMessage(data.message || 'Testimonial created successfully')
-        setShowSuccessDialog(true)
-        
-        // Reset form
-        setTestimonialFormData({
-          name: '',
-          testimony: ''
-        })
-        
-        // Refresh testimonials list
-        await fetchTestimonials()
-      } else {
-        setError(data.message || 'Failed to create testimonial')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while creating testimonial')
-      console.error('Error creating testimonial:', err)
-    } finally {
-      setIsLoading(false)
-      setShowAddDialog(false)
-    }
-  }
-
   const uploadVideo = async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Validation
       if (!videoFormData.name.trim()) {
         setError('Video name is required')
         return
@@ -510,7 +566,6 @@ export default function LandingPageManagement() {
         return
       }
 
-      // Create FormData for file upload
       const formData = new FormData()
       formData.append('video_file', videoFormData.video_file)
       formData.append('name', videoFormData.name.trim())
@@ -535,7 +590,6 @@ export default function LandingPageManagement() {
         setSuccessMessage(data.message || 'Video uploaded successfully')
         setShowSuccessDialog(true)
         
-        // Reset form
         setVideoFormData({
           name: '',
           description: '',
@@ -543,7 +597,6 @@ export default function LandingPageManagement() {
           video_file: null
         })
         
-        // Refresh videos list
         await fetchVideos()
       } else {
         setError(data.message || 'Failed to upload video')
@@ -557,13 +610,11 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Create app link
   const createAppLink = async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Validation
       if (!appLinkFormData.name.trim()) {
         setError('App link name is required')
         return
@@ -599,13 +650,11 @@ export default function LandingPageManagement() {
         setSuccessMessage(data.message || 'App link created successfully')
         setShowSuccessDialog(true)
         
-        // Reset form
         setAppLinkFormData({
           name: '',
           link_attached: ''
         })
         
-        // Refresh app links list
         await fetchAppLinks()
       } else {
         setError(data.message || 'Failed to create app link')
@@ -619,7 +668,7 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Delete video
+  // Delete functions
   const deleteVideo = async (videoId: string) => {
     try {
       setIsLoading(true)
@@ -650,8 +699,6 @@ export default function LandingPageManagement() {
       if (data.success) {
         setSuccessMessage(data.message || 'Video deleted successfully')
         setShowSuccessDialog(true)
-        
-        // Refresh videos list
         await fetchVideos()
       } else {
         setError(data.message || 'Failed to delete video')
@@ -666,54 +713,6 @@ export default function LandingPageManagement() {
     }
   }
 
-  // Delete subscription plan
-  const deleteSubscriptionPlan = async (planId: string) => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      const authInfo = getAuthInfo()
-      
-      if (!authInfo.isAuthenticated) {
-        setError(authInfo.error || 'Authentication failed. Please log in again.')
-        router.push('/login')
-        return
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/subscription-plans/delete/${planId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${authInfo.token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      
-      if (data.success) {
-        setSuccessMessage(data.message || 'Subscription plan deleted successfully')
-        setShowSuccessDialog(true)
-        
-        // Refresh subscription plans list
-        await fetchSubscriptionPlans()
-      } else {
-        setError(data.message || 'Failed to delete subscription plan')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while deleting subscription plan')
-      console.error('Error deleting subscription plan:', err)
-    } finally {
-      setIsLoading(false)
-      setShowConfirmDialog(false)
-      setConfirmAction(null)
-    }
-  }
-
-  // Delete testimonial
   const deleteTestimonial = async (testimonialId: string) => {
     try {
       setIsLoading(true)
@@ -747,8 +746,6 @@ export default function LandingPageManagement() {
       if (data.success) {
         setSuccessMessage(data.message || 'Testimonial deleted successfully')
         setShowSuccessDialog(true)
-        
-        // Refresh testimonials list
         await fetchTestimonials()
       } else {
         setError(data.message || 'Failed to delete testimonial')
@@ -756,6 +753,50 @@ export default function LandingPageManagement() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while deleting testimonial')
       console.error('Error deleting testimonial:', err)
+    } finally {
+      setIsLoading(false)
+      setShowConfirmDialog(false)
+      setConfirmAction(null)
+    }
+  }
+
+  const deleteSubscriptionPlan = async (planId: string) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const authInfo = getAuthInfo()
+      
+      if (!authInfo.isAuthenticated) {
+        setError(authInfo.error || 'Authentication failed. Please log in again.')
+        router.push('/login')
+        return
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/subscription-plans/delete/${planId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setSuccessMessage(data.message || 'Subscription plan deleted successfully')
+        setShowSuccessDialog(true)
+        await fetchSubscriptionPlans()
+      } else {
+        setError(data.message || 'Failed to delete subscription plan')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while deleting subscription plan')
+      console.error('Error deleting subscription plan:', err)
     } finally {
       setIsLoading(false)
       setShowConfirmDialog(false)
@@ -796,8 +837,6 @@ export default function LandingPageManagement() {
       if (data.success) {
         setSuccessMessage(data.message || 'App link deleted successfully')
         setShowSuccessDialog(true)
-        
-        // Refresh app links list
         await fetchAppLinks()
       } else {
         setError(data.message || 'Failed to delete app link')
@@ -825,7 +864,6 @@ export default function LandingPageManagement() {
     }
   }, [contentType])
 
-  // Clear error after a few seconds
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => {
@@ -856,7 +894,6 @@ export default function LandingPageManagement() {
         router.push('/forummanagement')
         break
       case "landing-page":
-        // Already on landing page management
         break
       case "rock-management":
         router.push('/rockmanagement')
@@ -893,6 +930,14 @@ export default function LandingPageManagement() {
     }
   }
 
+  const handleToggleSelection = async (itemId: string, contentType: ContentType, currentStatus: boolean) => {
+    if (contentType === "Video") {
+      await toggleVideoSelection(itemId, currentStatus)
+    } else if (contentType === "Testimonials") {
+      await toggleTestimonialSelection(itemId, currentStatus)
+    }
+  }
+
   const handleAdd = async () => {
     if (contentType === "Video") {
       await uploadVideo()
@@ -900,9 +945,7 @@ export default function LandingPageManagement() {
       await createAppLink()
     } else if (contentType === "Subscription Plan") {
       await createSubscriptionPlan()
-    } else if (contentType === "Testimonials") {
-      await createTestimonial()
-    }
+    } 
   }
 
   const getCurrentData = () => {
@@ -928,8 +971,6 @@ export default function LandingPageManagement() {
         return "Add New App Link"
       case "Subscription Plan":
         return "Add Subscription Plan"
-      case "Testimonials":
-        return "Add Testimonials"
       default:
         return "Add New"
     }
@@ -958,7 +999,8 @@ export default function LandingPageManagement() {
             <TableHead className="font-semibold">File Size</TableHead>
             <TableHead className="font-semibold">Date Created</TableHead>
             <TableHead className="font-semibold">UserID (Admin)</TableHead>
-            <TableHead className="font-semibold text-center">Action</TableHead>
+            <TableHead className="font-semibold">Display Status</TableHead>
+            <TableHead className="font-semibold text-center">Actions</TableHead>
           </>
         )
       case "App Links":
@@ -989,10 +1031,12 @@ export default function LandingPageManagement() {
           <>
             <TableHead className="font-semibold">Testimonials ID</TableHead>
             <TableHead className="font-semibold">Name</TableHead>
+            <TableHead className="font-semibold">Rating</TableHead>
             <TableHead className="font-semibold">Testimony</TableHead>
             <TableHead className="font-semibold">Date Created</TableHead>
-            <TableHead className="font-semibold">UserID (Admin)</TableHead>
-            <TableHead className="font-semibold text-center">Action</TableHead>
+            <TableHead className="font-semibold">UserID</TableHead>
+            <TableHead className="font-semibold">Display Status</TableHead>
+            <TableHead className="font-semibold text-center">Actions</TableHead>
           </>
         )
     }
@@ -1004,7 +1048,7 @@ export default function LandingPageManagement() {
     if (loading) {
       return (
         <TableRow>
-          <TableCell colSpan={7} className="text-center py-8">
+          <TableCell colSpan={8} className="text-center py-8">
             <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
             <span className="text-gray-500">Loading {contentType.toLowerCase()}...</span>
           </TableCell>
@@ -1015,7 +1059,7 @@ export default function LandingPageManagement() {
     if (data.length === 0) {
       return (
         <TableRow>
-          <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+          <TableCell colSpan={8} className="text-center py-8 text-gray-500">
             {contentType === "Video" ? "No videos found" : 
              contentType === "App Links" ? "No app links found" :
              contentType === "Subscription Plan" ? "No subscription plans found" :
@@ -1041,6 +1085,7 @@ export default function LandingPageManagement() {
            contentType === "Testimonials" ? (item as Testimonial).testimonials_id :
            (item as any).id}
         </TableCell>
+        
         {contentType === "Video" && (
           <>
             <TableCell className="font-medium text-gray-900">{(item as VideoPost).name}</TableCell>
@@ -1048,8 +1093,66 @@ export default function LandingPageManagement() {
             <TableCell className="text-gray-600">{formatFileSize((item as VideoPost).file_size)}</TableCell>
             <TableCell className="text-gray-600">{formatDate((item as VideoPost).date_created)}</TableCell>
             <TableCell className="text-gray-600">{(item as VideoPost).user_id}</TableCell>
+            <TableCell className="text-center">
+              <div className="flex items-center justify-center space-x-2">
+                {(item as VideoPost).is_selected ? (
+                  <>
+                    <Eye className="h-4 w-4 text-green-600" />
+                    <span className="text-green-600 text-sm font-medium">Displayed</span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-400 text-sm">Hidden</span>
+                  </>
+                )}
+              </div>
+            </TableCell>
+            <TableCell className="text-center">
+              <div className="flex items-center justify-center space-x-2">
+                <Button
+                  size="sm"
+                  variant={!(item as VideoPost).is_selected ? "default" : "outline"}
+                  className={`h-8 px-3 ${
+                    !(item as VideoPost).is_selected 
+                      ? "bg-green-600 hover:bg-green-700 text-white" 
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                  onClick={() => {
+                    setConfirmAction({
+                      type: "toggle_select",
+                      itemId: (item as VideoPost).video_id.toString(),
+                      itemTitle: (item as VideoPost).name,
+                      contentType,
+                      currentStatus: (item as VideoPost).is_selected
+                    })
+                    setShowConfirmDialog(true)
+                  }}
+                  disabled={isLoading}
+                >
+                  {(item as VideoPost).is_selected ? "Hide" : "Display"}
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white h-8 px-3"
+                  onClick={() => {
+                    setConfirmAction({
+                      type: "delete",
+                      itemId: (item as VideoPost).video_id.toString(),
+                      itemTitle: (item as VideoPost).name,
+                      contentType,
+                    })
+                    setShowConfirmDialog(true)
+                  }}
+                  disabled={isLoading}
+                >
+                  Delete
+                </Button>
+              </div>
+            </TableCell>
           </>
         )}
+        
         {contentType === "App Links" && (
           <>
             <TableCell className="font-medium text-gray-900">{(item as AppLink).name}</TableCell>
@@ -1067,8 +1170,27 @@ export default function LandingPageManagement() {
             </TableCell>
             <TableCell className="text-gray-600">{formatDate((item as AppLink).date_created)}</TableCell>
             <TableCell className="text-gray-600">{(item as AppLink).user_id}</TableCell>
+            <TableCell className="text-center">
+              <Button
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white h-8 px-4"
+                onClick={() => {
+                  setConfirmAction({
+                    type: "delete",
+                    itemId: (item as AppLink).app_link_id.toString(),
+                    itemTitle: (item as AppLink).name,
+                    contentType,
+                  })
+                  setShowConfirmDialog(true)
+                }}
+                disabled={isLoading}
+              >
+                Delete
+              </Button>
+            </TableCell>
           </>
         )}
+        
         {contentType === "Subscription Plan" && (
           <>
             <TableCell className="font-medium text-gray-900">{(item as SubscriptionPlan).name}</TableCell>
@@ -1083,49 +1205,101 @@ export default function LandingPageManagement() {
                 {(item as SubscriptionPlan).feature_d && <div>• {(item as SubscriptionPlan).feature_d}</div>}
               </div>
             </TableCell>
+            <TableCell className="text-center">
+              <Button
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white h-8 px-4"
+                onClick={() => {
+                  setConfirmAction({
+                    type: "delete",
+                    itemId: (item as SubscriptionPlan).subscription_plan_id.toString(),
+                    itemTitle: (item as SubscriptionPlan).name,
+                    contentType,
+                  })
+                  setShowConfirmDialog(true)
+                }}
+                disabled={isLoading}
+              >
+                Delete
+              </Button>
+            </TableCell>
           </>
         )}
+        
         {contentType === "Testimonials" && (
           <>
-            <TableCell className="font-medium text-gray-900">{(item as Testimonial).name}</TableCell>
-            <TableCell className="text-gray-600 max-w-xs truncate">{(item as Testimonial).testimony}</TableCell>
+            <TableCell className="font-medium text-gray-900">
+              {getTestimonialDisplayName(item as Testimonial)}
+            </TableCell>
+            <TableCell className="text-center">
+              {renderStars((item as Testimonial).rating)}
+            </TableCell>
+            <TableCell className="text-gray-600 max-w-xs">
+              <div className="truncate" title={(item as Testimonial).testimony}>
+                {(item as Testimonial).testimony}
+              </div>
+            </TableCell>
             <TableCell className="text-gray-600">{formatDate((item as Testimonial).date_created)}</TableCell>
             <TableCell className="text-gray-600">{(item as Testimonial).user_id}</TableCell>
+            <TableCell className="text-center">
+              <div className="flex items-center justify-center space-x-2">
+                {(item as Testimonial).is_selected ? (
+                  <>
+                    <Eye className="h-4 w-4 text-green-600" />
+                    <span className="text-green-600 text-sm font-medium">Displayed</span>
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-400 text-sm">Hidden</span>
+                  </>
+                )}
+              </div>
+            </TableCell>
+            <TableCell className="text-center">
+              <div className="flex items-center justify-center space-x-2">
+                <Button
+                  size="sm"
+                  variant={!(item as Testimonial).is_selected ? "default" : "outline"}
+                  className={`h-8 px-3 ${
+                    !(item as Testimonial).is_selected 
+                      ? "bg-green-600 hover:bg-green-700 text-white" 
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                  onClick={() => {
+                    setConfirmAction({
+                      type: "toggle_select",
+                      itemId: (item as Testimonial).testimonials_id.toString(),
+                      itemTitle: getTestimonialDisplayName(item as Testimonial),
+                      contentType,
+                      currentStatus: (item as Testimonial).is_selected
+                    })
+                    setShowConfirmDialog(true)
+                  }}
+                  disabled={isLoading}
+                >
+                  {(item as Testimonial).is_selected ? "Hide" : "Display"}
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white h-8 px-3"
+                  onClick={() => {
+                    setConfirmAction({
+                      type: "delete",
+                      itemId: (item as Testimonial).testimonials_id.toString(),
+                      itemTitle: getTestimonialDisplayName(item as Testimonial),
+                      contentType,
+                    })
+                    setShowConfirmDialog(true)
+                  }}
+                  disabled={isLoading}
+                >
+                  Delete
+                </Button>
+              </div>
+            </TableCell>
           </>
         )}
-        <TableCell className="text-center">
-          <Button
-            size="sm"
-            className="bg-red-600 hover:bg-red-700 text-white h-8 px-4"
-            onClick={() => {
-              setConfirmAction({
-                type: "delete",
-                itemId: contentType === "Video" 
-                  ? (item as VideoPost).video_id.toString() 
-                  : contentType === "App Links"
-                    ? (item as AppLink).app_link_id.toString()
-                    : contentType === "Subscription Plan"
-                      ? (item as SubscriptionPlan).subscription_plan_id.toString()
-                      : contentType === "Testimonials"
-                        ? (item as Testimonial).testimonials_id.toString()
-                        : (item as any).id,
-                itemTitle: contentType === "Video"
-                  ? (item as VideoPost).name
-                  : contentType === "App Links"
-                    ? (item as AppLink).name
-                    : contentType === "Subscription Plan"
-                      ? (item as SubscriptionPlan).name
-                      : contentType === "Testimonials"
-                        ? (item as Testimonial).name
-                        : (item as any).title,
-                contentType,
-              })
-              setShowConfirmDialog(true)
-            }}
-          >
-            Delete
-          </Button>
-        </TableCell>
       </TableRow>
     ))
   }
@@ -1346,56 +1520,13 @@ export default function LandingPageManagement() {
             </div>
           </div>
         )
-
-      case "Testimonials":
-        return (
-          <div className="space-y-6 py-4">
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Add New Testimonial</h3>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Name:</label>
-                  <Input 
-                    placeholder="John Doe" 
-                    value={testimonialFormData.name}
-                    onChange={(e) => setTestimonialFormData(prev => ({ ...prev, name: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Date:</label>
-                  <Input 
-                    value={new Date().toLocaleDateString('en-GB')} 
-                    readOnly 
-                    className="bg-gray-50"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Testimony:</label>
-                <Textarea 
-                  placeholder="This app has helped me tremendously..." 
-                  rows={4}
-                  value={testimonialFormData.testimony}
-                  onChange={(e) => setTestimonialFormData(prev => ({ ...prev, testimony: e.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
-        )
     }
   }
 
-  // Fixed: Proper type handler for Select component
   const handleContentTypeChange = (value: string) => {
-    // Type assertion since we know the value will be one of our ContentType values
     setContentType(value as ContentType)
   }
 
-  // Show error dialog if there's an error
   if (error) {
     return (
       <AdminLayout
@@ -1449,11 +1580,16 @@ export default function LandingPageManagement() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">Landing Page Management</h2>
+                <p className="text-gray-600 mt-1">
+                  Manage content displayed on your landing page. Use the toggle buttons to show/hide items.
+                </p>
               </div>
-              <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowAddDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                {getAddButtonText()}
-              </Button>
+              {contentType !== "Testimonials" && (
+                <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setShowAddDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {getAddButtonText()}
+                </Button>
+              )}
             </div>
 
             {/* Content Type Selector */}
@@ -1463,9 +1599,9 @@ export default function LandingPageManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Video">Video</SelectItem>
+                  <SelectItem value="Video">Videos</SelectItem>
                   <SelectItem value="App Links">App Links</SelectItem>
-                  <SelectItem value="Subscription Plan">Subscription Plan</SelectItem>
+                  <SelectItem value="Subscription Plan">Subscription Plans</SelectItem>
                   <SelectItem value="Testimonials">Testimonials</SelectItem>
                 </SelectContent>
               </Select>
@@ -1493,7 +1629,28 @@ export default function LandingPageManagement() {
 
           {/* Content */}
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Post List</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {contentType} List
+                {(contentType === "Video" || contentType === "Testimonials") && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    (Use Display/Hide buttons to control landing page visibility)
+                  </span>
+                )}
+              </h3>
+              {(contentType === "Video" || contentType === "Testimonials") && (
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <div className="flex items-center space-x-1">
+                    <Eye className="h-4 w-4 text-green-600" />
+                    <span>Displayed on landing page</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <span>Hidden from landing page</span>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Table */}
             <div className="overflow-x-auto">
@@ -1516,7 +1673,6 @@ export default function LandingPageManagement() {
               {contentType === "Video" && "Landing Page Management > Post New Video"}
               {contentType === "App Links" && "Landing Page Management > Add New App Link"}
               {contentType === "Subscription Plan" && "Landing Page Management > New Subscription Plan"}
-              {contentType === "Testimonials" && "Landing Page Management > Add New Testimonial"}
             </DialogTitle>
           </DialogHeader>
 
@@ -1532,7 +1688,6 @@ export default function LandingPageManagement() {
               {contentType === "Video" && "Post New Video"}
               {contentType === "App Links" && "Create App Link"}
               {contentType === "Subscription Plan" && "Create Subscription Plan"}
-              {contentType === "Testimonials" && "Create Testimonial"}
             </Button>
             <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={isLoading} className="w-full">
               Cancel
@@ -1545,10 +1700,25 @@ export default function LandingPageManagement() {
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete {confirmAction?.contentType}</DialogTitle>
+            <DialogTitle>
+              {confirmAction?.type === "delete" 
+                ? `Delete ${confirmAction?.contentType}`
+                : confirmAction?.type === "toggle_select"
+                  ? `${confirmAction?.currentStatus ? 'Hide' : 'Display'} ${confirmAction?.contentType}`
+                  : "Confirm Action"
+              }
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <strong>"{confirmAction?.itemTitle}"</strong>? This action cannot be
-              undone.
+              {confirmAction?.type === "delete" && (
+                <>
+                  Are you sure you want to delete <strong>"{confirmAction?.itemTitle}"</strong>? This action cannot be undone.
+                </>
+              )}
+              {confirmAction?.type === "toggle_select" && (
+                <>
+                  Are you sure you want to {confirmAction?.currentStatus ? 'hide' : 'display'} <strong>"{confirmAction?.itemTitle}"</strong> on the landing page?
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1556,16 +1726,30 @@ export default function LandingPageManagement() {
               Cancel
             </Button>
             <Button
-              className="bg-red-600 hover:bg-red-700"
+              className={confirmAction?.type === "delete" 
+                ? "bg-red-600 hover:bg-red-700" 
+                : confirmAction?.currentStatus 
+                  ? "bg-orange-600 hover:bg-orange-700"
+                  : "bg-green-600 hover:bg-green-700"
+              }
               onClick={() => {
                 if (confirmAction) {
-                  handleDelete(confirmAction.itemId, confirmAction.contentType)
+                  if (confirmAction.type === "delete") {
+                    handleDelete(confirmAction.itemId, confirmAction.contentType)
+                  } else if (confirmAction.type === "toggle_select") {
+                    handleToggleSelection(confirmAction.itemId, confirmAction.contentType, confirmAction.currentStatus || false)
+                  }
                 }
               }}
               disabled={isLoading}
             >
               {isLoading && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
-              Delete
+              {confirmAction?.type === "delete" 
+                ? "Delete"
+                : confirmAction?.currentStatus 
+                  ? "Hide"
+                  : "Display"
+              }
             </Button>
           </DialogFooter>
         </DialogContent>

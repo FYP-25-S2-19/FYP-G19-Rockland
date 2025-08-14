@@ -6,7 +6,7 @@ view_testimonials_blueprint = Blueprint('view_testimonials', __name__)
 
 class ViewTestimonialsController:
     
-    # Get all testimonials for admin view
+    # Get all testimonials for admin view (unchanged)
     @staticmethod
     @view_testimonials_blueprint.route('/api/testimonials/all', methods=['GET'])
     @permission_required('has_admin_permission')
@@ -23,12 +23,13 @@ class ViewTestimonialsController:
         except Exception as e:
             return jsonify({"success": False, "error": f"Error: {str(e)}"}), 500
     
-    # Get all testimonials for public view (no authentication required)
+    # MODIFIED: Get only SELECTED testimonials for public view
     @staticmethod
     @view_testimonials_blueprint.route('/api/testimonials/public', methods=['GET'])
     def get_public_testimonials():
         try:
-            testimonials = Testimonials.getAllTestimonials()
+            # CHANGED: Get only selected testimonials instead of all
+            testimonials = Testimonials.getSelectedTestimonials()
             
             if testimonials is not None:
                 # Convert to list of dictionaries (only public fields)
@@ -40,7 +41,7 @@ class ViewTestimonialsController:
         except Exception as e:
             return jsonify({"success": False, "error": f"Error: {str(e)}"}), 500
     
-    # Admin endpoint to get specific testimonial by ID
+    # Admin endpoint to get specific testimonial by ID (unchanged)
     @staticmethod
     @view_testimonials_blueprint.route('/api/testimonials/view_testimonial', methods=['GET'])
     @permission_required('has_admin_permission')
@@ -82,17 +83,31 @@ class ViewTestimonialsController:
                 "success": False, 
                 "error": f"Error: {str(e)}"
             }), 500
-    
-    # Get testimonial by ID (public endpoint)
+
+    # NEW: Admin endpoint to toggle testimonial selection
     @staticmethod
-    @view_testimonials_blueprint.route('/api/testimonials/<int:testimonial_id>', methods=['GET'])
-    def get_testimonial_by_id(testimonial_id):
+    @view_testimonials_blueprint.route('/api/testimonials/toggle-selection/<int:testimonial_id>', methods=['POST'])
+    @permission_required('has_admin_permission')
+    def toggle_testimonial_selection(testimonial_id, **kwargs):
+        """Toggle testimonial selection for landing page display"""
         try:
-            testimonial = Testimonials.getTestimonialById(testimonial_id)
+            success, status_code, message = Testimonials.toggleTestimonialSelection(testimonial_id)
             
-            if testimonial:
-                return jsonify({"success": True, "testimonial": testimonial.to_dict()}), 200
+            if success:
+                testimonial = Testimonials.getTestimonialById(testimonial_id)
+                return jsonify({
+                    'success': True,
+                    'message': message,
+                    'testimonial': testimonial.to_dict() if testimonial else None
+                }), status_code
             else:
-                return jsonify({"success": False, "error": "Testimonial not found"}), 404
+                return jsonify({
+                    'success': False,
+                    'message': message
+                }), status_code
+                
         except Exception as e:
-            return jsonify({"success": False, "error": f"Error: {str(e)}"}), 500
+            return jsonify({
+                'success': False,
+                'message': f'Error: {str(e)}'
+            }), 500
