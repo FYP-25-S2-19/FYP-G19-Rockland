@@ -32,19 +32,6 @@ class RockRecognitionController:
             image_url: str|null
           }
         """
-        import os
-        import traceback
-        
-        print("=" * 50)
-        print("🔍 SCAN ENDPOINT STARTED")
-        print(f"🔍 Current directory: {os.getcwd()}")
-        print(f"🔍 Model file exists: {os.path.exists('app/entity/ml/rocknet.pt')}")
-        print(f"🔍 Classifier file exists: {os.path.exists('app/entity/ml/classifier.py')}")
-        
-        # List ml directory contents
-        if os.path.exists('app/entity/ml'):
-            print(f"🔍 ML directory contents: {os.listdir('app/entity/ml')}")
-        
         try:
             # ---- 0) Enforce 3/day for Free users BEFORE heavy work ----
             from app.entity.user import User
@@ -81,35 +68,14 @@ class RockRecognitionController:
             # ---- 2) Upload to GCS ----
             blob_path = upload_file_to_gcs(file_stream=image, filename=original_filename, folder=folder)
             if not blob_path:
-                print("❌ GCS upload failed")
                 return jsonify({"success": False, "error": "Upload failed"}), 500
-            print(f"✅ Image uploaded to: {blob_path}")
 
             image_url = generate_signed_url(blob_path)
 
             # ---- 3) Run ML prediction ----
-            print("🔄 Attempting to run ML prediction...")
-            print(f"🔍 rock_classifier object exists: {rock_classifier is not None}")
-            
-            try:
-                if rock_classifier is None:
-                    print("❌ rock_classifier is None - trying to initialize new one")
-                    from app.entity.ml.classifier import RockClassifier
-                    temp_classifier = RockClassifier()
-                    prediction = temp_classifier.predict(image)
-                else:
-                    prediction = rock_classifier.predict(image)
-                
-                print(f"✅ ML prediction completed: {prediction}")
-                
-            except Exception as pred_error:
-                print(f"❌ ML prediction failed: {str(pred_error)}")
-                traceback.print_exc()
-                prediction = "Unknown"
-            
+            prediction = rock_classifier.predict(image)
             if not prediction or not isinstance(prediction, str):
-                print("❌ Invalid prediction result, defaulting to Unknown")
-                prediction = "Unknown"
+                raise ValueError("Prediction returned invalid result")
 
             rock_name = prediction.strip()
 
@@ -133,10 +99,7 @@ class RockRecognitionController:
                 "rock_id": rock_id,
                 "rarity": rarity,
                 "image_url": image_url
-            }
-            
-            print(f"✅ Final result: rock_type={prediction}, rarity={rarity}")
-            return jsonify(result), 200
+            }), 200
 
         except Exception as e:
             print("❌ Exception during scan:", str(e))
