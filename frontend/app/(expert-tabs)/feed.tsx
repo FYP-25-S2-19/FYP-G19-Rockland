@@ -24,7 +24,8 @@ export default function ExpertFeed() {
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("Sort by A-Z");
   const [searchQuery, setSearchQuery] = useState("");
-  const [discussionSort, setDiscussionSort] = useState<"asc" | "desc">("desc");
+  const [discussionSort, setDiscussionSort] = useState<"asc" | "desc" | "rec">("desc");
+  const [discussionCategoryId, setDiscussionCategoryId] = useState<number | null>(null);
 
   const fetchArticles = async () => {
     try {
@@ -181,15 +182,15 @@ export default function ExpertFeed() {
   onUpgradeRequest={(msg) => Alert.alert("Upgrade", msg)}
   updateArticleLike={(articleId, liked, likeCount) =>
     setArticles((prev) =>
-      prev.map((a) =>
-        a.id === articleId ? { ...a, liked, likes: likeCount } : a,
-      ),
+      prev.map((a) => (a.id === articleId ? { ...a, liked, likes: likeCount } : a)),
     )
   }
   searchQuery={searchQuery}
   setSearchQuery={setSearchQuery}
   discussionSort={discussionSort}
   setDiscussionSort={setDiscussionSort}
+  discussionCategoryId={discussionCategoryId}
+  setDiscussionCategoryId={setDiscussionCategoryId}
   rockSearchOptions={{
     searchText,
     selectedTypes,

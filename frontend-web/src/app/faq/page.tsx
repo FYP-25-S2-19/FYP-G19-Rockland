@@ -10,7 +10,7 @@ interface FAQ {
   faq_id: number
   question: string
   answer: string
-  user_id: number
+  published_at: string
 }
 
 // API configuration
@@ -31,11 +31,13 @@ export default function FAQPage() {
     setMobileMenuOpen(!mobileMenuOpen)
   }
 
-  // Fetch FAQs from the public endpoint (no authentication required)
+  // Fetch only published FAQs from the public endpoint (no authentication required)
   const fetchFAQs = async () => {
     try {
       setLoading(true)
       setError(null)
+
+      console.log('🔍 Fetching published FAQs from:', `${API_BASE_URL}/api/faqs/public`)
 
       const response = await fetch(`${API_BASE_URL}/api/faqs/public`, {
         method: 'GET',
@@ -49,15 +51,19 @@ export default function FAQPage() {
       }
 
       const data = await response.json()
+      console.log('📋 Received FAQ data:', data)
       
       if (data.success) {
-        setFaqs(data.faqs)
+        // Filter to ensure we only show published FAQs (extra safety check)
+        const publishedFaqs = data.faqs.filter((faq: any) => faq.answer && faq.answer.trim() !== '')
+        setFaqs(publishedFaqs)
+        console.log(`✅ Loaded ${publishedFaqs.length} published FAQs`)
       } else {
         setError(data.error || 'Failed to fetch FAQs')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while fetching FAQs')
-      console.error('Error fetching FAQs:', err)
+      console.error('❌ Error fetching FAQs:', err)
     } finally {
       setLoading(false)
     }
@@ -67,6 +73,19 @@ export default function FAQPage() {
   useEffect(() => {
     fetchFAQs()
   }, [])
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    } catch {
+      return ''
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -184,51 +203,76 @@ export default function FAQPage() {
             <div className="space-y-3 sm:space-y-4">
               {faqs.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-600 text-sm sm:text-base">No FAQs available at the moment.</p>
+                  <div className="mb-4">
+                    <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <AlertCircle className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">No FAQs Available</h3>
+                    <p className="text-gray-600 text-sm sm:text-base mb-6">
+                      There are no published FAQs at the moment. Please check back later.
+                    </p>
+                    <Button 
+                      onClick={fetchFAQs}
+                      variant="outline"
+                      className="text-sm sm:text-base"
+                    >
+                      Refresh
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                faqs.map((item, index) => (
-                  <Card key={item.faq_id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <CardContent className="p-0">
-                      <button
-                        onClick={() => toggleItem(index)}
-                        className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                        aria-expanded={openItems.includes(index)}
-                        aria-controls={`faq-answer-${item.faq_id}`}
-                      >
-                        <span className="font-semibold text-gray-800 pr-3 sm:pr-4 text-sm sm:text-base leading-relaxed">
-                          {item.question}
-                        </span>
-                        {openItems.includes(index) ? (
-                          <ChevronUp className="w-5 h-5 text-green-600 flex-shrink-0" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                        )}
-                      </button>
+                <>
+                  {/* FAQ Count */}
+                  <div className="mb-6 text-center">
+                    <p className="text-gray-600 text-sm">
+                      {faqs.length} published question{faqs.length !== 1 ? 's' : ''} available
+                    </p>
+                  </div>
 
-                      {openItems.includes(index) && (
-                        <div 
-                          id={`faq-answer-${item.faq_id}`}
-                          className="px-4 sm:px-6 pb-3 sm:pb-4 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200"
+                  {/* FAQ Items */}
+                  {faqs.map((item, index) => (
+                    <Card key={item.faq_id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-200">
+                      <CardContent className="p-0">
+                        <button
+                          onClick={() => toggleItem(index)}
+                          className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                          aria-expanded={openItems.includes(index)}
+                          aria-controls={`faq-answer-${item.faq_id}`}
                         >
-                          <p className="text-gray-600 leading-relaxed pt-3 sm:pt-4 text-sm sm:text-base">
-                            {item.answer}
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          )}
+                          <div className="flex-1 pr-3 sm:pr-4">
+                            <span className="font-semibold text-gray-800 text-sm sm:text-base leading-relaxed block">
+                              {item.question}
+                            </span>
+                            {item.published_at && (
+                              <span className="text-xs text-gray-500 mt-1 block">
+                                Published on {formatDate(item.published_at)}
+                              </span>
+                            )}
+                          </div>
+                          {openItems.includes(index) ? (
+                            <ChevronUp className="w-5 h-5 text-green-600 flex-shrink-0" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                          )}
+                        </button>
 
-          {/* FAQ Statistics - Optional enhancement */}
-          {!loading && !error && faqs.length > 0 && (
-            <div className="mt-8 sm:mt-12 text-center">
-              <p className="text-gray-500 text-sm">
-                Showing {faqs.length} frequently asked question{faqs.length !== 1 ? 's' : ''}
-              </p>
+                        {openItems.includes(index) && (
+                          <div 
+                            id={`faq-answer-${item.faq_id}`}
+                            className="px-4 sm:px-6 pb-3 sm:pb-4 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200 bg-gray-50"
+                          >
+                            <div className="pt-3 sm:pt-4">
+                              <p className="text-gray-700 leading-relaxed text-sm sm:text-base whitespace-pre-wrap">
+                                {item.answer}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -259,76 +303,16 @@ export default function FAQPage() {
         </div>
       </section>
 
-      {/* Contact Section - New addition for better UX */}
-      <section className="py-12 sm:py-16 bg-white border-t border-gray-100">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Still have questions?</h3>
-          <p className="text-gray-600 mb-6 text-sm sm:text-base">
-            Can't find the answer you're looking for? We're here to help.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center max-w-sm sm:max-w-none mx-auto">
-            <Button 
-              variant="outline" 
-              className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50 px-4 sm:px-6 py-2 text-sm sm:text-base"
-            >
-              Contact Support
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50 px-4 sm:px-6 py-2 text-sm sm:text-base"
-            >
-              Community Forum
-            </Button>
-          </div>
-        </div>
-      </section>
-
       {/* Footer - Made responsive */}
       <footer className="bg-green-600 text-white py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             <div className="text-sm text-center sm:text-left">
               <div className="mb-4 font-medium">2025 Rockland FYP-S2-G19</div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs sm:text-sm">
-                <a href="#" className="text-emerald-200 hover:text-white transition-colors">
-                  Privacy & Policy
-                </a>
-                <a href="#" className="text-emerald-200 hover:text-white transition-colors">
-                  Terms & Conditions
-                </a>
-              </div>
               <div className="mt-4">
                 <a href="/login" className="text-emerald-200 hover:text-white text-xs transition-colors">
                   Admin Login
                 </a>
-              </div>
-            </div>
-            
-            {/* Additional footer sections for better structure */}
-            <div className="text-sm text-center sm:text-left">
-              <div className="font-medium mb-4">Product</div>
-              <div className="space-y-2 text-xs sm:text-sm">
-                <div><Link href="/features" className="text-emerald-200 hover:text-white transition-colors">Features</Link></div>
-                <div><Link href="/pricing" className="text-emerald-200 hover:text-white transition-colors">Pricing</Link></div>
-                <div><Link href="/faq" className="text-emerald-200 hover:text-white transition-colors">FAQ</Link></div>
-              </div>
-            </div>
-            
-            <div className="text-sm text-center sm:text-left">
-              <div className="font-medium mb-4">Support</div>
-              <div className="space-y-2 text-xs sm:text-sm">
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Help Center</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Contact Us</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Community</a></div>
-              </div>
-            </div>
-            
-            <div className="text-sm text-center sm:text-left">
-              <div className="font-medium mb-4">Connect</div>
-              <div className="space-y-2 text-xs sm:text-sm">
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Newsletter</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Social Media</a></div>
-                <div><a href="#" className="text-emerald-200 hover:text-white transition-colors">Blog</a></div>
               </div>
             </div>
           </div>

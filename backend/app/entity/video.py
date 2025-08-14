@@ -27,6 +27,9 @@ class Video(db.Model):
     # Additional fields
     remarks = db.Column(db.Text, nullable=True)            # Admin remarks/notes
     
+    # NEW FIELD: Whether video is displayed on landing page
+    is_selected = db.Column(db.Boolean, default=False, nullable=False)
+    
     # Relationship to User
     user = db.relationship('User', backref='videos', lazy=True)
     
@@ -61,7 +64,8 @@ class Video(db.Model):
             'file_name': self.file_name,
             'file_size': self.file_size,
             'file_type': self.file_type,
-            'remarks': self.remarks
+            'remarks': self.remarks,
+            'is_selected': self.is_selected,    # NEW FIELD
         }
     
     def get_file_size_mb(self):
@@ -69,6 +73,36 @@ class Video(db.Model):
         if self.file_size:
             return round(self.file_size / (1024 * 1024), 2)
         return None
+    
+    # NEW METHOD: Toggle selection status
+    def toggleSelection(self):
+        """Toggle the selection status of this video"""
+        try:
+            self.is_selected = not self.is_selected
+            db.session.commit()
+            
+            status_text = "selected for display" if self.is_selected else "hidden from display"
+            return True, 200, f"Video {status_text} on landing page"
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error toggling video selection: {str(e)}")
+            return False, 500, f"Error: {str(e)}"
+    
+    # NEW METHOD: Set selection status
+    def setSelection(self, is_selected):
+        """Set the selection status of this video"""
+        try:
+            self.is_selected = bool(is_selected)
+            db.session.commit()
+            
+            status_text = "selected for display" if self.is_selected else "hidden from display"
+            return True, 200, f"Video {status_text} on landing page"
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error setting video selection: {str(e)}")
+            return False, 500, f"Error: {str(e)}"
     
     @classmethod
     def allowed_file(cls, filename):
@@ -84,6 +118,16 @@ class Video(db.Model):
             print(f"Error fetching all videos: {str(e)}")
             return []
     
+    # NEW CLASS METHOD: Get selected videos
+    @classmethod
+    def getSelectedVideos(cls):
+        """Get all videos that are selected for display on landing page"""
+        try:
+            return cls.query.filter_by(is_selected=True).order_by(cls.date_created.desc()).all()
+        except Exception as e:
+            print(f"Error fetching selected videos: {str(e)}")
+            return []
+    
     @classmethod
     def getLatestVideo(cls):
         """Get the most recent video - for landing page"""
@@ -92,6 +136,32 @@ class Video(db.Model):
         except Exception as e:
             print(f"Error fetching latest video: {str(e)}")
             return None
+    
+    # NEW CLASS METHOD: Get latest selected video
+    @classmethod
+    def getLatestSelectedVideo(cls):
+        """Get the most recent selected video - for landing page"""
+        try:
+            return cls.query.filter_by(is_selected=True).order_by(cls.date_created.desc()).first()
+        except Exception as e:
+            print(f"Error fetching latest selected video: {str(e)}")
+            return None
+    
+    # NEW CLASS METHOD: Toggle video selection by ID
+    @classmethod
+    def toggleVideoSelection(cls, video_id):
+        """Class method to toggle video selection by ID"""
+        try:
+            video = cls.getVideoById(video_id)
+            
+            if not video:
+                return False, 404, "Video not found"
+            
+            return video.toggleSelection()
+            
+        except Exception as e:
+            print(f"Error toggling video selection: {str(e)}")
+            return False, 500, f"Error: {str(e)}"
     
     @classmethod
     def getVideoById(cls, video_id):
@@ -145,7 +215,7 @@ class Video(db.Model):
             return None, None
     
     @classmethod
-    def createVideo(cls, name, description, user_id, file_path, file_url, file_name, file_size=None, file_type=None, remarks=None):
+    def createVideo(cls, name, description, user_id, file_path, file_url, file_name, file_size=None, file_type=None, remarks=None, is_selected=False):
         """Create a new video"""
         try:
             new_video = cls(
@@ -157,7 +227,8 @@ class Video(db.Model):
                 file_name=file_name,
                 file_size=file_size,
                 file_type=file_type,
-                remarks=remarks
+                remarks=remarks,
+                is_selected=is_selected  # NEW FIELD
             )
             db.session.add(new_video)
             db.session.commit()
@@ -219,7 +290,8 @@ class Video(db.Model):
                 file_name=filename,
                 file_size=file_size,
                 file_type=file_type,
-                remarks=remarks.strip() if remarks else None
+                remarks=remarks.strip() if remarks else None,
+                is_selected=False  # Default to not selected
             )
             
             if not success:
@@ -281,3 +353,19 @@ class Video(db.Model):
         except Exception as e:
             print(f"Error deleting video by ID: {str(e)}")
             return False, 500, f"Error deleting video: {str(e)}", None
+    
+    @classmethod
+    def getVideoStats(cls):
+        """Get video statistics including selection counts"""
+        try:
+            total_count = cls.query.count()
+            selected_count = cls.query.filter_by(is_selected=True).count()
+            
+            return {
+                'total_count': total_count,
+                'selected_count': selected_count,
+                'hidden_count': total_count - selected_count
+            }
+        except Exception as e:
+            print(f"Error getting video stats: {str(e)}")
+            return None

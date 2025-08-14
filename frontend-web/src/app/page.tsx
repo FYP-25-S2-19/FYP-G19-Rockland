@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Play, Plus, Minus, Loader2, Menu, X } from "lucide-react"
+import { Check, Play, Plus, Minus, Loader2, Menu, X, Star } from "lucide-react"
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -23,18 +23,23 @@ interface Video {
   name: string
   description: string
   file_url: string
+  signed_video_url: string
   file_name: string
   file_size: number
   file_type: string
   date_created: string
+  is_selected: boolean
 }
 
 interface Testimonial {
   testimonials_id: number
-  name: string
+  name: string  // This comes from the model's get_user_display_name method
+  user_name?: string  // Alternative field name for compatibility
+  rating: number
   testimony: string
   date_created: string
   user_id: number
+  is_selected: boolean  // Updated field name to match backend
 }
 
 interface Article {
@@ -96,13 +101,10 @@ export default function RocklandLanding(): JSX.Element {
   const [articlesLoading, setArticlesLoading] = useState(true)
   const [articlesError, setArticlesError] = useState<string | null>(null)
 
-  // New states for dynamic app links
-  const [appLinks, setAppLinks] = useState({
-    ios: null as AppLink | null,
-    android: null as AppLink | null
-  })
-  const [appLinksLoading, setAppLinksLoading] = useState(true)
-  const [appLinksError, setAppLinksError] = useState<string | null>(null)
+  // Updated to only track Android app link
+  const [androidAppLink, setAndroidAppLink] = useState<AppLink | null>(null)
+  const [appLinkLoading, setAppLinkLoading] = useState(true)
+  const [appLinkError, setAppLinkError] = useState<string | null>(null)
 
   // New states for dynamic subscription plans
   const [subscriptionPlans, setSubscriptionPlans] = useState({
@@ -164,12 +166,12 @@ export default function RocklandLanding(): JSX.Element {
     fetchSubscriptionPlans()
   }, [])
 
-  // Fetch app links from database
+  // Updated to fetch only Android app link
   useEffect(() => {
-    const fetchAppLinks = async () => {
+    const fetchAndroidAppLink = async () => {
       try {
-        setAppLinksLoading(true)
-        setAppLinksError(null)
+        setAppLinkLoading(true)
+        setAppLinkError(null)
         
         // Fetch all app links from your backend
         const response = await fetch(`${API_BASE_URL}/api/applinks`)
@@ -182,39 +184,26 @@ export default function RocklandLanding(): JSX.Element {
         console.log('🔗 Received app links data:', data)
         
         if (data.success && data.applinks) {
-          // Process the app links to identify iOS and Android
-          const processedLinks = {
-            ios: null as AppLink | null,
-            android: null as AppLink | null
-          }
-          
-          data.applinks.forEach((link: AppLink) => {
+          // Find Android app link
+          const androidLink = data.applinks.find((link: AppLink) => {
             const name = link.name.toLowerCase()
-            
-            // Check for iOS-related keywords
-            if (name.includes('ios') || name.includes('app store') || name.includes('apple')) {
-              processedLinks.ios = link
-            }
-            // Check for Android-related keywords
-            else if (name.includes('android') || name.includes('google play') || name.includes('play store')) {
-              processedLinks.android = link
-            }
+            return name.includes('android') || name.includes('google play') || name.includes('play store')
           })
           
-          setAppLinks(processedLinks)
-          console.log('✅ Processed app links:', processedLinks)
+          setAndroidAppLink(androidLink || null)
+          console.log('✅ Processed Android app link:', androidLink)
         } else {
-          setAppLinksError("No app links available")
+          setAppLinkError("No app links available")
         }
       } catch (error) {
         console.error('❌ Error fetching app links:', error)
-        setAppLinksError("Failed to load app links")
+        setAppLinkError("Failed to load app link")
       } finally {
-        setAppLinksLoading(false)
+        setAppLinkLoading(false)
       }
     }
 
-    fetchAppLinks()
+    fetchAndroidAppLink()
   }, [])
 
   // Fetch FAQs from database
@@ -252,7 +241,7 @@ export default function RocklandLanding(): JSX.Element {
     fetchFaqs()
   }, [])
 
-  // Fetch testimonials from database
+  // Fetch SELECTED testimonials from database
   useEffect(() => {
     const fetchTestimonials = async () => {
       try {
@@ -266,13 +255,14 @@ export default function RocklandLanding(): JSX.Element {
         }
         
         const data = await response.json()
-        console.log('🎤 Received testimonials data:', data)
+        console.log('🎤 Received selected testimonials data:', data)
         
         if (data.success && data.testimonials) {
-          // Take only the first 3 testimonials for landing page
+          // The backend should now return only selected testimonials
+          // Take only the first 3 for landing page display
           const limitedTestimonials = data.testimonials.slice(0, 3)
           setTestimonialsData(limitedTestimonials)
-          console.log(`✅ Loaded ${limitedTestimonials.length} testimonials for landing page`)
+          console.log(`✅ Loaded ${limitedTestimonials.length} selected testimonials for landing page`)
         } else {
           setTestimonialsError("No testimonials available")
         }
@@ -322,15 +312,15 @@ export default function RocklandLanding(): JSX.Element {
     fetchArticles()
   }, [])
 
-  // Fetch the most recent video for landing page
+  // Fetch the most recent SELECTED video for landing page
   useEffect(() => {
     const fetchLatestVideo = async () => {
       try {
         setVideoLoading(true)
         setVideoError(null)
         
-        // Use the correct backend port (5000)
-        const response = await fetch(`${API_BASE_URL}/api/videos`)
+        // Fetch only selected videos
+        const response = await fetch(`${API_BASE_URL}/api/videos/all`)
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -342,27 +332,28 @@ export default function RocklandLanding(): JSX.Element {
         }
         
         const videoData = await response.json()
-        console.log('📹 Received video data:', videoData)
+        console.log('📹 Received selected videos data:', videoData)
         
         // Check if we got video data
-        if (videoData && videoData.video_id) {
-          // Use signed_video_url (the working GCS URL with authentication)
-          const videoUrl = videoData.signed_video_url || videoData.file_url
+        if (videoData.success && videoData.videos && videoData.videos.length > 0) {
+          // Get the first selected video
+          const firstVideo = videoData.videos[0]
+          const videoUrl = firstVideo.signed_video_url || firstVideo.file_url
           
           if (videoUrl) {
             // Create video object with the working URL
             const workingVideo = {
-              ...videoData,
+              ...firstVideo,
               file_url: videoUrl  // Use the signed URL
             }
             setDemoVideo(workingVideo)
-            console.log('✅ Video loaded successfully:', workingVideo.name)
+            console.log('✅ Selected video loaded successfully:', workingVideo.name)
             console.log('🔗 Video URL:', videoUrl)
           } else {
             setVideoError("Video file not accessible")
           }
         } else {
-          setVideoError("No videos available")
+          setVideoError("No selected videos available")
         }
       } catch (error) {
         console.error('❌ Error fetching latest video:', error)
@@ -398,6 +389,19 @@ export default function RocklandLanding(): JSX.Element {
     return authorName.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
   }
 
+  // Helper function to get display name for testimonial
+  const getTestimonialDisplayName = (testimonial: Testimonial): string => {
+    if (testimonial.name) {
+      return testimonial.name
+    }
+    
+    if (testimonial.user_name) {
+      return testimonial.user_name
+    }
+    
+    return `User ${testimonial.user_id}`
+  }
+
   // Helper function to parse features from subscription plan
   const parseFeatures = (plan: SubscriptionPlan): string[] => {
     const features = []
@@ -408,22 +412,10 @@ export default function RocklandLanding(): JSX.Element {
     return features
   }
 
-  // AppStoreButton component - made more mobile-friendly
-  const AppStoreButton = ({ 
-    platform, 
-    link, 
-    loading, 
-    error 
-  }: { 
-    platform: 'ios' | 'android'
-    link: AppLink | null
-    loading: boolean
-    error: string | null
-  }) => {
-    const isIOS = platform === 'ios'
-    
+  // Updated Android-only AppStoreButton component
+  const AndroidAppButton = () => {
     // If loading, show skeleton
-    if (loading) {
+    if (appLinkLoading) {
       return (
         <div className="bg-gray-300 animate-pulse rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px]">
           <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-400 rounded"></div>
@@ -436,27 +428,17 @@ export default function RocklandLanding(): JSX.Element {
     }
     
     // If error or no link, show disabled state
-    if (error || !link || !link.link_attached) {
+    if (appLinkError || !androidAppLink || !androidAppLink.link_attached) {
       return (
         <div className="bg-gray-500 text-gray-300 rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px] cursor-not-allowed opacity-50">
           <div>
-            {isIOS ? (
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-              </svg>
-            ) : (
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
-              </svg>
-            )}
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
+            </svg>
           </div>
           <div>
-            <div className="text-xs">
-              {isIOS ? 'Download on the' : 'Get it on'}
-            </div>
-            <div className="text-xs sm:text-sm font-semibold">
-              {isIOS ? 'App Store' : 'Google Play'}
-            </div>
+            <div className="text-xs">Get it on</div>
+            <div className="text-xs sm:text-sm font-semibold">Google Play</div>
           </div>
         </div>
       )
@@ -465,30 +447,20 @@ export default function RocklandLanding(): JSX.Element {
     // Normal functional button
     return (
       <a 
-        href={link.link_attached} 
+        href={androidAppLink.link_attached} 
         target="_blank" 
         rel="noopener noreferrer"
         className="hover:opacity-80 transition-opacity"
       >
         <div className="bg-black text-white rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px]">
           <div>
-            {isIOS ? (
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-              </svg>
-            ) : (
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
-              </svg>
-            )}
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
+            </svg>
           </div>
           <div>
-            <div className="text-xs">
-              {isIOS ? 'Download on the' : 'Get it on'}
-            </div>
-            <div className="text-xs sm:text-sm font-semibold">
-              {isIOS ? 'App Store' : 'Google Play'}
-            </div>
+            <div className="text-xs">Get it on</div>
+            <div className="text-xs sm:text-sm font-semibold">Google Play</div>
           </div>
         </div>
       </a>
@@ -561,7 +533,7 @@ export default function RocklandLanding(): JSX.Element {
         )}
       </nav>
 
-      {/* Hero Section - Made responsive */}
+      {/* Hero Section - Updated to show only Android download */}
       <section className="bg-gradient-to-br from-green-600 to-green-700 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 py-12 sm:py-16 lg:py-24">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
@@ -581,19 +553,8 @@ export default function RocklandLanding(): JSX.Element {
 
               <div className="space-y-4 mt-8">
                 <div className="text-sm font-medium">DOWNLOAD OUR APP</div>
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-center lg:justify-start">
-                  <AppStoreButton 
-                    platform="ios" 
-                    link={appLinks.ios} 
-                    loading={appLinksLoading} 
-                    error={appLinksError} 
-                  />
-                  <AppStoreButton 
-                    platform="android" 
-                    link={appLinks.android} 
-                    loading={appLinksLoading} 
-                    error={appLinksError} 
-                  />
+                <div className="flex justify-center lg:justify-start">
+                  <AndroidAppButton />
                 </div>
               </div>
             </div>
@@ -955,7 +916,7 @@ export default function RocklandLanding(): JSX.Element {
         </div>
       </section>
 
-      {/* Testimonials Section - Made responsive */}
+      {/* Testimonials Section - Made responsive with updated selected testimonials */}
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8 sm:mb-12">
@@ -980,7 +941,8 @@ export default function RocklandLanding(): JSX.Element {
             ) : testimonialsData.length > 0 ? (
               testimonialsData.map((testimonial: Testimonial, index: number) => {
                 // Generate initials from name
-                const initials = testimonial.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
+                const displayName = getTestimonialDisplayName(testimonial)
+                const initials = displayName.split(' ').map(word => word.charAt(0)).join('').toUpperCase()
                 
                 // Generate consistent color based on index
                 const colors = [
@@ -997,7 +959,7 @@ export default function RocklandLanding(): JSX.Element {
                         <span className="text-white font-bold text-sm sm:text-base">{initials}</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{testimonial.name}</h4>
+                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{displayName}</h4>
                         <p className="text-xs text-gray-500">
                           {new Date(testimonial.date_created).toLocaleDateString()}
                         </p>
@@ -1005,10 +967,12 @@ export default function RocklandLanding(): JSX.Element {
                     </div>
                     <div className="flex mb-3">
                       {[...Array(5)].map((_, i) => (
-                        <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
+                        <Star 
+                          key={i} 
+                          className={`w-4 h-4 ${i < testimonial.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                        />
                       ))}
+                      <span className="text-sm text-gray-500 ml-2">({testimonial.rating}/5)</span>
                     </div>
                     <p className="text-gray-600 italic text-sm sm:text-base">"{testimonial.testimony}"</p>
                   </Card>
@@ -1018,28 +982,9 @@ export default function RocklandLanding(): JSX.Element {
               // Fallback content when no testimonials are available
               <div className="col-span-full text-center py-8">
                 <p className="text-gray-600">No testimonials available at the moment.</p>
+                <p className="text-sm text-gray-400 mt-2">Check back soon for user reviews!</p>
               </div>
             )}
-          </div>
-
-          {/* Stats Section - Made responsive */}
-          <div className="mt-12 sm:mt-16 grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 text-center">
-            <div className="p-4 sm:p-6">
-              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">25K+</div>
-              <p className="text-gray-600 text-sm sm:text-base">Active Users</p>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">500K+</div>
-              <p className="text-gray-600 text-sm sm:text-base">Rocks Identified</p>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">4.8</div>
-              <p className="text-gray-600 text-sm sm:text-base">App Store Rating</p>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">150+</div>
-              <p className="text-gray-600 text-sm sm:text-base">Countries</p>
-            </div>
           </div>
         </div>
       </section>
@@ -1116,7 +1061,6 @@ export default function RocklandLanding(): JSX.Element {
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
-                      Most Popular
                     </div>
                   </div>
                   
@@ -1178,7 +1122,7 @@ export default function RocklandLanding(): JSX.Element {
                   </div>
                   <div className="text-4xl sm:text-5xl font-bold mb-1 text-black">
                     {subscriptionPlans.free?.currency || '$'
-                }{subscriptionPlans.free?.price || 0}
+                  }{subscriptionPlans.free?.price || 0}
                     <span className="text-base font-normal text-gray-500">/month</span>
                   </div>
                   <p className="text-sm text-gray-600 mb-6 sm:mb-8">
@@ -1246,7 +1190,7 @@ export default function RocklandLanding(): JSX.Element {
                   </div>
                   <div className="text-4xl sm:text-5xl font-bold mb-1">
                     {subscriptionPlans.premium?.currency || '$'
-                }{subscriptionPlans.premium?.price || 5}
+                  }{subscriptionPlans.premium?.price || 5}
                     <span className="text-base font-normal text-gray-500">/month</span>
                   </div>
                   <p className="text-sm text-gray-600 mb-6 sm:mb-8">
@@ -1300,7 +1244,7 @@ export default function RocklandLanding(): JSX.Element {
         </div>
       </section>
 
-      {/* Download Section - Made responsive */}
+      {/* Download Section - Updated to show only Android */}
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-8 sm:mb-12">
@@ -1308,22 +1252,7 @@ export default function RocklandLanding(): JSX.Element {
           </h2>
 
           <div className="flex justify-center">
-            <div className="text-center">
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <AppStoreButton 
-                  platform="ios" 
-                  link={appLinks.ios} 
-                  loading={appLinksLoading} 
-                  error={appLinksError} 
-                />
-                <AppStoreButton 
-                  platform="android" 
-                  link={appLinks.android} 
-                  loading={appLinksLoading} 
-                  error={appLinksError} 
-                />
-              </div>
-            </div>
+            <AndroidAppButton />
           </div>
         </div>
       </section>

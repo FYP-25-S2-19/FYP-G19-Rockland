@@ -209,13 +209,18 @@ def create_app():
     from app.controller.zone.get_all_zone_controller import get_all_zones_blueprint
     from app.controller.zone.get_zone_by_location_controller import get_zone_by_location_blueprint
     from app.controller.zone.view_zone_controller import view_zone_blueprint
+    from app.controller.zone.zone_mapping_controller import zones_public_blueprint
+    from app.controller.zone.set_active_controller import active_state_blueprint
 
+
+    app.register_blueprint(active_state_blueprint)
     app.register_blueprint(create_zone_blueprint)
     app.register_blueprint(update_zone_blueprint)
     app.register_blueprint(delete_zone_blueprint)
     app.register_blueprint(get_all_zones_blueprint)
     app.register_blueprint(get_zone_by_location_blueprint)
     app.register_blueprint(view_zone_blueprint)
+    app.register_blueprint(zones_public_blueprint)
 
     # COMMENT ROCK
     from .controller.comment.rock.comment_create_controller import create_comment_blueprint
@@ -229,15 +234,15 @@ def create_app():
     app.register_blueprint(toggle_like_comment_blueprint)
 
     # FAQ
-    from .controller.faq.view_faq_controller import view_faq_blueprint
-    from .controller.faq.create_faq_controller import create_faq_blueprint
     from .controller.faq.delete_faq_controller import delete_faq_blueprint
-    from .controller.faq.update_faq_controller import update_faq_blueprint
+    from .controller.faq.respond_faq_controller import respond_faq_blueprint
+    from .controller.faq.submit_question_controller import submit_question_blueprint
+    from .controller.faq.view_faq_controller import view_faq_blueprint
 
-    app.register_blueprint(view_faq_blueprint)
-    app.register_blueprint(create_faq_blueprint)
     app.register_blueprint(delete_faq_blueprint)
-    app.register_blueprint(update_faq_blueprint)
+    app.register_blueprint(respond_faq_blueprint)
+    app.register_blueprint(submit_question_blueprint)
+    app.register_blueprint(view_faq_blueprint)
 
     # VIDEO
     from .controller.video.view_video_controller import view_video_blueprint

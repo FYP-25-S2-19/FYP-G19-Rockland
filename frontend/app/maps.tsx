@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   Animated,
+  Linking,
+  Image,
 } from "react-native";
 import MapView, { Camera, Marker, Region, Circle, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
@@ -20,6 +22,9 @@ import Toast from "react-native-toast-message";
 import * as Haptics from "expo-haptics";
 
 const rockIcon = require("../assets/images/marker.png");
+
+// (used in #6)
+const COLLECT_RADIUS = 150;
 
 const VIEW_RADIUS = 1000;
 const REFRESH_DISTANCE = 50;
@@ -45,19 +50,21 @@ interface RockSpawn {
 export default function RockMapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [rockMarkers, setRockMarkers] = useState<RockSpawn[]>([]);
-  const [apiCount, setApiCount] = useState<number>(0); // NEW: show API count vs rendered
+  const [apiCount, setApiCount] = useState<number>(0);
   const [currentZone, setCurrentZone] = useState<string | null>(null);
+  const [currentZoneGeo, setCurrentZoneGeo] = useState<string | null>(null);
   const [selectedRock, setSelectedRock] = useState<RockSpawn | null>(null);
   const [animatedRadius, setAnimatedRadius] = useState(50);
   const auraRadius = useRef(new Animated.Value(50)).current;
   const [currentMarkerIcon, setCurrentMarkerIcon] = useState(rockIcon);
-  const [lastFetchLocation, setLastFetchLocation] = useState<{ lat: number; lng: number } | null>(
-    null
-  );
+  const [lastFetchLocation, setLastFetchLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [noNearbyMessage, setNoNearbyMessage] = useState<string | null>(null);
+  const [locDenied, setLocDenied] = useState<boolean>(false); 
+  const [markerSize, setMarkerSize] = useState(32);
 
-  const lastZoneRef = useRef<string | null>(null); // Prevent toast spam
+  const lastZoneRef = useRef<string | null>(null);
   const mapRef = useRef<MapView | null>(null);
+  const fetchAbort = useRef<AbortController | null>(null);    
   const router = useRouter();
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -75,7 +82,7 @@ export default function RockMapScreen() {
     return R * c;
   };
 
-  // Fetch rock markers
+  // Fetch rock markers  (#4 AbortController)
   const fetchMarkers = async (lat: number, lng: number) => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
@@ -84,11 +91,16 @@ export default function RockMapScreen() {
         return;
       }
 
+      // cancel previous in-flight
+      fetchAbort.current?.abort();
+      const ctrl = new AbortController();
+      fetchAbort.current = ctrl;
+
       console.log(`📍 Fetching spawns at lat:${lat}, lng:${lng}, radius:${VIEW_RADIUS}`);
 
       const response = await fetch(
         `${API_URL}/api/spawns/nearby?lat=${lat}&lng=${lng}&radius=${VIEW_RADIUS}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` }, signal: ctrl.signal }
       );
 
       if (!response.ok) {
@@ -108,40 +120,38 @@ export default function RockMapScreen() {
       setApiCount(apiSpawns.length);
 
       console.log("🔍 API returned spawns:", apiSpawns.length);
-
-      // Debug: show first 3 spawns
       if (apiSpawns.length > 0) {
         console.log("Example spawn:", apiSpawns.slice(0, 3));
       }
 
-      // Zone logic + toast prevention
+      // Zone toast (anti-spam)
       if (data.zone?.zone_name && data.zone.zone_name !== lastZoneRef.current) {
         Toast.show({
           type: "info",
           text1: `Welcome to ${data.zone.zone_name}`,
+          text2: data.zone?.geological_name || undefined,
           position: "top",
           visibilityTime: 3000,
         });
         lastZoneRef.current = data.zone.zone_name;
       }
-
       setCurrentZone(data.zone?.zone_name || null);
+      setCurrentZoneGeo(data.zone?.geological_name || null);
 
-      // Format and set markers
       if (data.success && Array.isArray(apiSpawns)) {
         const formatted = apiSpawns.map((s: RockSpawn) => ({
           ...s,
           latitude: parseFloat(String(s.latitude)),
           longitude: parseFloat(String(s.longitude)),
         }));
-
         setRockMarkers(formatted);
         setNoNearbyMessage(formatted.length === 0 ? "No rocks nearby within 1000m." : null);
       } else {
         setRockMarkers([]);
         setNoNearbyMessage("No rocks nearby within 1000m.");
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === "AbortError") return; // ignore aborted fetch
       console.error("❌ Failed to fetch spawns:", error);
       setRockMarkers([]);
       setApiCount(0);
@@ -155,7 +165,6 @@ export default function RockMapScreen() {
       setRockMarkers((prev) =>
         prev.filter((marker) => {
           const expireMs = new Date(marker.expires_at).getTime() - Date.now();
-          console.log(`Marker ${marker.rock_spawn_id} expires in ${expireMs} ms`);
           return expireMs > -1000; // 1-second grace
         })
       );
@@ -163,73 +172,74 @@ export default function RockMapScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  // Save to collection
+  // Save to collection  (#3 optimistic remove)
   const handleSaveToCollection = async (spawn: RockSpawn) => {
-  try {
-    const token = await AsyncStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
 
-    const payload = {
-      latitude: location?.coords.latitude,
-      longitude: location?.coords.longitude,
-    };
+      const payload = {
+        latitude: location?.coords.latitude,
+        longitude: location?.coords.longitude,
+      };
 
-    const res = await fetch(`${API_URL}/api/spawns/collect/${spawn.rock_spawn_id}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    // --- Success case ---
-    if (res.ok && data.success) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Toast.show({ type: "success", text1: data.message });
-      setSelectedRock(null);
-      fetchMarkers(location!.coords.latitude, location!.coords.longitude);
-      return;
-    }
-
-    // --- Duplicate case (409 Already collected or 400 Already discovered) ---
-    if (res.status === 409 || data.message?.toLowerCase().includes("already")) {
-      Toast.show({
-        type: "info",
-        text1: "Duplicate rock detected",
-        text2: "This rock is already in your collection.",
+      const res = await fetch(`${API_URL}/api/spawns/collect/${spawn.rock_spawn_id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
-      setSelectedRock(null); // close modal
-      fetchMarkers(location!.coords.latitude, location!.coords.longitude); // remove marker
-      return;
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // optimistic remove + haptics + toast
+        setRockMarkers(prev => prev.filter(m => m.rock_spawn_id !== spawn.rock_spawn_id));
+        setSelectedRock(null);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Toast.show({ type: "success", text1: data.message });
+        // backfill with a fresh fetch to sync any side-effects
+        fetchMarkers(location!.coords.latitude, location!.coords.longitude);
+        return;
+      }
+
+      if (res.status === 409 || data.message?.toLowerCase().includes("already")) {
+        Toast.show({
+          type: "info",
+          text1: "Duplicate rock detected",
+          text2: "This rock is already in your collection.",
+        });
+        setSelectedRock(null);
+        // remove if server says it's already collected (it should disappear)
+        setRockMarkers(prev => prev.filter(m => m.rock_spawn_id !== spawn.rock_spawn_id));
+        fetchMarkers(location!.coords.latitude, location!.coords.longitude);
+        return;
+      }
+
+      Toast.show({
+        type: "error",
+        text1: "Collect failed",
+        text2: data.message || "Unable to collect rock",
+      });
+    } catch (err) {
+      Toast.show({ type: "error", text1: "Network Error", text2: "Please try again later" });
+      console.error("Error collecting rock:", err);
     }
+  };
 
-    // --- Other error case ---
-    Toast.show({
-      type: "error",
-      text1: "Collect failed",
-      text2: data.message || "Unable to collect rock",
-    });
-
-  } catch (err) {
-    Toast.show({ type: "error", text1: "Network Error", text2: "Please try again later" });
-    console.error("Error collecting rock:", err);
-  }
-};
-
-  // Location watch + initial fetch
+  // Location watch + initial fetch  (#5 permission-denied UI)
   useEffect(() => {
     let subscription: Location.LocationSubscription;
 
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Location Permission Required", "Please enable location access.");
+        setLocDenied(true);
         return;
       }
 
@@ -273,7 +283,7 @@ export default function RockMapScreen() {
     return () => clearInterval(interval);
   }, [location]);
 
-  // Aura pulse animation
+  // Aura pulse animation (unchanged)
   useEffect(() => {
     const id = auraRadius.addListener(({ value }) => {
       setAnimatedRadius(value);
@@ -302,13 +312,10 @@ export default function RockMapScreen() {
   // Zoom-based marker scaling
   const handleRegionChange = (region: Region) => {
     const zoomLevel = Math.round(Math.log2(360 / region.longitudeDelta));
-    if (zoomLevel < 13) {
-      setCurrentMarkerIcon(require("../assets/images/marker_small.png"));
-    } else if (zoomLevel < 16) {
-      setCurrentMarkerIcon(require("../assets/images/marker_medium.png"));
-    } else {
-      setCurrentMarkerIcon(require("../assets/images/marker.png"));
-    }
+    // tweak these to taste
+    if (zoomLevel < 13) setMarkerSize(20);
+    else if (zoomLevel < 16) setMarkerSize(28);
+    else setMarkerSize(36);
   };
 
   const handleRecenter = () => {
@@ -325,6 +332,24 @@ export default function RockMapScreen() {
     };
     mapRef.current.animateCamera(camera, { duration: 1000 });
   };
+
+  // (#5) Permission denied UI
+  if (locDenied) {
+    return (
+      <View className="flex-1 items-center justify-center px-6 bg-white">
+        <Text className="text-lg font-semibold mb-2">Location required</Text>
+        <Text className="text-gray-600 text-center">
+          Enable location to see nearby rocks and collect them.
+        </Text>
+        <TouchableOpacity
+          className="mt-4 bg-gray-900 px-4 py-3 rounded-xl"
+          onPress={() => Linking.openSettings()}
+        >
+          <Text className="text-white font-semibold">Open Settings</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (!location) {
     return (
@@ -345,6 +370,20 @@ export default function RockMapScreen() {
     altitude: 0,
   };
 
+  // (#6) distance + canCollect
+  const distanceToSelected =
+    selectedRock
+      ? getDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          selectedRock.latitude,
+          selectedRock.longitude
+        )
+      : null;
+
+  const canCollect =
+    distanceToSelected !== null && distanceToSelected <= COLLECT_RADIUS;
+
   return (
     <View className="flex-1">
       {currentZone && (
@@ -355,7 +394,7 @@ export default function RockMapScreen() {
             alignSelf: "center",
             backgroundColor: "white",
             paddingHorizontal: 16,
-            paddingVertical: 8,
+            paddingVertical: 10,
             borderRadius: 20,
             shadowColor: "#000",
             shadowOffset: { width: 0, height: 2 },
@@ -364,18 +403,35 @@ export default function RockMapScreen() {
             elevation: 3,
             zIndex: 50,
             alignItems: "center",
+            maxWidth: "90%",
           }}
         >
           <Text style={{ fontSize: 16, fontWeight: "bold", color: "#1f2937" }}>
             {currentZone}
           </Text>
+
+          {currentZoneGeo && (
+            <Text
+              style={{
+                marginTop: 2,
+                fontSize: 12,
+                color: "#6b7280",
+                textAlign: "center",
+              }}
+              numberOfLines={2}
+            >
+              Formation: {currentZoneGeo}
+            </Text>
+          )}
+
           {noNearbyMessage && (
-            <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+            <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 4, textAlign: "center" }}>
               {noNearbyMessage}
             </Text>
           )}
         </View>
       )}
+
 
       <MapView
         provider={PROVIDER_GOOGLE}
@@ -408,14 +464,18 @@ export default function RockMapScreen() {
           zIndex={1}
         />
 
-        {rockMarkers.map((marker) => (
+       {rockMarkers.map((m) => (
           <Marker
-            key={marker.rock_spawn_id}
-            coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
-            onPress={() => setSelectedRock(marker)}
+            key={m.rock_spawn_id}
+            coordinate={{ latitude: m.latitude, longitude: m.longitude }}
             anchor={{ x: 0.5, y: 0.5 }}
-            image={currentMarkerIcon}
-          />
+            tracksViewChanges={false}   // perf
+          >
+            <Image
+              source={require("../assets/images/marker.png")} // single base asset
+              style={{ width: markerSize, height: markerSize, resizeMode: "contain" }}
+            />
+          </Marker>
         ))}
       </MapView>
 
@@ -446,6 +506,9 @@ export default function RockMapScreen() {
         onClose={() => setSelectedRock(null)}
         onSave={handleSaveToCollection}
         onExpire={() => fetchMarkers(location.coords.latitude, location.coords.longitude)}
+        // (#6) new props for better UX
+        canCollect={canCollect}
+        distanceMeters={distanceToSelected ?? undefined}
       />
     </View>
   );

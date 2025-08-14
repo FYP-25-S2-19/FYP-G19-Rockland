@@ -1,6 +1,6 @@
+# app/controller/spawn/refresh_spawn.py
 from flask import Blueprint, jsonify, request
-from app.entity.zone_profile import ZoneProfile
-from app.utils.spawn_generator import generate_dynamic_spawn
+from app.entity.rock_spawn import RockSpawn
 from app.controller.authentication.permission_required import permission_required
 
 refresh_spawn_blueprint = Blueprint("refresh_spawn", __name__)
@@ -9,26 +9,11 @@ refresh_spawn_blueprint = Blueprint("refresh_spawn", __name__)
 @permission_required([])  # Any logged-in user can trigger
 def refresh_spawn(current_user):
     try:
-        data = request.get_json()
-        lat = data.get("latitude")
-        lng = data.get("longitude")
+        data = request.get_json() or {}
+        lat = float(data.get("latitude"))
+        lng = float(data.get("longitude"))
+    except Exception:
+        return jsonify({"success": False, "message": "Latitude and longitude required"}), 400
 
-        if lat is None or lng is None:
-            return jsonify({"success": False, "message": "Latitude and longitude required"}), 400
-
-        # Convert to float
-        lat = float(lat)
-        lng = float(lng)
-
-        # Find zone for current coordinates
-        zone = ZoneProfile.get_zone_by_coordinates(lat, lng)
-        if not zone:
-            return jsonify({"success": False, "message": "No zone found for this location"}), 404
-
-        # Trigger dynamic spawn
-        generate_dynamic_spawn(lat, lng, zone)
-
-        return jsonify({"success": True, "message": "Spawn refresh triggered successfully"}), 200
-
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+    success, status, payload = RockSpawn.refresh_at(lat, lng)
+    return jsonify(payload), status

@@ -48,8 +48,15 @@ export default function SettingsScreen() {
     router.push("/faq");
   };
 
+
+  const handleTestimonials = () => router.push("/testimonial");
+
   const handleApplyExpert = () => {
     router.push("/expertapplication");
+  };
+
+  const handleZoneMapping = () => {
+    router.push("/expert/zone-map");
   };
 
   const handleLogout = () => {
@@ -120,6 +127,16 @@ export default function SettingsScreen() {
             <Text className="text-white text-base font-semibold">FAQ Page</Text>
           </TouchableOpacity>
 
+          {/* ✅ New: Testimonials (always shown to every user) */}
+          <TouchableOpacity
+            className="bg-gray-700 py-4 rounded-xl items-center mb-2"
+            onPress={handleTestimonials}
+          >
+            <Text className="text-white text-base font-semibold">
+              Write a Testimonial
+            </Text>
+          </TouchableOpacity>
+
           {/* Show Apply Expert if role is NOT expert */}
           {userRole !== "expert" && (
             <TouchableOpacity
@@ -128,6 +145,17 @@ export default function SettingsScreen() {
             >
               <Text className="text-white text-base font-semibold">
                 Apply to be Expert
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {userRole !== "premium" && userRole !== "free" && (
+            <TouchableOpacity
+              className="bg-gray-700 py-4 rounded-xl items-center mb-2"
+              onPress={handleZoneMapping}
+            >
+              <Text className="text-white text-base font-semibold">
+                Zone Mapping
               </Text>
             </TouchableOpacity>
           )}

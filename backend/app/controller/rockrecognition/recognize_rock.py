@@ -32,6 +32,19 @@ class RockRecognitionController:
             image_url: str|null
           }
         """
+        import os
+        import traceback
+        
+        print("=" * 50)
+        print("🔍 SCAN ENDPOINT STARTED")
+        print(f"🔍 Current directory: {os.getcwd()}")
+        print(f"🔍 Model file exists: {os.path.exists('app/entity/ml/rocknet.pt')}")
+        print(f"🔍 Classifier file exists: {os.path.exists('app/entity/ml/classifier.py')}")
+        
+        # List ml directory contents
+        if os.path.exists('app/entity/ml'):
+            print(f"🔍 ML directory contents: {os.listdir('app/entity/ml')}")
+        
         try:
             # ---- 0) Enforce 3/day for Free users BEFORE heavy work ----
             from app.entity.user import User
@@ -68,39 +81,99 @@ class RockRecognitionController:
             # ---- 2) Upload to GCS ----
             blob_path = upload_file_to_gcs(file_stream=image, filename=original_filename, folder=folder)
             if not blob_path:
+                print("❌ GCS upload failed")
                 return jsonify({"success": False, "error": "Upload failed"}), 500
+            print(f"✅ Image uploaded to: {blob_path}")
 
             image_url = generate_signed_url(blob_path)
 
             # ---- 3) Run ML prediction ----
-            prediction = rock_classifier.predict(image)
+            print("🔄 Attempting to run ML prediction...")
+            print(f"🔍 rock_classifier object exists: {rock_classifier is not None}")
+            
+            try:
+                if rock_classifier is None:
+                    print("❌ rock_classifier is None - trying to initialize new one")
+                    from app.entity.ml.classifier import RockClassifier
+                    temp_classifier = RockClassifier()
+                    prediction = temp_classifier.predict(image)
+                else:
+                    prediction = rock_classifier.predict(image)
+                
+                print(f"✅ ML prediction completed: {prediction}")
+                
+            except Exception as pred_error:
+                print(f"❌ ML prediction failed: {str(pred_error)}")
+                traceback.print_exc()
+                prediction = "Unknown"
+            
             if not prediction or not isinstance(prediction, str):
-                raise ValueError("Prediction returned invalid result")
+                print("❌ Invalid prediction result, defaulting to Unknown")
+                prediction = "Unknown"
 
+<<<<<<< HEAD
             rock_name = prediction.strip()
+=======
+            # ---- 4) Look up Rock in DB ----
+            print(f"🔄 Looking up rock '{prediction}' in database...")
+            rock = Rock.query.filter_by(rock_name=prediction).first()
+>>>>>>> origin/Ken14Aug
 
             # ---- 4) Look up DB info (ID, rarity, TYPE) ----
             rock = Rock.query.filter_by(rock_name=rock_name).first()
             if rock:
+<<<<<<< HEAD
                 rock_id = getattr(rock, "rock_id", None)
                 rarity = getattr(rock, "rarity", None) or "Common"
                 # IMPORTANT: this is the canonical type your Collection page already shows
                 rock_type = getattr(rock, "rock_type", None)  # e.g. "Igneous", "Metamorphic", "Sedimentary"
+=======
+                rarity = rock.rarity or "Common"
+                rock_id = rock.rock_id
+                print(f"✅ Found rock in DB: ID={rock_id}, rarity={rarity}")
+>>>>>>> origin/Ken14Aug
             else:
                 rock_id = None
+<<<<<<< HEAD
                 rarity = "Common"
                 rock_type = None  # unknown type if we don't have it in DB
 
             # ---- 5) Return both name AND real type ----
             return jsonify({
+=======
+                print(f"⚠️ Rock '{prediction}' not found in database")
+
+            # ---- 5) Generate signed URL for frontend ----
+            image_url = generate_signed_url(blob_path)
+            print("✅ Generated signed preview URL")
+
+            result = {
+>>>>>>> origin/Ken14Aug
                 "success": True,
                 "rock_name": rock_name,   # <-- explicit name
                 "rock_type": rock_type,   # <-- true type from DB (may be null)
                 "rock_id": rock_id,
                 "rarity": rarity,
                 "image_url": image_url
-            }), 200
+            }
+            
+            print(f"✅ Final result: rock_type={prediction}, rarity={rarity}")
+            return jsonify(result), 200
 
         except Exception as e:
+<<<<<<< HEAD
             print("❌ Exception during scan:", str(e))
             return jsonify({"success": False, "error": "Internal server error", "details": str(e)}), 500
+=======
+            print(f"❌ Exception during scan: {str(e)}")
+            traceback.print_exc()
+            return jsonify({
+                "success": False,
+                "error": "Internal server error",
+                "details": str(e)
+            }), 500
+        
+        finally:
+            print("🔍 SCAN ENDPOINT FINISHED")
+            print("=" * 50)
+>>>>>>> origin/Ken14Aug
