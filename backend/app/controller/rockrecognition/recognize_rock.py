@@ -111,44 +111,22 @@ class RockRecognitionController:
                 print("❌ Invalid prediction result, defaulting to Unknown")
                 prediction = "Unknown"
 
-<<<<<<< HEAD
             rock_name = prediction.strip()
-=======
-            # ---- 4) Look up Rock in DB ----
-            print(f"🔄 Looking up rock '{prediction}' in database...")
-            rock = Rock.query.filter_by(rock_name=prediction).first()
->>>>>>> origin/Ken14Aug
 
             # ---- 4) Look up DB info (ID, rarity, TYPE) ----
             rock = Rock.query.filter_by(rock_name=rock_name).first()
             if rock:
-<<<<<<< HEAD
                 rock_id = getattr(rock, "rock_id", None)
                 rarity = getattr(rock, "rarity", None) or "Common"
                 # IMPORTANT: this is the canonical type your Collection page already shows
                 rock_type = getattr(rock, "rock_type", None)  # e.g. "Igneous", "Metamorphic", "Sedimentary"
-=======
-                rarity = rock.rarity or "Common"
-                rock_id = rock.rock_id
-                print(f"✅ Found rock in DB: ID={rock_id}, rarity={rarity}")
->>>>>>> origin/Ken14Aug
             else:
                 rock_id = None
-<<<<<<< HEAD
                 rarity = "Common"
                 rock_type = None  # unknown type if we don't have it in DB
 
             # ---- 5) Return both name AND real type ----
             return jsonify({
-=======
-                print(f"⚠️ Rock '{prediction}' not found in database")
-
-            # ---- 5) Generate signed URL for frontend ----
-            image_url = generate_signed_url(blob_path)
-            print("✅ Generated signed preview URL")
-
-            result = {
->>>>>>> origin/Ken14Aug
                 "success": True,
                 "rock_name": rock_name,   # <-- explicit name
                 "rock_type": rock_type,   # <-- true type from DB (may be null)
@@ -161,19 +139,5 @@ class RockRecognitionController:
             return jsonify(result), 200
 
         except Exception as e:
-<<<<<<< HEAD
             print("❌ Exception during scan:", str(e))
             return jsonify({"success": False, "error": "Internal server error", "details": str(e)}), 500
-=======
-            print(f"❌ Exception during scan: {str(e)}")
-            traceback.print_exc()
-            return jsonify({
-                "success": False,
-                "error": "Internal server error",
-                "details": str(e)
-            }), 500
-        
-        finally:
-            print("🔍 SCAN ENDPOINT FINISHED")
-            print("=" * 50)
->>>>>>> origin/Ken14Aug
