@@ -160,6 +160,53 @@ export default function ZoneProfileManagement() {
   const [viewZone, setViewZone] = useState<ZoneFull | null>(null);
   const [showRaw, setShowRaw] = useState(false);
 
+  // ------ Navigation handler ------
+  const handleNavigation = (item: string) => {
+    switch (item) {
+      case "home":
+        router.push('/dashboard')
+        break
+      case "applications":
+        router.push('/applications')
+        break
+      case "user-account":
+        router.push('/useraccount')
+        break
+      case "user-type":
+        router.push('/usertype')
+        break
+      case "user-profiling":
+        router.push('/userprofiling')
+        break
+      case "forum":
+        router.push('/forummanagement')
+        break
+      case "landing-page":
+        router.push('/landingpagemanagement')
+        break
+      case "rock-management":
+        router.push('/rockmanagement')
+        break
+      case "zone-management":
+        // Already on zone management page
+        break
+      case "faq-page":
+        router.push('/faqmanagement')
+        break
+      case "my-profile":
+        router.push('/adminprofile')
+        break
+      case "logout":
+        localStorage.removeItem('isAdminLoggedIn')
+        localStorage.removeItem('adminEmail')
+        localStorage.removeItem('adminToken')
+        router.push('/login')
+        break
+      default:
+        console.log("Unknown navigation item:", item)
+    }
+  }
+
   // ------ fetch zones ------
   const fetchZones = async () => {
     try {
@@ -402,7 +449,7 @@ export default function ZoneProfileManagement() {
         activeMenuItem="zone-management"
         title="Hi, Admin 👋"
         subtitle="Manage zone profiles"
-        onNavigate={(item) => item === "logout" ? (localStorage.clear(), router.push("/login")) : undefined}
+        onNavigate={handleNavigation}
       >
         <div className="p-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
@@ -425,9 +472,7 @@ export default function ZoneProfileManagement() {
       activeMenuItem="zone-management"
       title="Hi, Admin 👋"
       subtitle="Manage zone profiles"
-      onNavigate={(item) => {
-        if (item === "logout") { localStorage.clear(); router.push("/login"); }
-      }}
+      onNavigate={handleNavigation}
     >
       <div className="p-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -449,7 +494,6 @@ export default function ZoneProfileManagement() {
                 <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => router.push("/zoneprofile/create")}>
                   <Plus className="w-4 h-4 mr-2" /> Add New Zone
                 </Button>
-          
               </div>
             </div>
           </div>
