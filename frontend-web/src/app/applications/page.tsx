@@ -868,7 +868,7 @@ export default function ApplicationsManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50 hover:bg-gray-50">
-                      <TableHead className="font-semibold">User-ID</TableHead>
+                      <TableHead className="font-semibold">Application-ID</TableHead>
                       <TableHead className="font-semibold">First Name</TableHead>
                       <TableHead className="font-semibold">Last Name</TableHead>
                       <TableHead className="font-semibold">Email</TableHead>
@@ -956,7 +956,7 @@ export default function ApplicationsManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50 hover:bg-gray-50">
-                      <TableHead className="font-semibold">User-ID</TableHead>
+                      <TableHead className="font-semibold">Application-ID</TableHead>
                       <TableHead className="font-semibold">First Name</TableHead>
                       <TableHead className="font-semibold">Last Name</TableHead>
                       <TableHead className="font-semibold">Email</TableHead>
