@@ -13,9 +13,5 @@ numpy<2.0.0
 google-cloud-storage==2.10.0
 Werkzeug==2.3.7
 gunicorn==21.2.0
-<<<<<<< HEAD
 humanize==4.8.0
-=======
-humanize==4.8.0
-resend>=0.6.0
->>>>>>> origin/Ken14Aug
+boto3>=1.26.0

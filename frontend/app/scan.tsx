@@ -105,11 +105,6 @@ export default function Scan() {
 
       const response = await fetch(`${API_URL}/api/scan`, {
         method: "POST",
-<<<<<<< HEAD
-=======
-        // NOTE: Let RN set boundary automatically; specifying the header is fine,
-        // but we must include Authorization for the protected endpoint.
->>>>>>> origin/Ken14Aug
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
@@ -129,26 +124,18 @@ export default function Scan() {
       const result = await response.json();
 
       if (response.ok && result?.success) {
-<<<<<<< HEAD
         // ✅ Correct mapping: rock_name = label; rock_type = geological category
         const rockName: string = result.rock_name ?? "Unknown";
         const rockType: string =
           (typeof result.rock_type === "string" && result.rock_type) ||
           inferRockCategory(result.rock_name ?? "");
 
-=======
->>>>>>> origin/Ken14Aug
         router.push({
           pathname: "/scan-result",
           params: {
             image: result.image_url,
-<<<<<<< HEAD
             rockName,                       // label e.g., "Granite"
             rockType,                       // category e.g., "Igneous"
-=======
-            rockName: result.rock_type,
-            rockType: inferRockCategory(result.rock_type),
->>>>>>> origin/Ken14Aug
             rarity: result.rarity,
             rockId: String(result.rock_id ?? ""),
           },
@@ -299,8 +286,4 @@ const styles = StyleSheet.create({
   modalText: { fontSize: 16, marginVertical: 2 },
   closeBtn: { marginTop: 20, backgroundColor: "#333", paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
   closeBtnText: { color: "white", fontSize: 16 },
-<<<<<<< HEAD
-=======
-  // Keeping existing styles for container/top/bottom overlays unchanged
->>>>>>> origin/Ken14Aug
 });

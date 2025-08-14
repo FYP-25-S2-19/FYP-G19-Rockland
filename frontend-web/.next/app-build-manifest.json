@@ -11,14 +11,6 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-<<<<<<< HEAD
-=======
-    "/registration/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/registration/page.js"
-    ],
->>>>>>> origin/Ken14Aug
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -27,38 +19,7 @@
     "/forgot-password/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-<<<<<<< HEAD
-      "static/chunks/app/dashboard/page.js"
-    ],
-    "/landingpagemanagement/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/landingpagemanagement/page.js"
-    ],
-    "/rockmanagement/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/rockmanagement/page.js"
-    ],
-    "/zoneprofile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/zoneprofile/page.css",
-      "static/chunks/app/zoneprofile/page.js"
-    ],
-    "/zoneprofile/preview_zone/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/zoneprofile/preview_zone/page.js"
-    ],
-    "/zoneprofile/[id]/edit/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/zoneprofile/[id]/edit/page.css",
-      "static/chunks/app/zoneprofile/[id]/edit/page.js"
-=======
       "static/chunks/app/forgot-password/page.js"
->>>>>>> origin/Ken14Aug
     ]
   }
 }
