@@ -413,59 +413,65 @@ export default function RocklandLanding(): JSX.Element {
   }
 
   // Updated Android-only AppStoreButton component
+  // Updated Android-only AppStoreButton component with APK icon
   const AndroidAppButton = () => {
-    // If loading, show skeleton
-    if (appLinkLoading) {
-      return (
-        <div className="bg-gray-300 animate-pulse rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px]">
-          <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-400 rounded"></div>
-          <div className="space-y-1">
-            <div className="w-12 sm:w-16 h-2 bg-gray-400 rounded"></div>
-            <div className="w-10 sm:w-12 h-3 bg-gray-400 rounded"></div>
-          </div>
-        </div>
-      )
-    }
-    
-    // If error or no link, show disabled state
-    if (appLinkError || !androidAppLink || !androidAppLink.link_attached) {
-      return (
-        <div className="bg-gray-500 text-gray-300 rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px] cursor-not-allowed opacity-50">
-          <div>
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
-            </svg>
-          </div>
-          <div>
-            <div className="text-xs">Get it on</div>
-            <div className="text-xs sm:text-sm font-semibold">Google Play</div>
-          </div>
-        </div>
-      )
-    }
-    
-    // Normal functional button
+  // If loading, show skeleton
+  if (appLinkLoading) {
     return (
-      <a 
-        href={androidAppLink.link_attached} 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="hover:opacity-80 transition-opacity"
-      >
-        <div className="bg-black text-white rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px]">
-          <div>
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
-            </svg>
-          </div>
-          <div>
-            <div className="text-xs">Get it on</div>
-            <div className="text-xs sm:text-sm font-semibold">Google Play</div>
-          </div>
+      <div className="bg-gray-300 animate-pulse rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px]">
+        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-400 rounded"></div>
+        <div className="space-y-1">
+          <div className="w-12 sm:w-16 h-2 bg-gray-400 rounded"></div>
+          <div className="w-10 sm:w-12 h-3 bg-gray-400 rounded"></div>
         </div>
-      </a>
+      </div>
     )
   }
+  
+  // If error or no link, show disabled state
+  if (appLinkError || !androidAppLink || !androidAppLink.link_attached) {
+    return (
+      <div className="bg-gray-500 text-gray-300 rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px] cursor-not-allowed opacity-50">
+        <div>
+          {/* Android APK Icon */}
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.5 10.5c-.8 0-1.5.7-1.5 1.5s.7 1.5 1.5 1.5 1.5-.7 1.5-1.5-.7-1.5-1.5-1.5zM6.5 10.5c-.8 0-1.5.7-1.5 1.5s.7 1.5 1.5 1.5S8 12.8 8 12s-.7-1.5-1.5-1.5zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5.6 8.8c0 2.9-1.5 5.4-3.7 6.8-.2.1-.4.2-.6.2s-.4-.1-.6-.2C10.5 16.2 9 13.7 9 10.8V8.2l3-5.4L15 8.2v2.6z"/>
+            <path d="M12 4.8L9.8 8.4v2.4c0 2.2 1.1 4.1 2.8 5.3.2.1.4.1.6 0 1.7-1.2 2.8-3.1 2.8-5.3V8.4L12 4.8z"/>
+          </svg>
+        </div>
+        <div>
+          <div className="text-xs">Download</div>
+          <div className="text-xs sm:text-sm font-semibold">Android APK</div>
+        </div>
+      </div>
+    )
+  }
+  
+  // Normal functional button
+  return (
+    <a 
+      href={androidAppLink.link_attached} 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="hover:opacity-80 transition-opacity"
+    >
+      <div className="bg-green-600 text-white rounded-lg px-3 py-2 sm:px-4 flex items-center space-x-2 min-w-[120px] sm:min-w-[140px] hover:bg-green-700 transition-colors">
+        <div>
+          {/* Android APK Icon */}
+          <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.5 10.5c-.8 0-1.5.7-1.5 1.5s.7 1.5 1.5 1.5 1.5-.7 1.5-1.5-.7-1.5-1.5-1.5zM6.5 10.5c-.8 0-1.5.7-1.5 1.5s.7 1.5 1.5 1.5S8 12.8 8 12s-.7-1.5-1.5-1.5zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5.6 8.8c0 2.9-1.5 5.4-3.7 6.8-.2.1-.4.2-.6.2s-.4-.1-.6-.2C10.5 16.2 9 13.7 9 10.8V8.2l3-5.4L15 8.2v2.6z"/>
+            <path d="M12 4.8L9.8 8.4v2.4c0 2.2 1.1 4.1 2.8 5.3.2.1.4.1.6 0 1.7-1.2 2.8-3.1 2.8-5.3V8.4L12 4.8z"/>
+          </svg>
+        </div>
+        <div>
+          <div className="text-xs">Download</div>
+          <div className="text-xs sm:text-sm font-semibold">Android APK</div>
+        </div>
+      </div>
+    </a>
+  )
+}
+
 
   return (
     <div className="min-h-screen bg-white">
