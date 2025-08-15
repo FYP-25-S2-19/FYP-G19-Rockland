@@ -726,7 +726,7 @@ export default function RocklandLanding(): JSX.Element {
         </div>
       </section>
 
-      {/* Articles Section - Made responsive */}
+      {/* Articles Section - Made responsive - Dynamic only */}
       <section className="py-12 sm:py-16 bg-green-600">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-8 sm:mb-12">Our Articles</h2>
@@ -739,7 +739,7 @@ export default function RocklandLanding(): JSX.Element {
                   <p>Loading articles...</p>
                 </div>
               </div>
-            ) : articlesError && articlesData.length === 0 ? (
+            ) : articlesError ? (
               <div className="col-span-full text-center py-8">
                 <div className="text-yellow-300 mb-2">⚠️</div>
                 <p className="text-white">{articlesError}</p>
@@ -780,7 +780,7 @@ export default function RocklandLanding(): JSX.Element {
                           </span>
                         </div>
                       </div>
-                      <Badge className={`absolute top-3 sm:top-4 right-3 sm:right-4 ${article.is_free ? 'bg-green-600' : 'bg-blue-600'} text-xs`}>
+                      <Badge className={`absolute top-3 sm:top-4 right-3 sm:right-4 ${article.is_free ? 'bg-green-600' : 'bg-blue-600'} text-xs text-white`}>
                         {article.is_free ? 'Free' : 'Premium'}
                       </Badge>
                     </div>
@@ -790,13 +790,13 @@ export default function RocklandLanding(): JSX.Element {
                           <span className="text-white text-xs font-bold">{authorInitials}</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium truncate">{article.author_name || 'Unknown Author'}</div>
+                          <div className="text-sm font-medium text-gray-800 truncate">{article.author_name || 'Unknown Author'}</div>
                           <div className="text-xs text-gray-500">
                             {new Date(article.date_created).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
-                      <h3 className="font-bold mb-2 text-sm sm:text-base">{article.title}</h3>
+                      <h3 className="font-bold mb-2 text-sm sm:text-base text-gray-900">{article.title}</h3>
                       <p className="text-sm text-gray-600 mb-3">
                         {truncateContent(article.content, 100)}
                       </p>
@@ -813,116 +813,17 @@ export default function RocklandLanding(): JSX.Element {
                 )
               })
             ) : (
-              // Fallback static articles when no articles are available
-              <>
-                {/* Featured Article */}
-                <Card className="overflow-hidden bg-white">
-                  <div className="relative">
-                    <div className="w-full h-40 sm:h-48 relative overflow-hidden">
-                      <Image
-                        src="/1.png"
-                        alt="Igneous Rock Sample"
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                        <span className="text-white font-semibold text-sm">Igneous Rock Sample</span>
-                      </div>
-                    </div>
-                    <Badge className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-green-600 text-xs">Free</Badge>
-                  </div>
-                  <CardContent className="p-3 sm:p-4 bg-white">
-                    <div className="flex items-center mb-3">
-                      <div className="w-7 sm:w-8 h-7 sm:h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full mr-2 sm:mr-3 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">SK</span>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">Dr. Sarah Kim</div>
-                        <div className="text-xs text-gray-500">2 days ago</div>
-                      </div>
-                    </div>
-                    <h3 className="font-bold mb-2 text-sm sm:text-base">Understanding the Three Types of Geological Rocks</h3>
-                    <p className="text-sm text-gray-600 mb-3">Explore igneous, sedimentary, and metamorphic rocks and learn how they form through Earth's geological processes.</p>
-                    <div className="flex items-center mt-4">
-                      <div className="text-sm text-gray-500">1.5k likes</div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Rock Identification Guide */}
-                <Card className="overflow-hidden bg-white">
-                  <div className="relative">
-                    <div className="w-full h-40 sm:h-48 relative overflow-hidden">
-                      <Image
-                        src="/2.jpg"
-                        alt="Sedimentary Layers"
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                        <span className="text-white font-semibold text-sm">Sedimentary Layers</span>
-                      </div>
-                    </div>
-                    <Badge className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-blue-600 text-xs">Premium</Badge>
-                  </div>
-                  <CardContent className="p-3 sm:p-4 bg-white">
-                    <div className="flex items-center mb-3">
-                      <div className="w-7 sm:w-8 h-7 sm:h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full mr-2 sm:mr-3 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">MJ</span>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">Prof. Michael Johnson</div>
-                        <div className="text-xs text-gray-500">1 week ago</div>
-                      </div>
-                    </div>
-                    <h3 className="font-bold mb-2 text-sm sm:text-base">Complete Rock Identification Field Guide</h3>
-                    <p className="text-sm text-gray-600 mb-3">Master the art of identifying rocks in the field using texture, color, crystal structure, and formation clues.</p>
-                    <div className="flex items-center mt-4">
-                      <div className="text-sm text-gray-500">1.5k likes</div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Crystal Formation Article */}
-                <Card className="overflow-hidden bg-white sm:col-span-2 lg:col-span-1">
-                  <div className="relative">
-                    <div className="w-full h-40 sm:h-48 relative overflow-hidden">
-                      <Image
-                        src="/3.png"
-                        alt="Crystal Structure"
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                        <span className="text-white font-semibold text-sm">Crystal Structure</span>
-                      </div>
-                    </div>
-                    <Badge className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-blue-600 text-xs">Premium</Badge>
-                  </div>
-                  <CardContent className="p-3 sm:p-4 bg-white">
-                    <div className="flex items-center mb-3">
-                      <div className="w-7 sm:w-8 h-7 sm:h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full mr-2 sm:mr-3 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">AL</span>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">Dr. Anna Lee</div>
-                        <div className="text-xs text-gray-500">3 days ago</div>
-                      </div>
-                    </div>
-                    <h3 className="font-bold mb-2 text-sm sm:text-base">The Science of Crystal Formation and Growth</h3>
-                    <p className="text-sm text-gray-600 mb-3">Dive deep into crystallography and understand how temperature, pressure, and chemical composition create stunning crystal formations.</p>
-                    <div className="flex items-center mt-4">
-                      <div className="text-sm text-gray-500">1.5k likes</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
+              <div className="col-span-full text-center py-8">
+                <div className="text-gray-300 mb-2">📄</div>
+                <p className="text-white">No articles available</p>
+                <p className="text-sm text-gray-300 mt-2">Articles will be displayed when available</p>
+              </div>
             )}
           </div>
         </div>
       </section>
 
-      {/* Testimonials Section - Made responsive with updated selected testimonials */}
+      {/* Testimonials Section - Made responsive with updated selected testimonials - Dynamic only */}
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8 sm:mb-12">
@@ -938,7 +839,7 @@ export default function RocklandLanding(): JSX.Element {
                   <p className="text-gray-600">Loading testimonials...</p>
                 </div>
               </div>
-            ) : testimonialsError && testimonialsData.length === 0 ? (
+            ) : testimonialsError ? (
               <div className="col-span-full text-center py-8">
                 <div className="text-yellow-600 mb-2">⚠️</div>
                 <p className="text-gray-600">{testimonialsError}</p>
@@ -985,17 +886,17 @@ export default function RocklandLanding(): JSX.Element {
                 )
               })
             ) : (
-              // Fallback content when no testimonials are available
               <div className="col-span-full text-center py-8">
-                <p className="text-gray-600">No testimonials available at the moment.</p>
-                <p className="text-sm text-gray-400 mt-2">Check back soon for user reviews!</p>
+                <div className="text-gray-400 mb-2">💬</div>
+                <p className="text-gray-600">No testimonials available</p>
+                <p className="text-sm text-gray-400 mt-2">Testimonials will be displayed when available</p>
               </div>
             )}
           </div>
         </div>
       </section>
 
-      {/* Pricing Section - Made responsive */}
+      {/* Pricing Section - Made responsive - Dynamic only */}
       <section id="pricing" className="py-12 sm:py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-black">Subscription Plan</h2>
@@ -1015,23 +916,29 @@ export default function RocklandLanding(): JSX.Element {
             <div className="text-center py-16">
               <div className="text-yellow-600 mb-2">⚠️</div>
               <p className="text-gray-600">{subscriptionError}</p>
-              <p className="text-sm text-gray-400 mt-2">Showing default plans</p>
-              
-              {/* Fallback to static plans */}
-              <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-3xl mx-auto mt-8">
-                {/* Static Basic Plan */}
-                <Card className="p-6 sm:p-8 relative">
+              <p className="text-sm text-gray-400 mt-2">Please check back later</p>
+            </div>
+          ) : (subscriptionPlans.free || subscriptionPlans.premium) ? (
+            <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-3xl mx-auto">
+              {/* Dynamic Free Plan */}
+              {subscriptionPlans.free && (
+                <Card className="p-6 sm:p-8 relative bg-white">
                   <div>
                     <div className="flex items-center justify-center gap-2 mb-4">
                       <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      <span className="text-sm font-medium text-gray-700">BASIC</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        {subscriptionPlans.free.name.toUpperCase()}
+                      </span>
                     </div>
-                    <div className="text-4xl sm:text-5xl font-bold mb-1">
-                      $0<span className="text-base font-normal text-gray-500">/month</span>
+                    <div className="text-4xl sm:text-5xl font-bold mb-1 text-black">
+                      {subscriptionPlans.free.currency || '$'}{subscriptionPlans.free.price}
+                      <span className="text-base font-normal text-gray-500">/month</span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-6 sm:mb-8">Perfect for casual rock enthusiasts</p>
+                    <p className="text-sm text-gray-600 mb-6 sm:mb-8">
+                      {subscriptionPlans.free.description}
+                    </p>
 
                     <Link href="/registration">
                       <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white mb-6 sm:mb-8">
@@ -1040,33 +947,27 @@ export default function RocklandLanding(): JSX.Element {
                     </Link>
 
                     <div className="space-y-3 text-left">
-                      <div className="flex items-start">
-                        <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">Photo-based rock identification</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">5 scans per day</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">Community forum access</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">View nearby rock locations</span>
-                      </div>
+                      {parseFeatures(subscriptionPlans.free).map((feature, index) => (
+                        <div key={index} className="flex items-start">
+                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm text-gray-700">{feature}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </Card>
+              )}
 
-                {/* Static Premium Plan */}
-                <Card className="p-6 sm:p-8 relative border-green-600 border-2">
+              {/* Dynamic Premium Plan */}
+              {subscriptionPlans.premium && (
+                <Card className="p-6 sm:p-8 relative border-green-600 border-2 bg-white">
+                  {/* Most Popular Badge */}
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <div className="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
+                      Most Popular
                     </div>
                   </div>
                   
@@ -1075,12 +976,17 @@ export default function RocklandLanding(): JSX.Element {
                       <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
-                      <span className="text-sm font-medium text-green-600">PREMIUM</span>
+                      <span className="text-sm font-medium text-green-600">
+                        {subscriptionPlans.premium.name.toUpperCase()}
+                      </span>
                     </div>
-                    <div className="text-4xl sm:text-5xl font-bold mb-1">
-                      $5<span className="text-base font-normal text-gray-500">/month</span>
+                    <div className="text-4xl sm:text-5xl font-bold mb-1 text-black">
+                      {subscriptionPlans.premium.currency || '$'}{subscriptionPlans.premium.price}
+                      <span className="text-base font-normal text-gray-500">/month</span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-6 sm:mb-8">For serious rock collectors and students</p>
+                    <p className="text-sm text-gray-600 mb-6 sm:mb-8">
+                      {subscriptionPlans.premium.description}
+                    </p>
 
                     <Link href="/registration">
                       <Button className="w-full bg-green-600 hover:bg-green-700 text-white mb-6 sm:mb-8">
@@ -1089,162 +995,22 @@ export default function RocklandLanding(): JSX.Element {
                     </Link>
 
                     <div className="space-y-3 text-left">
-                      <div className="flex items-start">
-                        <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">Everything in Basic</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">Unlimited rock scans</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">Interactive mapping & discovery</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">Expert consultation access</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm text-gray-700">Quiz system with point rewards</span>
-                      </div>
+                      {parseFeatures(subscriptionPlans.premium).map((feature, index) => (
+                        <div key={index} className="flex items-start">
+                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm text-gray-700">{feature}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </Card>
-              </div>
+              )}
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-3xl mx-auto">
-              <Card className="p-6 sm:p-8 relative">
-                <div>
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span className="text-sm font-medium text-gray-700">
-                      {subscriptionPlans.free?.name.toUpperCase() || 'BASIC'}
-                    </span>
-                  </div>
-                  <div className="text-4xl sm:text-5xl font-bold mb-1 text-black">
-                    {subscriptionPlans.free?.currency || '$'
-                  }{subscriptionPlans.free?.price || 0}
-                    <span className="text-base font-normal text-gray-500">/month</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-6 sm:mb-8">
-                    {subscriptionPlans.free?.description || 'Perfect for casual rock enthusiasts'}
-                  </p>
-
-                  <Link href="/registration">
-                    <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white mb-6 sm:mb-8">
-                      Get Started Free
-                    </Button>
-                  </Link>
-
-                  <div className="space-y-3 text-left">
-                    {subscriptionPlans.free ? (
-                      parseFeatures(subscriptionPlans.free).map((feature, index) => (
-                        <div key={index} className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">{feature}</span>
-                        </div>
-                      ))
-                    ) : (
-                      // Fallback features
-                      <>
-                        <div className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">Photo-based rock identification</span>
-                        </div>
-                        <div className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">5 scans per day</span>
-                        </div>
-                        <div className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">Basic rock database</span>
-                        </div>
-                        <div className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">Community forum access</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </Card>
-              {/* Dynamic Premium Plan */}
-              <Card className="p-6 sm:p-8 relative border-green-600 border-2">
-                {/* Most Popular Badge */}
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-green-600 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    Most Popular
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span className="text-sm font-medium text-green-600">
-                      {subscriptionPlans.premium?.name.toUpperCase() || 'PREMIUM'}
-                    </span>
-                  </div>
-                  <div className="text-4xl sm:text-5xl font-bold mb-1">
-                    {subscriptionPlans.premium?.currency || '$'
-                  }{subscriptionPlans.premium?.price || 5}
-                    <span className="text-base font-normal text-gray-500">/month</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-6 sm:mb-8">
-                    {subscriptionPlans.premium?.description || 'For serious rock collectors and students'}
-                  </p>
-
-                  <Link href="/registration">
-                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white mb-6 sm:mb-8">
-                      Start Premium Plan
-                    </Button>
-                  </Link>
-
-                  <div className="space-y-3 text-left">
-                    {subscriptionPlans.premium ? (
-                      parseFeatures(subscriptionPlans.premium).map((feature, index) => (
-                        <div key={index} className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">{feature}</span>
-                        </div>
-                      ))
-                    ) : (
-                      // Fallback features
-                      <>
-                        <div className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">Everything in Basic</span>
-                        </div>
-                        <div className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">Unlimited rock scans</span>
-                        </div>
-                        <div className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">Interactive mapping & discovery</span>
-                        </div>
-                        <div className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">Expert consultation access</span>
-                        </div>
-                        <div className="flex items-start">
-                          <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">Quiz system with point rewards</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </Card>
+            <div className="text-center py-16">
+              <div className="text-gray-400 mb-2">📋</div>
+              <p className="text-gray-600">No subscription plans available</p>
+              <p className="text-sm text-gray-400 mt-2">Plans will be displayed when available</p>
             </div>
           )}
         </div>
@@ -1253,7 +1019,7 @@ export default function RocklandLanding(): JSX.Element {
       {/* Download Section - Updated to show only Android */}
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-8 sm:mb-12">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-8 sm:mb-12 text-black">
             Download Rockland and Start Exploring Now!
           </h2>
 
@@ -1268,7 +1034,7 @@ export default function RocklandLanding(): JSX.Element {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
             <div className="text-center lg:text-left">
-              <h2 className="text-3xl sm:text-4xl font-bold mb-6 lg:mb-8">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-6 lg:mb-8 text-black">
                 Frequently<br />
                 asked<br />
                 questions

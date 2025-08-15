@@ -230,20 +230,20 @@ export default function FeaturesPage() {
       </section>
 
       {/* Main Features Section - Made responsive */}
-      <section className="py-12 sm:py-16">
+      <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
             {mainFeatures.map((feature, index) => (
-              <Card key={index} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <CardContent className="p-6 sm:p-8">
+              <Card key={index} className="overflow-hidden hover:shadow-lg transition-shadow bg-white">
+                <CardContent className="p-6 sm:p-8 bg-white">
                   <div className="flex items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <div className="bg-green-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
                       <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                        <h3 className="text-lg sm:text-xl font-bold">{feature.title}</h3>
-                        <Badge variant="secondary" className="text-xs w-fit">
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-900">{feature.title}</h3>
+                        <Badge variant="secondary" className="text-xs w-fit text-gray-700 bg-gray-100">
                           {feature.badge}
                         </Badge>
                       </div>
@@ -310,7 +310,7 @@ export default function FeaturesPage() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="order-2 lg:order-1">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">See Rockland in Action</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-gray-900">See Rockland in Action</h2>
               <p className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base leading-relaxed">
                 Experience the power of AI-driven rock identification with our intuitive mobile interface.
               </p>
@@ -321,7 +321,7 @@ export default function FeaturesPage() {
                     <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-1 text-sm sm:text-base">Point & Identify</h4>
+                    <h4 className="font-semibold mb-1 text-sm sm:text-base text-gray-900">Point & Identify</h4>
                     <p className="text-xs sm:text-sm text-gray-600">
                       Simply point your camera at any rock for instant identification
                     </p>
@@ -333,7 +333,7 @@ export default function FeaturesPage() {
                     <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-1 text-sm sm:text-base">AI Analysis</h4>
+                    <h4 className="font-semibold mb-1 text-sm sm:text-base text-gray-900">AI Analysis</h4>
                     <p className="text-xs sm:text-sm text-gray-600">
                       Advanced AI analyzes texture, color, and mineral composition
                     </p>
@@ -345,7 +345,7 @@ export default function FeaturesPage() {
                     <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-1 text-sm sm:text-base">Learn & Save</h4>
+                    <h4 className="font-semibold mb-1 text-sm sm:text-base text-gray-900">Learn & Save</h4>
                     <p className="text-xs sm:text-sm text-gray-600">
                       Get detailed information and save to your collection
                     </p>
@@ -449,18 +449,18 @@ export default function FeaturesPage() {
       </section>
 
       {/* Additional Features Grid - Made responsive */}
-      <section className="py-12 sm:py-16">
+      <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">More Powerful Features</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 text-gray-900">More Powerful Features</h2>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {additionalFeatures.map((feature, index) => (
-              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
-                <CardContent className="p-4 sm:p-6">
+              <Card key={index} className="text-center hover:shadow-lg transition-shadow bg-white">
+                <CardContent className="p-4 sm:p-6 bg-white">
                   <div className="bg-green-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                     <feature.icon className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                   </div>
-                  <h3 className="font-bold mb-2 text-sm sm:text-base">{feature.title}</h3>
+                  <h3 className="font-bold mb-2 text-sm sm:text-base text-gray-900">{feature.title}</h3>
                   <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">{feature.description}</p>
                 </CardContent>
               </Card>
@@ -473,7 +473,7 @@ export default function FeaturesPage() {
       <section className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Built with Advanced Technology</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-900">Built with Advanced Technology</h2>
             <p className="text-gray-600 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
               Rockland leverages cutting-edge technology to provide the most accurate and reliable rock identification
               experience.
@@ -486,7 +486,7 @@ export default function FeaturesPage() {
                 <div className="bg-white w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-sm">
                   <feature.icon className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
                 </div>
-                <h4 className="font-semibold mb-2 text-sm sm:text-base">{feature.title}</h4>
+                <h4 className="font-semibold mb-2 text-sm sm:text-base text-gray-900">{feature.title}</h4>
                 <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">{feature.description}</p>
               </div>
             ))}
@@ -524,7 +524,7 @@ export default function FeaturesPage() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             <div className="text-sm text-center sm:text-left">
-              <div className="mb-4 font-medium">2025 Rockland FYP-S2-G19</div>
+              <div className="mb-4 font-medium text-white">2025 Rockland FYP-S2-G19</div>
               <div className="mt-4">
                 <a href="/login" className="text-emerald-200 hover:text-white text-xs transition-colors">
                   Admin Login
