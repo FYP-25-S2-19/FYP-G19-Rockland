@@ -104,7 +104,7 @@ export default function PricingPage() {
   const fallbackFeatures = {
     basic: [
       { name: "Photo-based rock identification", included: true, icon: Camera },
-      { name: "5 scans per day", included: true },
+      { name: "3 scans per day", included: true },
       { name: "Basic rock database (1,000+ rocks)", included: true },
       { name: "Community forum access", included: true, icon: MessageCircle },
       { name: "View nearby rock locations", included: true, icon: MapPin },
@@ -406,7 +406,7 @@ export default function PricingPage() {
                 <div className="flex items-center justify-between border-b pb-2">
                   <span className="text-sm font-medium">Daily Scans</span>
                   <div className="flex space-x-4 text-sm">
-                    <span className="w-12 text-center">5/day</span>
+                    <span className="w-12 text-center">3/day</span>
                     <span className="w-12 text-center text-green-600">∞</span>
                   </div>
                 </div>
@@ -441,17 +441,6 @@ export default function PricingPage() {
                   <div className="flex space-x-4 text-sm">
                     <span className="w-12 text-center">❌</span>
                     <span className="w-12 text-center text-green-600">✓</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Archive className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm font-medium">Collection Storage</span>
-                  </div>
-                  <div className="flex space-x-4 text-sm">
-                    <span className="w-12 text-center">20</span>
-                    <span className="w-12 text-center text-green-600">∞</span>
                   </div>
                 </div>
               </div>
@@ -490,7 +479,7 @@ export default function PricingPage() {
                 </tr>
                 <tr className="border-b bg-gray-50">
                   <td className="p-4 font-medium">Daily Scans</td>
-                  <td className="p-4 text-center">5 per day</td>
+                  <td className="p-4 text-center">3 per day</td>
                   <td className="p-4 text-center text-green-600">Unlimited</td>
                 </tr>
                 <tr className="border-b">
@@ -516,14 +505,6 @@ export default function PricingPage() {
                   </td>
                   <td className="p-4 text-center">❌</td>
                   <td className="p-4 text-center text-green-600">Full access</td>
-                </tr>
-                <tr className="border-b bg-gray-50">
-                  <td className="p-4 font-medium flex items-center">
-                    <Archive className="w-4 h-4 mr-2 text-gray-500" />
-                    Collection Storage
-                  </td>
-                  <td className="p-4 text-center">20 rocks</td>
-                  <td className="p-4 text-center text-green-600">Unlimited</td>
                 </tr>
               </tbody>
             </table>
