@@ -59,8 +59,7 @@ export default function RockMapScreen() {
   const [currentMarkerIcon, setCurrentMarkerIcon] = useState(rockIcon);
   const [lastFetchLocation, setLastFetchLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [noNearbyMessage, setNoNearbyMessage] = useState<string | null>(null);
-  const [locDenied, setLocDenied] = useState<boolean>(false); 
-  const [markerSize, setMarkerSize] = useState(32);
+  const [locDenied, setLocDenied] = useState<boolean>(false);
 
   const lastZoneRef = useRef<string | null>(null);
   const mapRef = useRef<MapView | null>(null);
@@ -312,10 +311,13 @@ export default function RockMapScreen() {
   // Zoom-based marker scaling
   const handleRegionChange = (region: Region) => {
     const zoomLevel = Math.round(Math.log2(360 / region.longitudeDelta));
-    // tweak these to taste
-    if (zoomLevel < 13) setMarkerSize(20);
-    else if (zoomLevel < 16) setMarkerSize(28);
-    else setMarkerSize(36);
+    if (zoomLevel < 13) {
+      setCurrentMarkerIcon(require("../assets/images/marker_small.png"));
+    } else if (zoomLevel < 16) {
+      setCurrentMarkerIcon(require("../assets/images/marker_medium.png"));
+    } else {
+      setCurrentMarkerIcon(require("../assets/images/marker.png"));
+    }
   };
 
   const handleRecenter = () => {
@@ -468,14 +470,11 @@ export default function RockMapScreen() {
           <Marker
             key={m.rock_spawn_id}
             coordinate={{ latitude: m.latitude, longitude: m.longitude }}
+            onPress={() => setSelectedRock(m)}
             anchor={{ x: 0.5, y: 0.5 }}
             tracksViewChanges={false}   // perf
-          >
-            <Image
-              source={require("../assets/images/marker.png")} // single base asset
-              style={{ width: markerSize, height: markerSize, resizeMode: "contain" }}
-            />
-          </Marker>
+            image={currentMarkerIcon}
+          />
         ))}
       </MapView>
 
