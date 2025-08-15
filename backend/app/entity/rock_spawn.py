@@ -5,6 +5,7 @@ from sqlalchemy import func
 from math import radians, sin, cos, sqrt, atan2
 import random
 import math
+import traceback
 
 from app.models import db
 from app.entity.user_rock_spawn import UserRockSpawn
@@ -122,77 +123,138 @@ class RockSpawn(db.Model):
         2) If none: return best bbox match
         3) Else: nearest zone center as last fallback
         """
-        # Prefer the entity’s polygon-first resolver if present
         try:
-            z, how = ZoneProfile.find_zone_for_point(lat, lng, pad=pad, use_fallback=True)
-            if z:
-                return z, how  # how in {"polygon","bbox","nearest"}
-        except AttributeError:
-            pass  # legacy code path below
-
-        # Legacy fallback: bbox-first (but verify polygon containment if possible)
-        try:
-            zone = ZoneProfile.get_zone_by_coordinates(lat, lng, pad=pad)
-        except TypeError:
-            zone = ZoneProfile.get_zone_by_coordinates(lat, lng)
-        if zone:
+            print(f"🔍 Zone Resolution: Starting for lat={lat}, lng={lng}, pad={pad}")
+            
+            # Prefer the entity's polygon-first resolver if present
             try:
-                # If polygon exists and actually contains the point, call it "polygon"
-                if zone.contains(lat, lng):
-                    return zone, "polygon"
-            except Exception:
-                pass
-            return zone, "bbox"
+                print(f"🔍 Zone Resolution: Attempting ZoneProfile.find_zone_for_point")
+                z, how = ZoneProfile.find_zone_for_point(lat, lng, pad=pad, use_fallback=True)
+                if z:
+                    print(f"✅ Zone Resolution: Found zone via find_zone_for_point: {z.zone_name}, method: {how}")
+                    return z, how  # how in {"polygon","bbox","nearest"}
+            except AttributeError as e:
+                print(f"⚠️ Zone Resolution: find_zone_for_point not available: {e}")
+                pass  # legacy code path below
+            except Exception as e:
+                print(f"❌ Zone Resolution: find_zone_for_point failed: {e}")
+                print(f"❌ Zone Resolution traceback:\n{traceback.format_exc()}")
 
-        # Nearest center fallback
-        center_lat = (ZoneProfile.lat_min + ZoneProfile.lat_max) / 2.0
-        center_lng = (ZoneProfile.lng_min + ZoneProfile.lng_max) / 2.0
-        dist_expr = func.sqrt(func.pow(center_lat - float(lat), 2) + func.pow(center_lng - float(lng), 2))
-        nearest = ZoneProfile.query.filter(ZoneProfile.is_active.is_(True)).order_by(dist_expr.asc()).first()
-        if nearest:
-            return nearest, "nearest"
-        return None, None
+            # Legacy fallback: bbox-first (but verify polygon containment if possible)
+            try:
+                print(f"🔍 Zone Resolution: Attempting get_zone_by_coordinates with pad")
+                zone = ZoneProfile.get_zone_by_coordinates(lat, lng, pad=pad)
+            except TypeError as e:
+                print(f"⚠️ Zone Resolution: get_zone_by_coordinates doesn't support pad, trying without: {e}")
+                try:
+                    zone = ZoneProfile.get_zone_by_coordinates(lat, lng)
+                except Exception as e2:
+                    print(f"❌ Zone Resolution: get_zone_by_coordinates failed completely: {e2}")
+                    zone = None
+            except Exception as e:
+                print(f"❌ Zone Resolution: get_zone_by_coordinates failed: {e}")
+                zone = None
+                
+            if zone:
+                print(f"✅ Zone Resolution: Found zone via get_zone_by_coordinates: {zone.zone_name}")
+                try:
+                    # If polygon exists and actually contains the point, call it "polygon"
+                    if hasattr(zone, 'contains') and zone.contains(lat, lng):
+                        print(f"✅ Zone Resolution: Point is within polygon boundary")
+                        return zone, "polygon"
+                except Exception as e:
+                    print(f"⚠️ Zone Resolution: Polygon check failed: {e}")
+                    pass
+                return zone, "bbox"
 
+            # Nearest center fallback
+            print(f"🔍 Zone Resolution: Attempting nearest center fallback")
+            try:
+                # Check if ZoneProfile has these attributes
+                if not hasattr(ZoneProfile, 'lat_min'):
+                    print(f"❌ Zone Resolution: ZoneProfile missing lat_min/lat_max attributes")
+                    return None, None
+                    
+                center_lat = (ZoneProfile.lat_min + ZoneProfile.lat_max) / 2.0
+                center_lng = (ZoneProfile.lng_min + ZoneProfile.lng_max) / 2.0
+                print(f"🔍 Zone Resolution: Using center coordinates: lat={center_lat}, lng={center_lng}")
+                
+                dist_expr = func.sqrt(func.pow(center_lat - float(lat), 2) + func.pow(center_lng - float(lng), 2))
+                nearest = ZoneProfile.query.filter(ZoneProfile.is_active.is_(True)).order_by(dist_expr.asc()).first()
+                if nearest:
+                    print(f"✅ Zone Resolution: Found nearest zone: {nearest.zone_name}")
+                    return nearest, "nearest"
+                else:
+                    print(f"❌ Zone Resolution: No active zones found")
+            except Exception as e:
+                print(f"❌ Zone Resolution: Nearest center fallback failed: {e}")
+                print(f"❌ Zone Resolution nearest traceback:\n{traceback.format_exc()}")
+                
+            print(f"❌ Zone Resolution: All methods failed, returning None")
+            return None, None
+            
+        except Exception as e:
+            print(f"❌ Zone Resolution: Critical error in _resolve_zone: {e}")
+            print(f"❌ Zone Resolution critical traceback:\n{traceback.format_exc()}")
+            return None, None
 
     # -------------------------------
     # Helper: fetch nearby, unexpired, uncollected spawns
     # -------------------------------
     @classmethod
     def fetch_nearby_uncollected(cls, user_id: int, lat: float, lng: float, radius_m: float = 1000):
-        # 1) rough degrees per meter
-        lat_deg = radius_m / 111_000.0
-        # protect near poles; use cos(lat) scaling for longitude
-        lng_scale = math.cos(math.radians(lat))
-        if abs(lng_scale) < 0.3:  # safety
-            lng_scale = 0.3
-        lng_deg = radius_m / (111_000.0 * lng_scale)
+        try:
+            print(f"🔍 Fetch Nearby: Starting for user_id={user_id}, lat={lat}, lng={lng}, radius={radius_m}")
+            
+            # 1) rough degrees per meter
+            lat_deg = radius_m / 111_000.0
+            # protect near poles; use cos(lat) scaling for longitude
+            lng_scale = math.cos(math.radians(lat))
+            if abs(lng_scale) < 0.3:  # safety
+                lng_scale = 0.3
+            lng_deg = radius_m / (111_000.0 * lng_scale)
+            
+            print(f"🔍 Fetch Nearby: Calculated bounds - lat_deg={lat_deg}, lng_deg={lng_deg}")
 
-        # 2) SQL bbox prefilter (fast, portable)
-        candidates = (
-            cls.query
-            .join(Rock, Rock.rock_id == cls.rock_id)
-            .filter(cls.expires_at > datetime.utcnow())
-            .filter(cls.latitude.between(lat - lat_deg, lat + lat_deg))
-            .filter(cls.longitude.between(lng - lng_deg, lng + lng_deg))
-            .all()
-        )
+            # 2) SQL bbox prefilter (fast, portable)
+            print(f"🔍 Fetch Nearby: Querying database for candidates")
+            candidates = (
+                cls.query
+                .join(Rock, Rock.rock_id == cls.rock_id)
+                .filter(cls.expires_at > datetime.utcnow())
+                .filter(cls.latitude.between(lat - lat_deg, lat + lat_deg))
+                .filter(cls.longitude.between(lng - lng_deg, lng + lng_deg))
+                .all()
+            )
+            print(f"🔍 Fetch Nearby: Found {len(candidates)} candidate spawns")
 
-        # 3) Exact distance in Python
-        in_radius = []
-        for s in candidates:
-            d = cls.haversine(lat, lng, s.latitude, s.longitude)
-            if d <= radius_m:
-                in_radius.append(s)
+            # 3) Exact distance in Python
+            in_radius = []
+            for s in candidates:
+                d = cls.haversine(lat, lng, s.latitude, s.longitude)
+                if d <= radius_m:
+                    in_radius.append(s)
+            print(f"🔍 Fetch Nearby: {len(in_radius)} spawns within radius after distance check")
 
-        
-
-        if user_id is not None:
-            collected_ids = {
-                s.rock_spawn_id for s in UserRockSpawn.query.filter_by(user_id=user_id).all()
-            }
-        else:
-            collected_ids = set()
-        return [s.to_dict() for s in in_radius if s.rock_spawn_id not in collected_ids]
+            # 4) Filter out collected spawns
+            if user_id is not None:
+                print(f"🔍 Fetch Nearby: Checking collected spawns for user {user_id}")
+                collected_ids = {
+                    s.rock_spawn_id for s in UserRockSpawn.query.filter_by(user_id=user_id).all()
+                }
+                print(f"🔍 Fetch Nearby: User has collected {len(collected_ids)} spawns")
+            else:
+                collected_ids = set()
+                print(f"🔍 Fetch Nearby: No user_id provided, not filtering collected spawns")
+                
+            result = [s.to_dict() for s in in_radius if s.rock_spawn_id not in collected_ids]
+            print(f"✅ Fetch Nearby: Returning {len(result)} uncollected spawns")
+            return result
+            
+        except Exception as e:
+            print(f"❌ Fetch Nearby: Error in fetch_nearby_uncollected: {e}")
+            print(f"❌ Fetch Nearby traceback:\n{traceback.format_exc()}")
+            return []
 
     # -------------------------------
     # NEW: Full flow for controller (recommended)
@@ -200,9 +262,14 @@ class RockSpawn(db.Model):
     @classmethod
     def nearby_with_zone_and_autospawn(cls, user_id: int, lat: float, lng: float, radius_m: float = 1000):
         try:
-            # before: pad=0.004 (more overlap)
+            print(f"🔍 Step 1: Starting zone resolution for lat={lat}, lng={lng}")
+            
+            # Step 1: Zone resolution
             zone, how = cls._resolve_zone(lat, lng, pad=0.001)
+            print(f"🔍 Step 1 Result: zone={zone.zone_name if zone else 'None'}, method={how}")
+            
             if not zone:
+                print("❌ Step 1: No zone found, returning early")
                 return True, 200, {
                     "success": True,
                     "message": "No zone found for location",
@@ -212,23 +279,66 @@ class RockSpawn(db.Model):
                     "zone_match_method": None,
                 }
 
+            print(f"🔍 Step 2: Fetching nearby spawns for user_id={user_id}")
+            
+            # Step 2: Fetch existing spawns
             spawns = cls.fetch_nearby_uncollected(user_id, lat, lng, radius_m)
+            print(f"🔍 Step 2 Result: Found {len(spawns)} existing spawns")
+            
+            # Step 3: Auto-spawn if needed
             if len(spawns) == 0:
-                from app.utils.spawn_generator import generate_dynamic_spawn
-                generate_dynamic_spawn(lat, lng, zone)
-                spawns = cls.fetch_nearby_uncollected(user_id, lat, lng, radius_m)
+                print(f"🔍 Step 3: No spawns found, triggering dynamic spawn")
+                try:
+                    from app.utils.spawn_generator import generate_dynamic_spawn
+                    print(f"🔍 Step 3: Imported spawn_generator successfully")
+                    generate_dynamic_spawn(lat, lng, zone)
+                    print(f"✅ Step 3: Dynamic spawn completed")
+                    
+                    # Re-fetch after spawning
+                    spawns = cls.fetch_nearby_uncollected(user_id, lat, lng, radius_m)
+                    print(f"🔍 Step 3 Result: Found {len(spawns)} spawns after generation")
+                    
+                except ImportError as import_error:
+                    print(f"❌ Step 3 Import Error: spawn_generator not found: {import_error}")
+                    # Continue without spawning rather than failing completely
+                except Exception as spawn_error:
+                    print(f"❌ Step 3 Error: Dynamic spawn failed: {spawn_error}")
+                    print(f"❌ Spawn generation traceback:\n{traceback.format_exc()}")
+                    # Continue without spawning rather than failing completely
+            else:
+                print(f"🔍 Step 3: Skipped dynamic spawn (existing spawns found)")
 
+            print(f"🔍 Step 4: Building response payload")
+            
+            # Step 4: Build response
+            try:
+                zone_dict = zone.to_dict()
+                print(f"✅ Step 4: Zone serialization successful")
+            except Exception as zone_error:
+                print(f"❌ Step 4: Zone serialization failed: {zone_error}")
+                print(f"❌ Zone serialization traceback:\n{traceback.format_exc()}")
+                # Try to build a minimal zone dict
+                zone_dict = {
+                    "zone_name": getattr(zone, 'zone_name', 'Unknown'),
+                    "zone_id": getattr(zone, 'zone_id', None),
+                }
+            
             payload = {
                 "success": True,
                 "message": "Nearby spawns fetched",
-                "zone": zone.to_dict(),
+                "zone": zone_dict,
                 "spawns": spawns,
                 "spawn_count": len(spawns),
                 "zone_match_method": how,   # keep this for debugging
             }
+            
+            print(f"✅ Step 4: Success - returning {len(spawns)} spawns")
             return True, 200, payload
 
         except Exception as e:
+            print(f"❌ CRITICAL ERROR in nearby_with_zone_and_autospawn: {str(e)}")
+            print(f"❌ FULL TRACEBACK:\n{traceback.format_exc()}")
+            
             return False, 500, {
                 "success": False,
                 "message": f"Error: {str(e)}",
