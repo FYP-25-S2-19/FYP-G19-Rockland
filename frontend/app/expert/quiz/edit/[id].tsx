@@ -116,37 +116,82 @@ export default function EditQuiz() {
     fetchData();
   }, [id]);
 
-  // --- Save Quiz ---
   const handleSave = async () => {
     try {
+      // Basic validation
+      if (!quizTitle.trim()) {
+        Alert.alert("Error", "Quiz title is required");
+        return;
+      }
+
+      if (questions.length === 0) {
+        Alert.alert("Error", "At least one question is required");
+        return;
+      }
+
+      // Validate questions
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        if (!q.question.trim()) {
+          Alert.alert("Error", `Question ${i + 1} cannot be empty`);
+          return;
+        }
+        if (q.options.length < 2) {
+          Alert.alert("Error", `Question ${i + 1} must have at least 2 options`);
+          return;
+        }
+        if (q.correctAnswerIndex === null) {
+          Alert.alert("Error", `Please select a correct answer for Question ${i + 1}`);
+          return;
+        }
+        // Check if options have text
+        for (let j = 0; j < q.options.length; j++) {
+          if (!q.options[j].option_text.trim()) {
+            Alert.alert("Error", `Option ${j + 1} in Question ${i + 1} cannot be empty`);
+            return;
+          }
+        }
+      }
+
       const token = await AsyncStorage.getItem("accessToken");
       const headers = { Authorization: `Bearer ${token}` };
 
       const formattedQuestions = questions.map((q) => ({
-        question_id: q.question_id,
-        question_text: q.question,
-        points: q.points,
+        question_id: q.question_id || undefined, // Don't send null, send undefined for new questions
+        question: q.question.trim(), // Backend expects 'question' not 'question_text'
+        points: q.points || 1, // Default to 1 if 0
         options: q.options.map((opt, idx) => ({
-          option_id: opt.option_id,
-          option_text: opt.option_text,
+          option_id: opt.option_id || undefined, // Don't send null
+          option_text: opt.option_text.trim(),
           is_correct: idx === q.correctAnswerIndex,
         })),
       }));
 
       const payload = {
-        title: quizTitle,
-        description: quizDescription,
-        interest_id: selectedInterest ? selectedInterest.interest_id : null, // allow null
+        title: quizTitle.trim(),
+        description: quizDescription.trim(),
+        interest_id: selectedInterest ? selectedInterest.interest_id : null,
         questions: formattedQuestions,
       };
 
-      await axios.put(`${API_URL}/api/quizzes/${id}`, payload, { headers });
+      console.log("🔄 Sending payload:", JSON.stringify(payload, null, 2));
 
-      Alert.alert("✅ Quiz updated!");
+      const response = await axios.put(`${API_URL}/api/quizzes/${id}`, payload, { headers });
+
+      console.log("✅ Update response:", response.data);
+
+      Alert.alert("Success", "Quiz updated successfully!");
       router.push("/(expert-tabs)/quizhome");
-    } catch (err) {
-      console.error("Update failed", err);
-      Alert.alert("❌ Failed to update quiz");
+    } catch (err: any) {
+      console.error("❌ Update failed:", err);
+      
+      if (err.response) {
+        console.error("❌ Error response:", err.response.data);
+        const errorMessage = err.response.data?.message || err.response.data?.error || "Failed to update quiz";
+        Alert.alert("Update Failed", errorMessage);
+      } else {
+        Alert.alert("Error", "Network error. Please check your connection and try again.");
+      }
     }
   };
 

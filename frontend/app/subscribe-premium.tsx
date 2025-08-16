@@ -35,7 +35,7 @@ export default function SubscribePremiumScreen() {
     try {
       const res = await fetch(`${API_URL}/api/subscription-plans`);
       const data = await res.json();
-      const premiumPlan = data[1]; // assume one plan
+      const premiumPlan = data[0]; // assume one plan
       setPlan(premiumPlan);
     } catch (err) {
       Alert.alert("Error", "Failed to load subscription plan.");
@@ -56,7 +56,7 @@ export default function SubscribePremiumScreen() {
         },
         body: JSON.stringify({
           user_id: userId,
-          plan_id: plan.id,
+          plan_id: plan.subscription_plan_id,
         }),
       });
 
