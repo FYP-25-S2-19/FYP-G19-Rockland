@@ -901,8 +901,7 @@ export default function RocklandLanding(): JSX.Element {
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-black">Subscription Plan</h2>
           <p className="text-gray-600 mb-8 sm:mb-12 text-sm sm:text-base">
-            With lots of unique blocks, you can easily build a<br className="hidden sm:block" />
-            page easily without any coding.
+            Join us now!
           </p>
 
           {subscriptionLoading ? (

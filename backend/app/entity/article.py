@@ -277,13 +277,27 @@ class Article(db.Model):
             if not user:
                 return False, 404, "User not found", None
             
+            # Check permissions: Admin can delete any article, Expert can delete their own
             is_admin = user.user_type and user.user_type.name == 'Admin'
-            if not is_admin:
-                return False, 403, "Only administrators can delete articles", None
+            is_expert = user.user_type and user.user_type.name == 'Expert'
+            is_author = article.user_id == user.user_id
+            
+            if is_admin:
+                # Admin can delete any article
+                print(f"🔧 Admin deleting article {article_id}")
+            elif is_expert and is_author:
+                # Expert can delete their own articles
+                print(f"🔧 Expert deleting own article {article_id}")
+            else:
+                if is_expert and not is_author:
+                    return False, 403, "You can only delete your own articles", None
+                else:
+                    return False, 403, "Only administrators and article authors can delete articles", None
             
             article_title = article.title
             article_data = article.to_dict()
             
+            # Delete associated photo from cloud storage
             if article.photo:
                 delete_file_from_gcs(article.photo)
             
@@ -296,7 +310,7 @@ class Article(db.Model):
             db.session.rollback()
             print(f"Error deleting article: {e}")
             return False, 500, f"Error deleting article: {str(e)}", None
-    
+        
     @classmethod
     def getAllArticlesForAdmin(cls):
         """Get all articles for admin view"""

@@ -337,7 +337,7 @@ export default function PricingPage() {
 
                     <Link href="/registration">
                       <Button className="w-full bg-green-600 hover:bg-green-700 text-white mb-6 sm:mb-8 text-sm sm:text-base py-2 sm:py-3">
-                        Start Premium Trial
+                        Start Premium Plan
                       </Button>
                     </Link>
 

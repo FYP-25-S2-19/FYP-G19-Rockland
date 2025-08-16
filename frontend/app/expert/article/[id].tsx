@@ -24,6 +24,7 @@ export default function ExpertArticleDetail() {
   const [article, setArticle] = useState<any>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -90,10 +91,56 @@ export default function ExpertArticleDetail() {
     setConfirmVisible(true);
   };
 
-  const handleConfirmDelete = () => {
-    setConfirmVisible(false);
-    Alert.alert("Deleted", "The article has been deleted.");
-    router.back();
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const response = await axios.delete(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/articles/expert/delete/${id}`, 
+        { headers }
+      );
+      
+      if (response.data.success) {
+        setConfirmVisible(false);
+        setDeleting(false);
+        Alert.alert(
+          "Success", 
+          "The article has been deleted successfully.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.back()
+            }
+          ]
+        );
+      } else {
+        setDeleting(false);
+        Alert.alert("Error", response.data.message || "Failed to delete the article.");
+      }
+    } catch (error: any) {
+      setDeleting(false);
+      console.error("❌ Error deleting article:", error);
+      
+      // Handle different types of errors
+      if (error.response) {
+        const statusCode = error.response.status;
+        const errorMessage = error.response.data?.message || "An error occurred";
+        
+        if (statusCode === 403) {
+          Alert.alert("Permission Denied", "You can only delete your own articles.");
+        } else if (statusCode === 404) {
+          Alert.alert("Not Found", "Article not found.");
+        } else {
+          Alert.alert("Error", errorMessage);
+        }
+      } else if (error.request) {
+        Alert.alert("Network Error", "Please check your internet connection and try again.");
+      } else {
+        Alert.alert("Error", "An unexpected error occurred while deleting the article.");
+      }
+    }
   };
 
   const handleCancelDelete = () => {
@@ -166,16 +213,22 @@ export default function ExpertArticleDetail() {
           <Text style={styles.confirmMessage}>Are you sure you want to remove this article?</Text>
           <View style={styles.confirmButtonsRow}>
             <TouchableOpacity
-              style={[styles.confirmButton, styles.deleteButton]}
+              style={[styles.confirmButton, styles.deleteButton, deleting && styles.disabledButton]}
               onPress={handleConfirmDelete}
               activeOpacity={0.8}
+              disabled={deleting}
             >
-              <Text style={styles.deleteButtonText}>Delete</Text>
+              {deleting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.confirmButton, styles.cancelButton]}
               onPress={handleCancelDelete}
               activeOpacity={0.8}
+              disabled={deleting}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -186,7 +239,6 @@ export default function ExpertArticleDetail() {
   );
 }
 
-// 👇 Styles unchanged (same as your existing ones)
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#fff" },
   container: { paddingHorizontal: 20, paddingTop: 30 },
@@ -289,6 +341,7 @@ const styles = StyleSheet.create({
   deleteButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
   cancelButton: { backgroundColor: "#EAF7FF" },
   cancelButtonText: { color: "#222", fontWeight: "bold", fontSize: 16 },
+  disabledButton: { opacity: 0.6 },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
