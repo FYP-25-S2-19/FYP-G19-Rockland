@@ -1,17 +1,4 @@
 {
-<<<<<<< HEAD
   "/page": "app/page.js",
-  "/login/page": "app/login/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/landingpagemanagement/page": "app/landingpagemanagement/page.js",
-  "/zoneprofile/page": "app/zoneprofile/page.js",
-  "/zoneprofile/preview_zone/page": "app/zoneprofile/preview_zone/page.js",
-  "/rockmanagement/page": "app/rockmanagement/page.js",
-  "/zoneprofile/[id]/edit/page": "app/zoneprofile/[id]/edit/page.js"
-=======
-  "/registration/page": "app/registration/page.js",
-  "/forgot-password/page": "app/forgot-password/page.js",
-  "/page": "app/page.js",
-  "/login/page": "app/login/page.js"
->>>>>>> origin/Ken14Aug
+  "/forgot-password/page": "app/forgot-password/page.js"
 }

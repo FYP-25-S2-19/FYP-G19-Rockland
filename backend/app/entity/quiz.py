@@ -87,63 +87,100 @@ class Quiz(db.Model):
         total_points = 0
 
         questions_data = data.get("questions", [])
+        
+        # Get all existing question IDs for this quiz
+        existing_questions = QuizQuestion.query.filter_by(quiz_id=self.quiz_id).all()
+        existing_question_ids = {q.question_id for q in existing_questions}
+        updated_question_ids = set()
+        
         for q_data in questions_data:
             question_id = q_data.get("question_id")
             options_data = q_data.get("options", [])
+            
+            # Handle both field names for question text
+            question_text = q_data.get("question") or q_data.get("question_text")
+            points = q_data.get("points", 1)
+            
+            # Skip if no question text
+            if not question_text or not question_text.strip():
+                continue
 
             if question_id:
+                # Update existing question
                 question = QuizQuestion.query.filter_by(question_id=question_id, quiz_id=self.quiz_id).first()
                 if question:
-                    question.question_text = q_data.get("question", question.question_text)
-                    question.points = q_data.get("points", question.points)
+                    question.question_text = question_text.strip()
+                    question.points = points
                     total_points += question.points
+                    updated_question_ids.add(question_id)
 
+                    # Update options for existing question
                     existing_options = QuizOption.query.filter_by(question_id=question.question_id).all()
                     existing_option_ids = {opt.option_id for opt in existing_options}
                     updated_option_ids = set()
 
                     for opt_data in options_data:
                         option_id = opt_data.get("option_id")
+                        option_text = opt_data.get("option_text", "").strip()
+                        is_correct = opt_data.get("is_correct", False)
+                        
+                        # Skip empty options
+                        if not option_text:
+                            continue
+                            
                         if option_id:
                             option = QuizOption.query.filter_by(option_id=option_id, question_id=question.question_id).first()
                             if option:
-                                option.option_text = opt_data.get("option_text", option.option_text)
-                                option.is_correct = opt_data.get("is_correct", option.is_correct)
+                                option.option_text = option_text
+                                option.is_correct = is_correct
                                 updated_option_ids.add(option.option_id)
                         else:
                             new_option = QuizOption(
                                 question_id=question.question_id,
-                                option_text=opt_data.get("option_text"),
-                                is_correct=opt_data.get("is_correct", False),
+                                option_text=option_text,
+                                is_correct=is_correct,
                             )
                             db.session.add(new_option)
-                            db.session.flush()
 
-                    to_delete_ids = existing_option_ids - updated_option_ids
-                    if to_delete_ids:
-                        QuizOption.query.filter(QuizOption.option_id.in_(to_delete_ids)).delete(synchronize_session='fetch')
+                    # Delete removed options
+                    to_delete_option_ids = existing_option_ids - updated_option_ids
+                    if to_delete_option_ids:
+                        QuizOption.query.filter(QuizOption.option_id.in_(to_delete_option_ids)).delete(synchronize_session='fetch')
             else:
+                # Create new question
                 new_question = QuizQuestion(
                     quiz_id=self.quiz_id,
-                    question_text=q_data.get("question"),
-                    points=q_data.get("points", 1),
+                    question_text=question_text.strip(),  # Make sure this is not empty
+                    points=points,
                 )
                 db.session.add(new_question)
                 db.session.flush()
                 total_points += new_question.points
 
+                # Add options for new question
                 for opt_data in options_data:
-                    new_option = QuizOption(
-                        question_id=new_question.question_id,
-                        option_text=opt_data.get("option_text"),
-                        is_correct=opt_data.get("is_correct", False),
-                    )
-                    db.session.add(new_option)
+                    option_text = opt_data.get("option_text", "").strip()
+                    is_correct = opt_data.get("is_correct", False)
+                    
+                    # Only create option if it has text
+                    if option_text:
+                        new_option = QuizOption(
+                            question_id=new_question.question_id,
+                            option_text=option_text,
+                            is_correct=is_correct,
+                        )
+                        db.session.add(new_option)
+
+        # Delete questions that were removed
+        questions_to_delete = existing_question_ids - updated_question_ids
+        if questions_to_delete:
+            QuizQuestion.query.filter(QuizQuestion.question_id.in_(questions_to_delete)).delete(synchronize_session='fetch')
 
         self.total_points = total_points
         if "interest_id" in data:
             self.interest_id = data["interest_id"]
 
+        # ✅ COMMIT INSIDE THE METHOD
         db.session.commit()
 
     def delete_quiz(self):
@@ -341,4 +378,3 @@ class QuizResult(db.Model):
             "points_earned": total_score,
             "status": 200
         }
-

@@ -104,7 +104,7 @@ export default function PricingPage() {
   const fallbackFeatures = {
     basic: [
       { name: "Photo-based rock identification", included: true, icon: Camera },
-      { name: "5 scans per day", included: true },
+      { name: "3 scans per day", included: true },
       { name: "Basic rock database (1,000+ rocks)", included: true },
       { name: "Community forum access", included: true, icon: MessageCircle },
       { name: "View nearby rock locations", included: true, icon: MapPin },
@@ -204,41 +204,41 @@ export default function PricingPage() {
       <section className="py-8 sm:py-12 -mt-6 sm:-mt-8 relative z-10">
         <div className="max-w-6xl mx-auto px-4">
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-8 mb-6 sm:mb-8">
-            <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">Core Platform Features</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8 text-gray-900">Core Platform Features</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
               <div className="text-center">
                 <div className="bg-green-100 rounded-full p-3 sm:p-4 w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 flex items-center justify-center">
                   <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                 </div>
-                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Photo ID</h3>
+                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base text-gray-900">Photo ID</h3>
                 <p className="text-xs sm:text-sm text-gray-600">Advanced AI rock identification from photos</p>
               </div>
               <div className="text-center">
                 <div className="bg-blue-100 rounded-full p-3 sm:p-4 w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 flex items-center justify-center">
                   <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
                 </div>
-                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Rock Mapping</h3>
+                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base text-gray-900">Rock Mapping</h3>
                 <p className="text-xs sm:text-sm text-gray-600">Discover rocks near you with GPS locations</p>
               </div>
               <div className="text-center">
                 <div className="bg-purple-100 rounded-full p-3 sm:p-4 w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 flex items-center justify-center">
                   <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
                 </div>
-                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Expert Network</h3>
+                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base text-gray-900">Expert Network</h3>
                 <p className="text-xs sm:text-sm text-gray-600">Connect with geology experts for consultations</p>
               </div>
               <div className="text-center">
                 <div className="bg-yellow-100 rounded-full p-3 sm:p-4 w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 flex items-center justify-center">
                   <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
                 </div>
-                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Quiz & Rewards</h3>
+                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base text-gray-900">Quiz & Rewards</h3>
                 <p className="text-xs sm:text-sm text-gray-600">Learn through interactive quizzes and earn points</p>
               </div>
               <div className="text-center col-span-2 sm:col-span-3 lg:col-span-1">
                 <div className="bg-orange-100 rounded-full p-3 sm:p-4 w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 flex items-center justify-center">
                   <Archive className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
                 </div>
-                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Collections</h3>
+                <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base text-gray-900">Collections</h3>
                 <p className="text-xs sm:text-sm text-gray-600">Organize and manage your rock discoveries</p>
               </div>
             </div>
@@ -247,10 +247,10 @@ export default function PricingPage() {
       </section>
 
       {/* Pricing Cards Section - Made responsive */}
-      <section className="py-6 sm:py-8">
+      <section className="py-6 sm:py-8 bg-white">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Subscription Plans</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-900">Subscription Plans</h2>
             <p className="text-gray-600 text-sm sm:text-base">Choose the perfect plan for your rock exploration journey</p>
           </div>
 
@@ -265,118 +265,103 @@ export default function PricingPage() {
             <div className="text-center py-6 sm:py-8 mb-6 sm:mb-8">
               <div className="text-yellow-600 mb-2">⚠️</div>
               <p className="text-gray-600 text-sm sm:text-base">{subscriptionError}</p>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2">Showing default plans</p>
+              <p className="text-xs sm:text-sm text-gray-400 mt-2">Please check back later</p>
             </div>
           ) : null}
 
           <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto">
             {/* Basic Plan - Made responsive */}
-            <Card className="relative overflow-hidden">
-              <CardContent className="p-6 sm:p-8">
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-4">
-                    <Users className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mr-2" />
-                    <h3 className="text-base sm:text-lg font-bold text-gray-600">
-                      {subscriptionPlans.free?.name?.toUpperCase() || 'BASIC'}
-                    </h3>
-                  </div>
-                  <div className="mb-4 sm:mb-6">
-                    <span className="text-4xl sm:text-5xl font-bold">
-                      {subscriptionPlans.free?.currency || '$'}{subscriptionPlans.free?.price || 0}
-                    </span>
-                    <span className="text-gray-500 text-sm sm:text-base">/month</span>
-                  </div>
-                  <p className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">
-                    {subscriptionPlans.free?.description || 'Perfect for casual rock enthusiasts'}
-                  </p>
+            {subscriptionPlans.free && (
+              <Card className="relative overflow-hidden bg-white">
+                <CardContent className="p-6 sm:p-8 bg-white">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      <Users className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mr-2" />
+                      <h3 className="text-base sm:text-lg font-bold text-gray-600">
+                        {subscriptionPlans.free?.name?.toUpperCase() || 'BASIC'}
+                      </h3>
+                    </div>
+                    <div className="mb-4 sm:mb-6">
+                      <span className="text-4xl sm:text-5xl font-bold text-black">
+                        {subscriptionPlans.free?.currency || '$'}{subscriptionPlans.free?.price || 0}
+                      </span>
+                      <span className="text-gray-500 text-sm sm:text-base">/month</span>
+                    </div>
+                    <p className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">
+                      {subscriptionPlans.free?.description || 'Perfect for casual rock enthusiasts'}
+                    </p>
 
-                  <Link href="/registration">
-                    <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white mb-6 sm:mb-8 text-sm sm:text-base py-2 sm:py-3">
-                      Get Started Free
-                    </Button>
-                  </Link>
+                    <Link href="/registration">
+                      <Button className="w-full bg-gray-800 hover:bg-gray-700 text-white mb-6 sm:mb-8 text-sm sm:text-base py-2 sm:py-3">
+                        Get Started Free
+                      </Button>
+                    </Link>
 
-                  <div className="space-y-3 sm:space-y-4 text-left">
-                    {subscriptionPlans.free ? (
-                      parseFeatures(subscriptionPlans.free).map((feature, index) => (
+                    <div className="space-y-3 sm:space-y-4 text-left">
+                      {parseFeatures(subscriptionPlans.free).map((feature, index) => (
                         <div key={index} className="flex items-start">
                           <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                           <span className="text-gray-700 text-sm sm:text-base">{feature}</span>
                         </div>
-                      ))
-                    ) : (
-                      fallbackFeatures.basic.map((feature, index) => (
-                        <div key={index} className="flex items-start">
-                          <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                          <div className="flex items-start">
-                            {feature.icon && (
-                              <feature.icon className="w-4 h-4 mr-2 text-green-500 flex-shrink-0 mt-0.5" />
-                            )}
-                            <span className="text-gray-700 text-sm sm:text-base">{feature.name}</span>
-                          </div>
-                        </div>
-                      ))
-                    )}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Premium Plan - Made responsive */}
-            <Card className="relative overflow-hidden border-2 border-green-200 shadow-lg">
-              <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-center py-2 text-xs sm:text-sm font-medium">
-                <Crown className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
-                Most Popular
-              </div>
-              <CardContent className="p-6 sm:p-8 pt-10 sm:pt-12">
-                <div className="text-center">
-                  <div className="flex items-center justify-center mb-4">
-                    <Star className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 mr-2" />
-                    <h3 className="text-base sm:text-lg font-bold text-green-600">
-                      {subscriptionPlans.premium?.name?.toUpperCase() || 'PREMIUM'}
-                    </h3>
-                  </div>
-                  <div className="mb-4 sm:mb-6">
-                    <span className="text-4xl sm:text-5xl font-bold">
-                      {subscriptionPlans.premium?.currency || '$'}{subscriptionPlans.premium?.price || 5}
-                    </span>
-                    <span className="text-gray-500 text-sm sm:text-base">/month</span>
-                  </div>
-                  <p className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">
-                    {subscriptionPlans.premium?.description || 'For serious rock collectors and students'}
-                  </p>
+            {subscriptionPlans.premium && (
+              <Card className="relative overflow-hidden border-2 border-green-200 shadow-lg bg-white">
+                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-center py-2 text-xs sm:text-sm font-medium">
+                  <Crown className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                  Most Popular
+                </div>
+                <CardContent className="p-6 sm:p-8 pt-10 sm:pt-12 bg-white">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      <Star className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 mr-2" />
+                      <h3 className="text-base sm:text-lg font-bold text-green-600">
+                        {subscriptionPlans.premium?.name?.toUpperCase() || 'PREMIUM'}
+                      </h3>
+                    </div>
+                    <div className="mb-4 sm:mb-6">
+                      <span className="text-4xl sm:text-5xl font-bold text-black">
+                        {subscriptionPlans.premium?.currency || '$'}{subscriptionPlans.premium?.price || 5}
+                      </span>
+                      <span className="text-gray-500 text-sm sm:text-base">/month</span>
+                    </div>
+                    <p className="text-gray-600 mb-6 sm:mb-8 text-sm sm:text-base">
+                      {subscriptionPlans.premium?.description || 'For serious rock collectors and students'}
+                    </p>
 
-                  <Link href="/registration">
-                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white mb-6 sm:mb-8 text-sm sm:text-base py-2 sm:py-3">
-                      Start Premium Trial
-                    </Button>
-                  </Link>
+                    <Link href="/registration">
+                      <Button className="w-full bg-green-600 hover:bg-green-700 text-white mb-6 sm:mb-8 text-sm sm:text-base py-2 sm:py-3">
+                        Start Premium Plan
+                      </Button>
+                    </Link>
 
-                  <div className="space-y-3 sm:space-y-4 text-left">
-                    {subscriptionPlans.premium ? (
-                      parseFeatures(subscriptionPlans.premium).map((feature, index) => (
+                    <div className="space-y-3 sm:space-y-4 text-left">
+                      {parseFeatures(subscriptionPlans.premium).map((feature, index) => (
                         <div key={index} className="flex items-start">
                           <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                           <span className="text-gray-700 text-sm sm:text-base">{feature}</span>
                         </div>
-                      ))
-                    ) : (
-                      fallbackFeatures.premium.map((feature, index) => (
-                        <div key={index} className="flex items-start">
-                          <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                          <div className="flex items-start">
-                            {feature.icon && (
-                              <feature.icon className="w-4 h-4 mr-2 text-green-500 flex-shrink-0 mt-0.5" />
-                            )}
-                            <span className="text-gray-700 text-sm sm:text-base">{feature.name}</span>
-                          </div>
-                        </div>
-                      ))
-                    )}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* No plans available state */}
+            {!subscriptionPlans.free && !subscriptionPlans.premium && !subscriptionLoading && (
+              <div className="col-span-full text-center py-16">
+                <div className="text-gray-400 mb-2">📋</div>
+                <p className="text-gray-600">No subscription plans available</p>
+                <p className="text-sm text-gray-400 mt-2">Plans will be displayed when available</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -384,18 +369,18 @@ export default function PricingPage() {
       {/* Feature Comparison Table - Made responsive */}
       <section className="py-12 sm:py-16 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">Detailed Feature Comparison</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 text-gray-900">Detailed Feature Comparison</h2>
 
           {/* Mobile-friendly comparison cards */}
           <div className="block lg:hidden space-y-4">
             <div className="bg-white rounded-lg shadow-sm p-4">
-              <h3 className="font-bold mb-4 text-center">Feature Comparison</h3>
+              <h3 className="font-bold mb-4 text-center text-gray-900">Feature Comparison</h3>
               
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">
                   <div className="flex items-center">
                     <Camera className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm font-medium">Photo Recognition</span>
+                    <span className="text-sm font-medium text-gray-700">Photo Recognition</span>
                   </div>
                   <div className="flex space-x-4">
                     <span className="text-green-600 text-sm">✓</span>
@@ -404,9 +389,9 @@ export default function PricingPage() {
                 </div>
 
                 <div className="flex items-center justify-between border-b pb-2">
-                  <span className="text-sm font-medium">Daily Scans</span>
+                  <span className="text-sm font-medium text-gray-700">Daily Scans</span>
                   <div className="flex space-x-4 text-sm">
-                    <span className="w-12 text-center">5/day</span>
+                    <span className="w-12 text-center text-gray-700">3/day</span>
                     <span className="w-12 text-center text-green-600">∞</span>
                   </div>
                 </div>
@@ -414,7 +399,7 @@ export default function PricingPage() {
                 <div className="flex items-center justify-between border-b pb-2">
                   <div className="flex items-center">
                     <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm font-medium">Location Mapping</span>
+                    <span className="text-sm font-medium text-gray-700">Location Mapping</span>
                   </div>
                   <div className="flex space-x-4">
                     <span className="text-green-600 text-sm">✓</span>
@@ -425,10 +410,10 @@ export default function PricingPage() {
                 <div className="flex items-center justify-between border-b pb-2">
                   <div className="flex items-center">
                     <MessageCircle className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm font-medium">Expert Consultations</span>
+                    <span className="text-sm font-medium text-gray-700">Expert Consultations</span>
                   </div>
                   <div className="flex space-x-4 text-sm">
-                    <span className="w-12 text-center">❌</span>
+                    <span className="w-12 text-center text-gray-700">❌</span>
                     <span className="w-12 text-center text-green-600">✓</span>
                   </div>
                 </div>
@@ -436,22 +421,11 @@ export default function PricingPage() {
                 <div className="flex items-center justify-between border-b pb-2">
                   <div className="flex items-center">
                     <Trophy className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm font-medium">Quiz & Rewards</span>
+                    <span className="text-sm font-medium text-gray-700">Quiz & Rewards</span>
                   </div>
                   <div className="flex space-x-4 text-sm">
-                    <span className="w-12 text-center">❌</span>
+                    <span className="w-12 text-center text-gray-700">❌</span>
                     <span className="w-12 text-center text-green-600">✓</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Archive className="w-4 h-4 mr-2 text-gray-500" />
-                    <span className="text-sm font-medium">Collection Storage</span>
-                  </div>
-                  <div className="flex space-x-4 text-sm">
-                    <span className="w-12 text-center">20</span>
-                    <span className="w-12 text-center text-green-600">∞</span>
                   </div>
                 </div>
               </div>
@@ -470,8 +444,8 @@ export default function PricingPage() {
             <table className="w-full bg-white rounded-lg shadow-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-4 font-semibold">Features</th>
-                  <th className="text-center p-4 font-semibold">
+                  <th className="text-left p-4 font-semibold text-gray-900">Features</th>
+                  <th className="text-center p-4 font-semibold text-gray-900">
                     {subscriptionPlans.free?.name || 'Basic'}
                   </th>
                   <th className="text-center p-4 font-semibold text-green-600">
@@ -481,49 +455,41 @@ export default function PricingPage() {
               </thead>
               <tbody>
                 <tr className="border-b">
-                  <td className="p-4 font-medium flex items-center">
+                  <td className="p-4 font-medium flex items-center text-gray-700">
                     <Camera className="w-4 h-4 mr-2 text-gray-500" />
                     Photo Recognition
                   </td>
-                  <td className="p-4 text-center">✓</td>
+                  <td className="p-4 text-center text-gray-700">✓</td>
                   <td className="p-4 text-center text-green-600">✓</td>
                 </tr>
                 <tr className="border-b bg-gray-50">
-                  <td className="p-4 font-medium">Daily Scans</td>
-                  <td className="p-4 text-center">5 per day</td>
+                  <td className="p-4 font-medium text-gray-700">Daily Scans</td>
+                  <td className="p-4 text-center text-gray-700">3 per day</td>
                   <td className="p-4 text-center text-green-600">Unlimited</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="p-4 font-medium flex items-center">
+                  <td className="p-4 font-medium flex items-center text-gray-700">
                     <MapPin className="w-4 h-4 mr-2 text-gray-500" />
                     Rock Location Mapping
                   </td>
-                  <td className="p-4 text-center">✓</td>
+                  <td className="p-4 text-center text-gray-700">✓</td>
                   <td className="p-4 text-center text-green-600">✓</td>
                 </tr>
                 <tr className="border-b bg-gray-50">
-                  <td className="p-4 font-medium flex items-center">
+                  <td className="p-4 font-medium flex items-center text-gray-700">
                     <MessageCircle className="w-4 h-4 mr-2 text-gray-500" />
                     Expert Consultations
                   </td>
-                  <td className="p-4 text-center">❌</td>
+                  <td className="p-4 text-center text-gray-700">❌</td>
                   <td className="p-4 text-center text-green-600">Discussion access</td>
                 </tr>
                 <tr className="border-b">
-                  <td className="p-4 font-medium flex items-center">
+                  <td className="p-4 font-medium flex items-center text-gray-700">
                     <Trophy className="w-4 h-4 mr-2 text-gray-500" />
                     Quiz & Rewards System
                   </td>
-                  <td className="p-4 text-center">❌</td>
+                  <td className="p-4 text-center text-gray-700">❌</td>
                   <td className="p-4 text-center text-green-600">Full access</td>
-                </tr>
-                <tr className="border-b bg-gray-50">
-                  <td className="p-4 font-medium flex items-center">
-                    <Archive className="w-4 h-4 mr-2 text-gray-500" />
-                    Collection Storage
-                  </td>
-                  <td className="p-4 text-center">20 rocks</td>
-                  <td className="p-4 text-center text-green-600">Unlimited</td>
                 </tr>
               </tbody>
             </table>
@@ -561,7 +527,7 @@ export default function PricingPage() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             <div className="text-sm text-center sm:text-left">
-              <div className="mb-4 font-medium">2025 Rockland FYP-S2-G19</div>
+              <div className="mb-4 font-medium text-white">2025 Rockland FYP-S2-G19</div>
               <div className="mt-4">
                 <a href="/login" className="text-emerald-200 hover:text-white text-xs transition-colors">
                   Admin Login

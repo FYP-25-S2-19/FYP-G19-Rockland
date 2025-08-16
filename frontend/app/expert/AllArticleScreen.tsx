@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import SearchIcon from "../../assets/images/search.svg";
-import FilterIcon from "../../assets/images/filter.svg";
 import BackIcon from "../../assets/images/back.svg";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -78,8 +77,8 @@ export default function AllArticlesScreen() {
         <Text className="text-[30px] font-bold text-black">My Articles</Text>
       </View>
 
-      <View className="flex-row items-center mb-5">
-        <View className="flex-1 flex-row items-center bg-white rounded-xl border-2 border-black px-4 h-12 mr-3">
+      <View className="mb-5">
+        <View className="flex-row items-center bg-white rounded-xl border-2 border-black px-4 h-12">
           <SearchIcon width={20} height={20} className="mr-2" />
           <TextInput
             className="flex-1 text-base text-black p-0"
@@ -89,12 +88,6 @@ export default function AllArticlesScreen() {
             onChangeText={setSearchText}
           />
         </View>
-        <TouchableOpacity
-          className="p-3 rounded-xl bg-white border-2 border-black justify-center items-center"
-          onPress={() => alert("Filter pressed")}
-        >
-          <FilterIcon width={20} height={20} fill="#000" />
-        </TouchableOpacity>
       </View>
 
       {loading ? (

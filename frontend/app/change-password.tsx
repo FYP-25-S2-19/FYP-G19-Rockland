@@ -46,13 +46,32 @@ export default function ChangePasswordScreen() {
       hasError = true;
     }
 
-    // New password required + minimum length (6 chars)
+    // New password validation with updated rules
     if (!newPassword) {
       newErrors.newPassword = "New password is required";
       hasError = true;
-    } else if (newPassword.length < 6) {
-      newErrors.newPassword = "Password must be at least 6 characters";
+    } else if (newPassword.length < 8) {
+      newErrors.newPassword = "Password must be at least 8 characters long";
       hasError = true;
+    } else if (!/[a-zA-Z]/.test(newPassword)) {
+      newErrors.newPassword = "Password must contain at least 1 letter";
+      hasError = true;
+    } else if (!/\d/.test(newPassword)) {
+      newErrors.newPassword = "Password must contain at least 1 number";
+      hasError = true;
+    } else {
+      // Check for common weak passwords
+      const commonPasswords = [
+        'password', 'password123', '123456', '123456789', 'qwerty',
+        'abc123', 'password1', 'admin', 'letmein', 'welcome',
+        'monkey', '1234567890', 'dragon', 'princess', 'football',
+        'passw0rd', 'qwerty123', 'admin123'
+      ];
+      
+      if (commonPasswords.includes(newPassword.toLowerCase())) {
+        newErrors.newPassword = "This password is too common. Please choose a stronger password";
+        hasError = true;
+      }
     }
 
     // Confirm password check

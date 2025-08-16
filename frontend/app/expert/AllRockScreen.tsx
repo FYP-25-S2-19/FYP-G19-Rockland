@@ -17,7 +17,6 @@ import axios from "axios";
 // Icons (adjust import paths if yours differ)
 import SearchIcon from "../../assets/images/search.svg";
 import BackIcon from "../../assets/images/back.svg";
-import FilterIcon from "../../assets/images/filter.svg";
 
 type RockItem = {
   rock_id: number;
@@ -178,9 +177,9 @@ export default function AllRockScreen() {
         <Text className="text-3xl ml-4 font-bold text-black">My Rock Entries</Text>
       </View>
 
-      {/* Search + Filter */}
-      <View className="flex-row px-4 py-3 items-center">
-        <View className="flex-1 flex-row items-center bg-white rounded-xl px-4 h-12 mr-3 border-2 border-gray-600">
+      {/* Search */}
+      <View className="px-4 py-3">
+        <View className="flex-row items-center bg-white rounded-xl px-4 h-12 border-2 border-gray-600">
           <SearchIcon width={20} height={20} style={{ marginRight: 10 }} />
           <TextInput
             className="flex-1 text-base text-gray-800"
@@ -192,14 +191,6 @@ export default function AllRockScreen() {
             autoCorrect={false}
           />
         </View>
-        <TouchableOpacity
-          className="p-3 bg-white rounded-xl border-2 border-gray-600"
-          onPress={() => {
-            // future: setFilterModalVisible(true)
-          }}
-        >
-          <FilterIcon width={20} height={20} />
-        </TouchableOpacity>
       </View>
 
       {/* List */}
@@ -215,7 +206,7 @@ export default function AllRockScreen() {
           ListEmptyComponent={
             <View className="items-center mt-20 px-6">
               <Text className="text-gray-600 text-lg text-center">
-                You don’t have any rock entries yet.
+                You don't have any rock entries yet.
               </Text>
               <TouchableOpacity
                 className="mt-4 bg-[#459B6C] px-4 py-2 rounded-xl"
