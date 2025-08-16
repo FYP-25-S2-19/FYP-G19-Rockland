@@ -56,7 +56,7 @@ export default function SubscribePremiumScreen() {
         },
         body: JSON.stringify({
           user_id: userId,
-          plan_id: plan.subscription_plan_id,
+          plan_id: plan.id,
         }),
       });
 
